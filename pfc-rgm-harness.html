@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>PFC Manager — Harness de Validação (Allowlist + Self Sign-up)</title>
+<style>
+  body { font-family: monospace; max-width: 780px; margin: 40px auto; background: #0d1117; color: #c9d1d9; padding: 0 16px; }
+  h1, h2 { color: #58a6ff; }
+  h1 { font-size: 1.1rem; } h2 { font-size: 0.95rem; margin-top: 32px; border-top: 1px solid #30363d; padding-top: 16px; }
+  button { background: #238636; color: #fff; border: none; padding: 8px 14px; cursor: pointer; font-family: monospace; margin-right: 8px; }
+  button.secondary { background: #30363d; }
+  button:disabled { background: #30363d; cursor: not-allowed; opacity: 0.5; }
+  pre { background: #161b22; padding: 12px; overflow-x: auto; border: 1px solid #30363d; white-space: pre-wrap; word-break: break-all; }
+  .row { margin: 8px 0; }
+  input, textarea { width: 100%; background: #161b22; color: #c9d1d9; border: 1px solid #30363d; padding: 6px; font-family: monospace; box-sizing: border-box; }
+  textarea { height: 100px; }
+  label { font-size: 0.8rem; color: #8b949e; display: block; margin-bottom: 2px; }
+  .cfg { font-size: 0.75rem; color: #8b949e; }
+</style>
+</head>
+<body>
+<h1>&gt; PFC Manager — Harness (Allowlist + Self Sign-up de Aluno)</h1>
+
+<h2>0. Configuração</h2>
+<div class="row"><label>Region</label><input id="cfgRegion" value="us-east-1"></div>
+<div class="row"><label>User Pool ID</label><input id="cfgUserPoolId" placeholder="us-east-1_xxxxxxx"></div>
+<div class="row"><label>App Client ID (público, sem secret, USER_PASSWORD_AUTH habilitado)</label><input id="cfgClientId" placeholder="1a2b3c4d..."></div>
+<div class="row"><label>Identity Pool ID</label><input id="cfgIdentityPoolId" placeholder="us-east-1:xxxxxxxx-xxxx-..."></div>
+<div class="row"><label>DynamoDB Table Name</label><input id="cfgTable" value="PfcManager"></div>
+
+<h2>1. Login do professor (admin)</h2>
+<div class="row"><label>Email</label><input id="admEmail" type="email"></div>
+<div class="row"><label>Senha</label><input id="admPassword" type="password"></div>
+<div class="row">
+  <button id="btnAdminLogin">Login admin</button>
+  <button id="btnAdminLogout" class="secondary" disabled>Logout admin</button>
+</div>
+<div id="adminStatus" class="row"></div>
+
+<h2>2. Provisionar allowlist de RGMs</h2>
+<div id="adminSectionLocked" class="cfg">🔒 Seção restrita — faça login como admin (grupo "admin") na seção 1 pra liberar. Isso não é só visual: sem o token de admin, o Identity Pool não concede credenciais AWS pra nenhuma ação aqui.</div>
+<div id="adminSectionContent" style="display:none">
+  <div class="cfg">Isso só grava a allowlist no DynamoDB. Nenhuma conta é criada no Cognito aqui — o Cognito só tem contas de admin. O aluno se cadastra sozinho na seção 3, e o Pre Sign-up Lambda valida o RGM contra essa allowlist na hora do cadastro.</div>
+  <div class="row">
+    <label>RGMs — um por linha (ou CSV, primeiro campo da linha é o RGM)</label>
+    <textarea id="rgmList" placeholder="12345678&#10;87654321&#10;11223344"></textarea>
+  </div>
+  <div class="row">
+    <button id="btnUpload">Gravar allowlist</button>
+    <button id="btnDelete" class="secondary">Remover RGMs da allowlist</button>
+  </div>
+  <pre id="uploadOutput"></pre>
+</div>
+
+<h2>3. Cadastro e login de aluno (self sign-up)</h2>
+<div class="cfg">Só funciona se o RGM já estiver na allowlist (seção 2). O email precisa terminar no domínio configurado no Lambda (ALLOWED_DOMAIN).</div>
+<div class="row"><label>Email (rgm@dominio)</label><input id="stuEmail" type="email"></div>
+<div class="row"><label>Senha (escolhida por você agora)</label><input id="stuPassword" type="password"></div>
+<div class="row">
+  <button id="btnStudentSignUp">Cadastrar</button>
+  <button id="btnStudentLogin" class="secondary">Entrar (já cadastrado)</button>
+</div>
+<div id="stuStatus" class="row"></div>
+
+<div id="confirmPanel" class="row" style="display:none">
+  <label>Código de verificação (chegou no email)</label>
+  <input id="stuConfirmCode">
+  <button id="btnConfirmSignUp" style="margin-top:8px">Confirmar cadastro</button>
+</div>
+
+<pre id="stuOutput"></pre>
+
+<script type="module">
+import { AwsClient } from "https://esm.sh/aws4fetch@1.0.20";
+
+const $ = id => document.getElementById(id);
+
+['cfgRegion','cfgUserPoolId','cfgClientId','cfgIdentityPoolId','cfgTable'].forEach(id => {
+  $(id).value = sessionStorage.getItem(id) || $(id).value;
+  $(id).addEventListener('input', () => sessionStorage.setItem(id, $(id).value));
+});
+
+let idToken = null;
+let credentials = null;
+
+async function awsJsonCall(baseUrl, target, body) {
+  const resp = await fetch(baseUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-amz-json-1.1', 'X-Amz-Target': target },
+    body: JSON.stringify(body)
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.message || data.__type || `HTTP ${resp.status}`);
+  return data;
+}
+
+const cognitoIdpUrl = region => `https://cognito-idp.${region}.amazonaws.com/`;
+const cognitoIdentityUrl = region => `https://cognito-identity.${region}.amazonaws.com/`;
+
+function resetAdminSession() {
+  idToken = null;
+  credentials = null;
+  $('adminSectionContent').style.display = 'none';
+  $('adminSectionLocked').style.display = 'block';
+  $('btnAdminLogin').disabled = false;
+  $('btnAdminLogout').disabled = true;
+  $('adminStatus').textContent = 'Sessão de admin encerrada.';
+}
+
+$('btnAdminLogin').addEventListener('click', async () => {
+  const region = $('cfgRegion').value;
+  const userPoolId = $('cfgUserPoolId').value;
+  const clientId = $('cfgClientId').value;
+  const identityPoolId = $('cfgIdentityPoolId').value;
+
+  $('adminStatus').textContent = 'Autenticando...';
+
+  try {
+    const authResp = await awsJsonCall(cognitoIdpUrl(region), 'AWSCognitoIdentityProviderService.InitiateAuth', {
+      AuthFlow: 'USER_PASSWORD_AUTH',
+      ClientId: clientId,
+      AuthParameters: { USERNAME: $('admEmail').value, PASSWORD: $('admPassword').value }
+    });
+
+    if (authResp.ChallengeName) {
+      $('adminStatus').textContent = `Challenge pendente: ${authResp.ChallengeName} (defina senha permanente no console pra pular isso)`;
+      return;
+    }
+
+    idToken = authResp.AuthenticationResult.IdToken;
+    const claims = JSON.parse(atob(idToken.split('.')[1]));
+
+    if (!claims['cognito:groups'] || !claims['cognito:groups'].includes('admin')) {
+      $('adminStatus').textContent = `Autenticado, mas sem grupo "admin". Grupos: ${JSON.stringify(claims['cognito:groups'] || [])}`;
+      return;
+    }
+
+    const loginKey = `cognito-idp.${region}.amazonaws.com/${userPoolId}`;
+    const { IdentityId } = await awsJsonCall(cognitoIdentityUrl(region), 'AWSCognitoIdentityService.GetId', {
+      IdentityPoolId: identityPoolId,
+      Logins: { [loginKey]: idToken }
+    });
+    const { Credentials } = await awsJsonCall(cognitoIdentityUrl(region), 'AWSCognitoIdentityService.GetCredentialsForIdentity', {
+      IdentityId,
+      Logins: { [loginKey]: idToken }
+    });
+    credentials = {
+      accessKeyId: Credentials.AccessKeyId,
+      secretAccessKey: Credentials.SecretKey,
+      sessionToken: Credentials.SessionToken
+    };
+
+    $('adminStatus').textContent = 'Login OK. Grupo admin confirmado. Credenciais temporárias obtidas.';
+    $('adminSectionLocked').style.display = 'none';
+    $('adminSectionContent').style.display = 'block';
+    $('btnAdminLogin').disabled = true;
+    $('btnAdminLogout').disabled = false;
+  } catch (err) {
+    $('adminStatus').textContent = 'Erro: ' + err.message;
+  }
+});
+
+$('btnAdminLogout').addEventListener('click', resetAdminSession);
+
+function parseRGMs(raw) {
+  return raw.split('\n').map(line => line.split(',')[0].trim()).filter(Boolean);
+}
+
+$('btnUpload').addEventListener('click', async () => {
+  const region = $('cfgRegion').value;
+  const table = $('cfgTable').value;
+  const rgms = parseRGMs($('rgmList').value);
+
+  if (rgms.length === 0) { alert('Cole ao menos um RGM'); return; }
+
+  $('uploadOutput').textContent = `Gravando ${rgms.length} RGMs...`;
+
+  try {
+    const ddb = new AwsClient({ ...credentials, region, service: 'dynamodb' });
+    const ddbUrl = `https://dynamodb.${region}.amazonaws.com/`;
+
+    for (let i = 0; i < rgms.length; i += 25) {
+      const chunk = rgms.slice(i, i + 25);
+      const requestItems = chunk.map(rgm => ({
+        PutRequest: { Item: { PK: { S: `STUDENT#${rgm}` }, SK: { S: 'PROFILE' }, status: { S: 'ACTIVE' } } }
+      }));
+      const resp = await ddb.fetch(ddbUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'DynamoDB_20120810.BatchWriteItem' },
+        body: JSON.stringify({ RequestItems: { [table]: requestItems } })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.message || data.__type);
+    }
+
+    $('uploadOutput').textContent = `OK — ${rgms.length} RGMs gravados como ACTIVE na allowlist.`;
+  } catch (err) {
+    $('uploadOutput').textContent = 'Erro ao gravar: ' + err.message;
+  }
+});
+
+$('btnDelete').addEventListener('click', async () => {
+  const region = $('cfgRegion').value;
+  const table = $('cfgTable').value;
+  const rgms = parseRGMs($('rgmList').value);
+
+  if (rgms.length === 0) { alert('Cole ao menos um RGM pra remover'); return; }
+  if (!confirm(`Remover ${rgms.length} RGM(s) da allowlist? Isso não desfaz.`)) return;
+
+  $('uploadOutput').textContent = `Removendo ${rgms.length} RGMs...`;
+
+  try {
+    const ddb = new AwsClient({ ...credentials, region, service: 'dynamodb' });
+    const ddbUrl = `https://dynamodb.${region}.amazonaws.com/`;
+
+    for (let i = 0; i < rgms.length; i += 25) {
+      const chunk = rgms.slice(i, i + 25);
+      const requestItems = chunk.map(rgm => ({
+        DeleteRequest: { Key: { PK: { S: `STUDENT#${rgm}` }, SK: { S: 'PROFILE' } } }
+      }));
+      const resp = await ddb.fetch(ddbUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-amz-json-1.0', 'X-Amz-Target': 'DynamoDB_20120810.BatchWriteItem' },
+        body: JSON.stringify({ RequestItems: { [table]: requestItems } })
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.message || data.__type);
+    }
+
+    $('uploadOutput').textContent = `OK — ${rgms.length} RGMs removidos da allowlist.`;
+  } catch (err) {
+    $('uploadOutput').textContent = 'Erro ao remover: ' + err.message;
+  }
+});
+
+// --- Self sign-up de aluno ---
+
+$('btnStudentSignUp').addEventListener('click', async () => {
+  const region = $('cfgRegion').value;
+  const clientId = $('cfgClientId').value;
+  const email = $('stuEmail').value;
+  const password = $('stuPassword').value;
+
+  $('stuStatus').textContent = 'Cadastrando...';
+  $('confirmPanel').style.display = 'none';
+
+  try {
+    const resp = await awsJsonCall(cognitoIdpUrl(region), 'AWSCognitoIdentityProviderService.SignUp', {
+      ClientId: clientId,
+      Username: email,
+      Password: password,
+      UserAttributes: [{ Name: 'email', Value: email }]
+    });
+
+    if (resp.UserConfirmed) {
+      $('stuStatus').textContent = 'Cadastro concluído e já confirmado. Pode usar "Entrar" agora.';
+    } else {
+      $('stuStatus').textContent = 'Cadastro aceito pelo Pre Sign-up. Cognito enviou um código de verificação pro email — cola ele abaixo.';
+      $('confirmPanel').style.display = 'block';
+    }
+  } catch (err) {
+    $('stuStatus').textContent = 'Cadastro rejeitado (RGM provavelmente não está na allowlist, ou domínio errado): ' + err.message;
+  }
+});
+
+$('btnConfirmSignUp').addEventListener('click', async () => {
+  const region = $('cfgRegion').value;
+  const clientId = $('cfgClientId').value;
+
+  try {
+    await awsJsonCall(cognitoIdpUrl(region), 'AWSCognitoIdentityProviderService.ConfirmSignUp', {
+      ClientId: clientId,
+      Username: $('stuEmail').value,
+      ConfirmationCode: $('stuConfirmCode').value
+    });
+    $('stuStatus').textContent = 'Cadastro confirmado. Pode usar "Entrar" agora.';
+    $('confirmPanel').style.display = 'none';
+  } catch (err) {
+    $('stuStatus').textContent = 'Erro ao confirmar: ' + err.message;
+  }
+});
+
+$('btnStudentLogin').addEventListener('click', async () => {
+  const region = $('cfgRegion').value;
+  const clientId = $('cfgClientId').value;
+
+  $('stuStatus').textContent = 'Autenticando...';
+
+  try {
+    const resp = await awsJsonCall(cognitoIdpUrl(region), 'AWSCognitoIdentityProviderService.InitiateAuth', {
+      AuthFlow: 'USER_PASSWORD_AUTH',
+      ClientId: clientId,
+      AuthParameters: { USERNAME: $('stuEmail').value, PASSWORD: $('stuPassword').value }
+    });
+
+    if (resp.AuthenticationResult) {
+      const claims = JSON.parse(atob(resp.AuthenticationResult.IdToken.split('.')[1]));
+      $('stuStatus').textContent = 'Login concluído com sucesso.';
+      $('stuOutput').textContent = JSON.stringify({ email: claims.email, sub: claims.sub, token_use: claims.token_use }, null, 2);
+      return;
+    }
+
+    $('stuStatus').textContent = `Challenge inesperado: ${resp.ChallengeName}`;
+  } catch (err) {
+    $('stuStatus').textContent = 'Erro no login: ' + err.message;
+  }
+});
+</script>
+</body>
+</html>
