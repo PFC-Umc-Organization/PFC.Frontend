@@ -24,6 +24,13 @@ export abstract class EntregaService {
     atividadeId: string,
     projetoId: string,
   ): Observable<void>;
+  /** Envia o arquivo da entrega de um grupo para uma atividade do cronograma. */
+  abstract entregar(
+    atividadeId: string,
+    projetoId: string,
+    arquivo: File,
+    observacao?: string,
+  ): Observable<void>;
 }
 
 @Injectable()
@@ -50,6 +57,7 @@ export class EntregaMockService extends EntregaService {
             projetoNome: this.store.nomeProjeto(projetoId),
             prazo: atividade.prazo,
             status: this.store.statusEntrega(atividade, projetoId),
+            arquivoNome: this.store.arquivoEntrega(atividade.id, projetoId),
           })),
       ),
     );
@@ -78,6 +86,7 @@ export class EntregaMockService extends EntregaService {
             projetoNome: projeto.nome,
             prazo: atividade.prazo,
             status: this.store.statusEntrega(atividade, projeto.id),
+            arquivoNome: this.store.arquivoEntrega(atividade.id, projeto.id),
           }));
       }),
     );
@@ -123,5 +132,18 @@ export class EntregaMockService extends EntregaService {
   ): Observable<void> {
     this.store.definirEntrega(atividadeId, projetoId, null);
     return of(undefined).pipe(delay(200));
+  }
+
+  override entregar(
+    atividadeId: string,
+    projetoId: string,
+    arquivo: File,
+    observacao?: string,
+  ): Observable<void> {
+    this.store.definirEntrega(atividadeId, projetoId, new Date().toISOString(), {
+      arquivoNome: arquivo.name,
+      observacao,
+    });
+    return of(undefined).pipe(delay(300));
   }
 }

@@ -1,11 +1,5 @@
-import {
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  computed,
-  signal,
-} from '@angular/core';
+import { Component, Input, computed, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 import {
   ItemTimeline,
@@ -19,7 +13,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 @Component({
   selector: 'app-entregavel-card',
   standalone: true,
-  imports: [IconeComponent, PrazoPipe],
+  imports: [IconeComponent, PrazoPipe, RouterLink],
   template: `
     <article class="card-entregavel" [class]="'tom-' + tom()">
       <div class="topo">
@@ -40,18 +34,27 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
         @if (concluido()) {
           <p class="acao acao--feito">
             <app-icone nome="check" />
-            Entregável concluído
+            @if (item().arquivoNome; as nome) {
+              Entregue — {{ nome }}
+            } @else {
+              Entregável concluído
+            }
           </p>
-        } @else if (interativo) {
-          <button
-            type="button"
-            class="btn btn--full-xs btn--primary"
-            (click)="concluir.emit(item().atividadeId)"
-          >
-            Concluir entregável
-          </button>
-        } @else {
+        } @else if (!interativo) {
           <p class="acao acao--aguardando">Aguardando entregas</p>
+        } @else if (atrasado()) {
+          <p class="acao acao--atrasado">
+            <app-icone nome="alerta" />
+            Prazo encerrado
+          </p>
+        } @else {
+          <a
+            class="btn btn--full-xs btn--primary"
+            routerLink="/materiais"
+            [queryParams]="{ atividade: item().atividadeId }"
+          >
+            Enviar entrega
+          </a>
         }
       </div>
     </article>
@@ -160,6 +163,12 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
       background: var(--muted);
       border-color: var(--border);
     }
+
+    .acao--atrasado {
+      color: var(--destructive);
+      background: color-mix(in oklch, var(--destructive) 10%, transparent);
+      border-color: color-mix(in oklch, var(--destructive) 40%, transparent);
+    }
   `,
 })
 export class EntregavelCardComponent {
@@ -172,8 +181,6 @@ export class EntregavelCardComponent {
 
   /** Quando falso, o card é somente leitura (visão do professor). */
   @Input() interativo = true;
-
-  @Output() readonly concluir = new EventEmitter<string>();
 
   readonly item = computed(
     () =>
@@ -193,4 +200,5 @@ export class EntregavelCardComponent {
       this.item().status === 'ENTREGUE' ||
       this.item().status === 'ENTREGUE_COM_ATRASO',
   );
+  readonly atrasado = computed(() => this.item().status === 'ATRASADO');
 }

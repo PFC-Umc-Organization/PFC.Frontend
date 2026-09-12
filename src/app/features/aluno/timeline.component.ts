@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, Input } from '@angular/core';
 
 import { ItemTimeline, ROTULO_LEGENDA } from '../../core/models';
 import { EntregavelCardComponent } from './entregavel-card.component';
@@ -15,19 +15,25 @@ import { EntregavelCardComponent } from './entregavel-card.component';
     <section class="stack">
       <header class="page-header">
         <div>
-          <p class="eyebrow">{{ sobretitulo }}</p>
+          @if (sobretitulo) {
+            <p class="eyebrow">{{ sobretitulo }}</p>
+          }
           <h2 class="page-title mt-2">{{ titulo }}</h2>
-          <p class="lead mt-2">{{ descricao }}</p>
-        </div>
-
-        <div class="legend">
-          @for (l of legenda; track l.texto) {
-            <span class="legend__item">
-              <span class="dot" [class]="'dot--' + l.tom" aria-hidden="true"></span>
-              {{ l.texto }}
-            </span>
+          @if (descricao) {
+            <p class="lead mt-2">{{ descricao }}</p>
           }
         </div>
+
+        @if (mostrarLegenda) {
+          <div class="legend">
+            @for (l of legenda; track l.texto) {
+              <span class="legend__item">
+                <span class="dot" [class]="'dot--' + l.tom" aria-hidden="true"></span>
+                {{ l.texto }}
+              </span>
+            }
+          </div>
+        }
       </header>
 
       @if (itens.length === 0) {
@@ -43,11 +49,7 @@ import { EntregavelCardComponent } from './entregavel-card.component';
                 @if (!primeiro) {
                   <span class="conector" aria-hidden="true"></span>
                 }
-                <app-entregavel-card
-                  [dados]="item"
-                  [interativo]="interativo"
-                  (concluir)="concluir.emit($event)"
-                />
+                <app-entregavel-card [dados]="item" [interativo]="interativo" />
               </li>
             }
           </ol>
@@ -111,8 +113,7 @@ export class TimelineComponent {
   @Input() titulo = 'Timeline de Entregas';
   @Input() descricao =
     'Marque cada etapa como concluída antes da data e hora limite.';
-
-  @Output() readonly concluir = new EventEmitter<string>();
+  @Input() mostrarLegenda = true;
 
   readonly legenda = ROTULO_LEGENDA;
 }

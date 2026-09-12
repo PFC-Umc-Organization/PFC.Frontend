@@ -269,7 +269,7 @@ export class HeaderComponent {
 
   private readonly navAluno: ItemNav[] = [
     { rotulo: 'Início', rota: '/', icone: 'painel' },
-    { rotulo: 'Materiais', rota: '/materiais', icone: 'livro' },
+    { rotulo: 'Entregáveis', rota: '/materiais', icone: 'prancheta' },
   ];
 
   private readonly navProfessor: ItemNav[] = [

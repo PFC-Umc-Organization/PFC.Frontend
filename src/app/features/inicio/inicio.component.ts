@@ -158,7 +158,6 @@ const TODOS = '';
         <app-timeline
           [itens]="itensAluno()"
           [interativo]="!ehPreviaDoProfessor()"
-          (concluir)="concluirEntregavel($event)"
         />
       }
     </div>
@@ -352,15 +351,5 @@ export class InicioComponent {
 
   trocarProjeto(evento: Event): void {
     this.projetoSelecionado.set((evento.target as HTMLSelectElement).value);
-  }
-
-  concluirEntregavel(atividadeId: string): void {
-    const projetoId = this.projetoAlvo();
-
-    if (!projetoId) {
-      return;
-    }
-
-    this.entregaService.marcarEntregue(atividadeId, projetoId).subscribe();
   }
 }

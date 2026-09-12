@@ -23,6 +23,8 @@ export interface Entrega {
   projetoId: string;
   /** ISO 8601 — nulo enquanto o grupo não conclui a etapa. */
   entregueEm: string | null;
+  /** Nome do arquivo anexado pelo grupo. */
+  arquivoNome?: string;
   observacao?: string;
 }
 
@@ -34,6 +36,8 @@ export interface ItemTimeline {
   projetoNome: string;
   prazo: string;
   status: StatusEntrega;
+  /** Nome do arquivo entregue, quando já houver entrega registrada. */
+  arquivoNome?: string;
 }
 
 /**

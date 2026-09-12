@@ -152,6 +152,7 @@ export class MemoriaStore {
     atividadeId: string,
     projetoId: string,
     entregueEm: string | null,
+    detalhes?: { arquivoNome?: string; observacao?: string },
   ): void {
     const existente = this.entregasAtuais.find(
       (e) => e.atividadeId === atividadeId && e.projetoId === projetoId,
@@ -169,7 +170,7 @@ export class MemoriaStore {
     if (existente) {
       this.entregas$.next(
         this.entregasAtuais.map((e) =>
-          e.id === existente.id ? { ...e, entregueEm } : e,
+          e.id === existente.id ? { ...e, entregueEm, ...detalhes } : e,
         ),
       );
       return;
@@ -182,6 +183,7 @@ export class MemoriaStore {
         atividadeId,
         projetoId,
         entregueEm,
+        ...detalhes,
       },
     ]);
   }
@@ -237,6 +239,13 @@ export class MemoriaStore {
     }
 
     return statuses.some((s) => s === 'ATRASADO') ? 'ATRASADA' : 'EM_ANDAMENTO';
+  }
+
+  /** Nome do arquivo entregue por um projeto numa atividade, se houver. */
+  arquivoEntrega(atividadeId: string, projetoId: string): string | undefined {
+    return this.entregasAtuais.find(
+      (e) => e.atividadeId === atividadeId && e.projetoId === projetoId,
+    )?.arquivoNome;
   }
 
   /** Quantos projetos já entregaram a atividade. */
