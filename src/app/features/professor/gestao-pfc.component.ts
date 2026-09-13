@@ -81,24 +81,6 @@ import { IconeComponent } from '../../shared/components/icone.component';
             </button>
           </div>
         } @else {
-          @if (souCoordenador()) {
-            <div class="pfcs__acoes-programa">
-              <button
-                type="button"
-                class="btn btn--outline btn--sm"
-                [disabled]="excluindoPrograma()"
-                (click)="excluirPrograma()"
-              >
-                <app-icone nome="lixeira" class="btn__icon" />
-                {{
-                  excluindoPrograma()
-                    ? 'Excluindo…'
-                    : 'Excluir programa desta turma'
-                }}
-              </button>
-            </div>
-          }
-
           <!-- ---------------------------- novo PFC ---------------------------- -->
           <form
             class="form-grid form-grid--2 novo-pfc"
@@ -232,8 +214,9 @@ import { IconeComponent } from '../../shared/components/icone.component';
                               <input
                                 type="text"
                                 inputmode="numeric"
+                                maxlength="11"
                                 class="control"
-                                placeholder="RGM do aluno"
+                                placeholder="RGM do aluno (11 dígitos)"
                                 [value]="rgmParaAdicionar()"
                                 (input)="aoDigitarRgm($event)"
                               />
@@ -352,7 +335,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
                           <button
                             type="button"
                             class="acao-remover"
-                            (click)="excluirPfc(p.id)"
+                            (click)="excluirPfc(p.id, p.nome)"
                             [attr.aria-label]="'Excluir PFC ' + p.nome"
                           >
                             <app-icone nome="lixeira" />
@@ -410,12 +393,6 @@ import { IconeComponent } from '../../shared/components/icone.component';
     .novo-pfc {
       padding: 1.25rem;
       border-bottom: 1px solid var(--border);
-    }
-
-    .pfcs__acoes-programa {
-      display: flex;
-      justify-content: flex-end;
-      padding: 0.75rem 1.25rem 0;
     }
 
     .pfc-edicao {
@@ -533,7 +510,6 @@ export class GestaoPfcComponent {
   readonly erroPfc = signal('');
 
   readonly iniciandoPrograma = signal(false);
-  readonly excluindoPrograma = signal(false);
 
   readonly novoForm = this.fb.nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(3)]],
@@ -584,33 +560,6 @@ export class GestaoPfcComponent {
           this.erroPfc.set(e.message);
         },
       });
-  }
-
-  /**
-   * O backend recusa (409) se a turma ainda tiver PFCs vinculados — a
-   * mensagem de erro já vem pronta do Go (`programa possui projetos
-   * vinculados, não pode ser removido`) e aparece via `erroPfc`.
-   */
-  excluirPrograma(): void {
-    const programa = this.programaAtual();
-
-    if (!programa) {
-      return;
-    }
-
-    this.erroPfc.set('');
-    this.excluindoPrograma.set(true);
-
-    this.programaService.deletar(programa.id).subscribe({
-      next: () => {
-        this.excluindoPrograma.set(false);
-        this.recarregarProgramas$.next();
-      },
-      error: (e: Error) => {
-        this.excluindoPrograma.set(false);
-        this.erroPfc.set(e.message);
-      },
-    });
   }
 
   invalidoNovo(): boolean {
@@ -684,16 +633,20 @@ export class GestaoPfcComponent {
       });
   }
 
+  /** Filtra qualquer caractere que não seja dígito e trava em 11 dígitos. */
   aoDigitarRgm(evento: Event): void {
-    this.rgmParaAdicionar.set((evento.target as HTMLInputElement).value);
+    const campo = evento.target as HTMLInputElement;
+    const digitos = campo.value.replace(/\D/g, '').slice(0, 11);
+    campo.value = digitos;
+    this.rgmParaAdicionar.set(digitos);
   }
 
   adicionarIntegrante(projetoId: string): void {
     const rgm = this.rgmParaAdicionar().trim();
     this.erroIntegrante.set('');
 
-    if (!/^\d{4,12}$/.test(rgm)) {
-      this.erroIntegrante.set('Informe um RGM válido (só números).');
+    if (!/^\d{11}$/.test(rgm)) {
+      this.erroIntegrante.set('Informe um RGM válido (11 dígitos, só números).');
       return;
     }
 
@@ -739,7 +692,11 @@ export class GestaoPfcComponent {
     });
   }
 
-  excluirPfc(projetoId: string): void {
+  excluirPfc(projetoId: string, nome: string): void {
+    if (!confirm(`Excluir o PFC "${nome}"? Essa ação não pode ser desfeita.`)) {
+      return;
+    }
+
     this.erroPfc.set('');
     this.projetoService.remover(projetoId).subscribe({
       next: () => this.recarregarPfcs$.next(),
