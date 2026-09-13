@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { of, switchMap } from 'rxjs';
+import { Subject, combineLatest, of, startWith, switchMap } from 'rxjs';
 
 import {
   Programa,
@@ -462,9 +462,22 @@ export class GestaoPfcComponent {
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
   readonly turmaSelecionada = signal('c-eng-noite');
 
-  readonly programas = toSignal(this.programaService.listar(), {
-    initialValue: [] as Programa[],
-  });
+  /**
+   * `listar()` do HttpClient é um Observable frio — dispara uma vez e
+   * acaba. Sem esse `Subject` como gatilho manual, criar/editar não
+   * atualizaria a tela até um F5 (a chamada HTTP original já tinha
+   * completado, não há BehaviorSubject vivo como no mock).
+   */
+  private readonly recarregarProgramas$ = new Subject<void>();
+  private readonly recarregarPfcs$ = new Subject<void>();
+
+  readonly programas = toSignal(
+    this.recarregarProgramas$.pipe(
+      startWith(undefined),
+      switchMap(() => this.programaService.listar()),
+    ),
+    { initialValue: [] as Programa[] },
+  );
 
   /** Programa (turma) já iniciado para a turma escolhida, se houver. */
   readonly programaAtual = computed(
@@ -474,8 +487,11 @@ export class GestaoPfcComponent {
   );
 
   readonly pfcs = toSignal(
-    toObservable(computed(() => this.programaAtual()?.id)).pipe(
-      switchMap((programaId) =>
+    combineLatest([
+      toObservable(computed(() => this.programaAtual()?.id)),
+      this.recarregarPfcs$.pipe(startWith(undefined)),
+    ]).pipe(
+      switchMap(([programaId]) =>
         programaId ? this.projetoService.listar(programaId) : of([]),
       ),
     ),
@@ -534,7 +550,10 @@ export class GestaoPfcComponent {
     this.programaService
       .criar({ cursoId: this.turmaSelecionada() })
       .subscribe({
-        next: () => this.iniciandoPrograma.set(false),
+        next: () => {
+          this.iniciandoPrograma.set(false);
+          this.recarregarProgramas$.next();
+        },
         error: (e: Error) => {
           this.iniciandoPrograma.set(false);
           this.erroPfc.set(e.message);
@@ -570,6 +589,7 @@ export class GestaoPfcComponent {
         next: () => {
           this.criando.set(false);
           this.novoForm.reset();
+          this.recarregarPfcs$.next();
         },
         error: (e: Error) => {
           this.criando.set(false);
@@ -604,7 +624,10 @@ export class GestaoPfcComponent {
     this.projetoService
       .atualizar(projetoId, this.editForm.getRawValue())
       .subscribe({
-        next: () => this.editandoId.set(null),
+        next: () => {
+          this.editandoId.set(null);
+          this.recarregarPfcs$.next();
+        },
         error: (e: Error) => this.erroPfc.set(e.message),
       });
   }
@@ -623,7 +646,10 @@ export class GestaoPfcComponent {
     }
 
     this.projetoService.adicionarIntegrante(projetoId, rgm).subscribe({
-      next: () => this.rgmParaAdicionar.set(''),
+      next: () => {
+        this.rgmParaAdicionar.set('');
+        this.recarregarPfcs$.next();
+      },
       error: (e: Error) => this.erroIntegrante.set(e.message),
     });
   }
@@ -631,6 +657,7 @@ export class GestaoPfcComponent {
   removerIntegrante(projetoId: string, rgm: string): void {
     this.erroIntegrante.set('');
     this.projetoService.removerIntegrante(projetoId, rgm).subscribe({
+      next: () => this.recarregarPfcs$.next(),
       error: (e: Error) => this.erroIntegrante.set(e.message),
     });
   }
@@ -644,7 +671,10 @@ export class GestaoPfcComponent {
       : this.projetoService.removerOrientador(projetoId);
 
     acao.subscribe({
-      next: () => this.editandoOrientadorId.set(null),
+      next: () => {
+        this.editandoOrientadorId.set(null);
+        this.recarregarPfcs$.next();
+      },
       error: (e: Error) => this.erroPfc.set(e.message),
     });
   }
@@ -652,6 +682,7 @@ export class GestaoPfcComponent {
   removerOrientador(projetoId: string): void {
     this.erroPfc.set('');
     this.projetoService.removerOrientador(projetoId).subscribe({
+      next: () => this.recarregarPfcs$.next(),
       error: (e: Error) => this.erroPfc.set(e.message),
     });
   }
@@ -659,6 +690,7 @@ export class GestaoPfcComponent {
   excluirPfc(projetoId: string): void {
     this.erroPfc.set('');
     this.projetoService.remover(projetoId).subscribe({
+      next: () => this.recarregarPfcs$.next(),
       error: (e: Error) => this.erroPfc.set(e.message),
     });
   }

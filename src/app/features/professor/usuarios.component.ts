@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { switchMap } from 'rxjs';
+import { Subject, startWith, switchMap } from 'rxjs';
 
 import {
   Matricula,
@@ -447,9 +447,16 @@ export class UsuariosComponent {
 
   /* ------------------------ pré-autorização por RGM ------------------------ */
 
-  readonly matriculas = toSignal(this.matriculaService.listar(), {
-    initialValue: [] as Matricula[],
-  });
+  /** Gatilho manual — `listar()` do HttpClient é frio, dispara uma vez só. */
+  private readonly recarregarMatriculas$ = new Subject<void>();
+
+  readonly matriculas = toSignal(
+    this.recarregarMatriculas$.pipe(
+      startWith(undefined),
+      switchMap(() => this.matriculaService.listar()),
+    ),
+    { initialValue: [] as Matricula[] },
+  );
 
   readonly provisionamentoForm = this.fb.nonNullable.group({
     rgms: ['', [Validators.required]],
@@ -554,6 +561,7 @@ export class UsuariosComponent {
         this.provisionando.set(false);
         this.resultadoProvisionamento.set(resultado);
         this.provisionamentoForm.reset();
+        this.recarregarMatriculas$.next();
       },
       error: (e: Error) => {
         this.provisionando.set(false);
@@ -565,7 +573,9 @@ export class UsuariosComponent {
   }
 
   removerMatricula(rgm: string): void {
-    this.matriculaService.remover([rgm]).subscribe();
+    this.matriculaService
+      .remover([rgm])
+      .subscribe(() => this.recarregarMatriculas$.next());
   }
 
   invalidoEdicao(): boolean {

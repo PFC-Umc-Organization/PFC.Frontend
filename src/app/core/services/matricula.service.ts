@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, delay, of, tap } from 'rxjs';
+import { Observable, catchError, delay, of } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { Matricula, ResultadoMatricula } from '../models';
@@ -12,10 +12,6 @@ import { MemoriaStore } from './memoria.store';
  * que o aluno possa se autocadastrar depois. NÃO cria uma conta — isso só
  * acontece quando o próprio aluno se registra e o RGM embutido no e-mail
  * bate com essa allowlist.
- *
- * Hoje não existe endpoint de listagem no backend (`GET /admin/students`) —
- * `listar()` aqui é só uma conveniência do mock pra tela conseguir mostrar
- * o que já foi pré-autorizado.
  */
 export abstract class MatriculaService {
   abstract listar(): Observable<Matricula[]>;
@@ -42,26 +38,23 @@ export class MatriculaMockService extends MatriculaService {
   }
 }
 
-/**
- * `provisionar`/`remover` gravam de verdade no backend (allowlist no
- * DynamoDB). Não existe `GET /admin/students` ainda, então `listar()`
- * continua herdado do mock — para a lista não ficar completamente vazia
- * depois de uma operação real, espelhamos o resultado no store local
- * também (efeito colateral só de UI, não é fonte de verdade).
- */
+/** `listar`/`provisionar`/`remover` falam com o backend de verdade. */
 @Injectable()
-export class MatriculaHttpService extends MatriculaMockService {
+export class MatriculaHttpService extends MatriculaService {
   private readonly http = inject(HttpClient);
+
+  override listar(): Observable<Matricula[]> {
+    return this.http
+      .get<Matricula[]>(`${environment.apiBaseUrl}/admin/students`)
+      .pipe(catchError(erroHttp));
+  }
 
   override provisionar(rgms: string[]): Observable<ResultadoMatricula> {
     return this.http
       .post<ResultadoMatricula>(`${environment.apiBaseUrl}/admin/students`, {
         rgms,
       })
-      .pipe(
-        tap(() => this.store.provisionarMatriculas(rgms)),
-        catchError(erroHttp),
-      );
+      .pipe(catchError(erroHttp));
   }
 
   override remover(rgms: string[]): Observable<ResultadoMatricula> {
@@ -71,9 +64,6 @@ export class MatriculaHttpService extends MatriculaMockService {
         `${environment.apiBaseUrl}/admin/students`,
         { body: { rgms } },
       )
-      .pipe(
-        tap(() => this.store.removerMatriculas(rgms)),
-        catchError(erroHttp),
-      );
+      .pipe(catchError(erroHttp));
   }
 }
