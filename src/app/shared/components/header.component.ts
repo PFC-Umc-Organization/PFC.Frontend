@@ -269,6 +269,7 @@ export class HeaderComponent {
 
   private readonly navAluno: ItemNav[] = [
     { rotulo: 'Início', rota: '/', icone: 'painel' },
+    { rotulo: 'PFC', rota: '/meu-pfc', icone: 'templo' },
     { rotulo: 'Entregáveis', rota: '/materiais', icone: 'prancheta' },
   ];
 

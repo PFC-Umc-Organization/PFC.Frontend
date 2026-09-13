@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { switchMap } from 'rxjs';
 
 import { Perfil, ROTULO_PERFIL, Usuario } from '../../core/models';
@@ -9,7 +10,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [IconeComponent],
+  imports: [ReactiveFormsModule, IconeComponent],
   template: `
     <div class="page">
       <header>
@@ -19,6 +20,81 @@ import { IconeComponent } from '../../shared/components/icone.component';
           Acompanhe perfis, funções e acessos da comunidade Athena.
         </p>
       </header>
+
+      <!-- --------------------------- novo usuário --------------------------- -->
+      <section class="card">
+        <div class="card__body">
+          <h2 class="section-title">Novo usuário</h2>
+          <p class="lead text-sm mt-1">
+            Pré-cadastre um aluno pelo RGM. Ele já aparece na lista de
+            integrantes disponíveis para montar um PFC.
+          </p>
+
+          @if (sucesso()) {
+            <p class="ok" role="status">
+              <app-icone nome="check" />
+              Usuário cadastrado com sucesso.
+            </p>
+          }
+
+          @if (erro()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erro() }}</span>
+            </p>
+          }
+
+          <form
+            class="form-grid form-grid--2 mt-6"
+            [formGroup]="form"
+            (ngSubmit)="cadastrar()"
+          >
+            <div class="field">
+              <label class="field__label" for="rgm">RGM</label>
+              <input
+                id="rgm"
+                type="text"
+                inputmode="numeric"
+                class="control"
+                placeholder="Ex.: 20240001"
+                formControlName="rgm"
+                [class.control--invalid]="invalido('rgm')"
+              />
+              @if (invalido('rgm')) {
+                <span class="field__error">
+                  Informe um RGM válido (só números, 4 a 12 dígitos).
+                </span>
+              }
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="nome">Nome completo</label>
+              <input
+                id="nome"
+                type="text"
+                class="control"
+                placeholder="Nome do aluno"
+                formControlName="nome"
+                [class.control--invalid]="invalido('nome')"
+              />
+              @if (invalido('nome')) {
+                <span class="field__error">Informe o nome completo.</span>
+              }
+            </div>
+
+            <div class="form-grid__full">
+              <button
+                type="submit"
+                class="btn btn--primary"
+                [disabled]="salvando()"
+              >
+                <app-icone nome="mais" class="btn__icon" />
+                {{ salvando() ? 'Cadastrando…' : 'Cadastrar usuário' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
 
       <!-- ---------------------------- métricas ---------------------------- -->
       <div class="stat-grid">
@@ -80,6 +156,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
             <thead>
               <tr>
                 <th scope="col">Usuário</th>
+                <th scope="col">RGM</th>
                 <th scope="col">E-mail</th>
                 <th scope="col">Função</th>
                 <th scope="col">Status</th>
@@ -89,6 +166,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
               @for (u of usuarios(); track u.id) {
                 <tr>
                   <td class="cell-strong">{{ u.nome }}</td>
+                  <td>{{ u.rgm ?? '—' }}</td>
                   <td>{{ u.email }}</td>
                   <td>
                     <span
@@ -117,7 +195,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
                 </tr>
               } @empty {
                 <tr>
-                  <td class="table-empty" colspan="4">
+                  <td class="table-empty" colspan="5">
                     Nenhum usuário encontrado com esses filtros.
                   </td>
                 </tr>
@@ -132,6 +210,33 @@ import { IconeComponent } from '../../shared/components/icone.component';
     .card__head-icone {
       --icone-size: 1.125rem;
       color: var(--primary);
+    }
+
+    .ok {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--success);
+      background: color-mix(in oklch, var(--success) 8%, transparent);
+      border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
+    }
+
+    .alerta {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--destructive);
+      background: color-mix(in oklch, var(--destructive) 6%, transparent);
+      border: 1px solid
+        color-mix(in oklch, var(--destructive) 30%, transparent);
     }
 
     .filtros {
@@ -150,9 +255,19 @@ import { IconeComponent } from '../../shared/components/icone.component';
 })
 export class UsuariosComponent {
   private readonly usuarioService = inject(UsuarioService);
+  private readonly fb = inject(FormBuilder);
 
   readonly busca = signal('');
   readonly perfilFiltro = signal<Perfil | 'TODOS'>('TODOS');
+
+  readonly form = this.fb.nonNullable.group({
+    rgm: ['', [Validators.required, Validators.pattern(/^\d{4,12}$/)]],
+    nome: ['', [Validators.required, Validators.minLength(3)]],
+  });
+
+  readonly salvando = signal(false);
+  readonly sucesso = signal(false);
+  readonly erro = signal('');
 
   private readonly filtro = computed(() => ({
     busca: this.busca(),
@@ -193,5 +308,35 @@ export class UsuariosComponent {
     this.perfilFiltro.set(
       (evento.target as HTMLSelectElement).value as Perfil | 'TODOS',
     );
+  }
+
+  invalido(campo: 'rgm' | 'nome'): boolean {
+    const controle = this.form.controls[campo];
+    return controle.invalid && controle.touched;
+  }
+
+  cadastrar(): void {
+    this.sucesso.set(false);
+    this.erro.set('');
+
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.salvando.set(true);
+    const { rgm, nome } = this.form.getRawValue();
+
+    this.usuarioService.criarPorProfessor({ rgm, nome }).subscribe({
+      next: () => {
+        this.salvando.set(false);
+        this.sucesso.set(true);
+        this.form.reset();
+      },
+      error: (e: Error) => {
+        this.salvando.set(false);
+        this.erro.set(e.message || 'Não foi possível cadastrar o usuário.');
+      },
+    });
   }
 }

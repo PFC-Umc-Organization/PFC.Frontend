@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Observable, combineLatest, delay, map, of, throwError } from 'rxjs';
 
-import { Projeto, ProjetoDetalhe } from '../models';
+import { NovoProjeto, Projeto, ProjetoDetalhe } from '../models';
 import { MemoriaStore } from './memoria.store';
 
 export abstract class ProjetoService {
@@ -10,6 +10,13 @@ export abstract class ProjetoService {
   abstract detalhe(projetoId: string): Observable<ProjetoDetalhe | null>;
   /** Projeto do grupo a que o aluno pertence. */
   abstract doAluno(alunoId: string): Observable<Projeto | null>;
+  /** Cadastro do PFC pelo aluno — só é permitido uma vez por grupo. */
+  abstract criar(novo: NovoProjeto): Observable<Projeto>;
+  /** Adiciona um colega (já cadastrado pelo professor) ao grupo. */
+  abstract adicionarIntegrante(
+    projetoId: string,
+    alunoId: string,
+  ): Observable<Projeto>;
 }
 
 @Injectable()
@@ -58,5 +65,46 @@ export class ProjetoMockService extends ProjetoService {
     return combineLatest([this.store.projetos, this.store.usuarios]).pipe(
       map(() => this.store.projetoDoAluno(alunoId) ?? null),
     );
+  }
+
+  override criar(novo: NovoProjeto): Observable<Projeto> {
+    const [alunoId] = novo.integrantes;
+
+    if (alunoId && this.store.projetoDoAluno(alunoId)) {
+      return throwError(
+        () => new Error('Você já tem um PFC cadastrado.'),
+      ).pipe(delay(250));
+    }
+
+    const projeto: Projeto = {
+      id: `p-${crypto.randomUUID()}`,
+      nome: novo.nome.trim(),
+      descricao: novo.descricao.trim(),
+      cursoId: novo.cursoId,
+      integrantes: novo.integrantes,
+    };
+
+    this.store.adicionarProjeto(projeto);
+    return of(projeto).pipe(delay(400));
+  }
+
+  override adicionarIntegrante(
+    projetoId: string,
+    alunoId: string,
+  ): Observable<Projeto> {
+    if (this.store.projetoDoAluno(alunoId)) {
+      return throwError(
+        () => new Error('Esse colega já faz parte de um grupo.'),
+      ).pipe(delay(250));
+    }
+
+    this.store.adicionarIntegranteAoProjeto(projetoId, alunoId);
+    const projeto = this.store.projetosAtuais.find((p) => p.id === projetoId);
+
+    if (!projeto) {
+      return throwError(() => new Error('Projeto não encontrado.'));
+    }
+
+    return of(projeto).pipe(delay(300));
   }
 }

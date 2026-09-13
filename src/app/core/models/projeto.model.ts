@@ -21,3 +21,12 @@ export interface ProjetoDetalhe {
   cursoNome: string;
   integrantes: { id: string; nome: string; email: string }[];
 }
+
+/** Cadastro do PFC feito pelo próprio aluno — uma vez só por grupo. */
+export interface NovoProjeto {
+  nome: string;
+  descricao: string;
+  cursoId: string;
+  /** Inclui quem está cadastrando; os demais vêm da lista do professor. */
+  integrantes: string[];
+}

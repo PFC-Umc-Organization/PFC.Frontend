@@ -46,6 +46,14 @@ export const rotas: Routes = [
           ),
       },
       {
+        path: 'meu-pfc',
+        title: 'Meu PFC — Athena',
+        loadComponent: () =>
+          import('./features/aluno/meu-pfc.component').then(
+            (m) => m.MeuPfcComponent,
+          ),
+      },
+      {
         path: 'gestao',
         canActivate: [perfilGuard(['PROFESSOR'])],
         title: 'Gestão de PFC — Athena',

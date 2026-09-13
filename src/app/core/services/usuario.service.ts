@@ -1,7 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, delay, map, of, throwError } from 'rxjs';
 
-import { Credenciais, NovoUsuario, Perfil, Usuario } from '../models';
+import {
+  Credenciais,
+  NovoUsuario,
+  NovoUsuarioProfessor,
+  Perfil,
+  Usuario,
+} from '../models';
 import { SENHA_MOCK } from './dados-mock';
 import { MemoriaStore } from './memoria.store';
 
@@ -13,6 +19,8 @@ export interface FiltroUsuario {
 export abstract class UsuarioService {
   abstract listar(filtro?: FiltroUsuario): Observable<Usuario[]>;
   abstract criar(novo: NovoUsuario): Observable<Usuario>;
+  /** Pré-cadastro feito pelo professor, só com RGM e nome (sempre um aluno). */
+  abstract criarPorProfessor(novo: NovoUsuarioProfessor): Observable<Usuario>;
   abstract autenticar(credenciais: Credenciais): Observable<Usuario>;
 }
 
@@ -43,14 +51,41 @@ export class UsuarioMockService extends UsuarioService {
       email: novo.email.trim().toLowerCase(),
       perfil: novo.perfil,
       status: 'ATIVO',
-      cursoIds:
-        novo.perfil === 'ALUNO'
-          ? ['c-eng-noite']
-          : ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'],
+      cursoIds: this.cursoIdsPadrao(novo.perfil),
     };
 
     this.store.adicionarUsuario(usuario);
     return of(usuario).pipe(delay(400));
+  }
+
+  override criarPorProfessor(novo: NovoUsuarioProfessor): Observable<Usuario> {
+    const rgm = novo.rgm.trim();
+    const rgmEmUso = this.store.usuariosAtuais.some((u) => u.rgm === rgm);
+
+    if (rgmEmUso) {
+      return throwError(
+        () => new Error('Já existe um usuário com esse RGM.'),
+      ).pipe(delay(250));
+    }
+
+    const usuario: Usuario = {
+      id: `u-${crypto.randomUUID()}`,
+      nome: novo.nome.trim(),
+      email: `${rgm}@athena.edu`,
+      perfil: 'ALUNO',
+      status: 'ATIVO',
+      cursoIds: this.cursoIdsPadrao('ALUNO'),
+      rgm,
+    };
+
+    this.store.adicionarUsuario(usuario);
+    return of(usuario).pipe(delay(400));
+  }
+
+  private cursoIdsPadrao(perfil: Perfil): string[] {
+    return perfil === 'ALUNO'
+      ? ['c-eng-noite']
+      : ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'];
   }
 
   /**

@@ -120,6 +120,20 @@ export class MemoriaStore {
     this.usuarios$.next([...this.usuariosAtuais, usuario]);
   }
 
+  adicionarProjeto(projeto: Projeto): void {
+    this.projetos$.next([...this.projetosAtuais, projeto]);
+  }
+
+  adicionarIntegranteAoProjeto(projetoId: string, alunoId: string): void {
+    this.projetos$.next(
+      this.projetosAtuais.map((p) =>
+        p.id === projetoId && !p.integrantes.includes(alunoId)
+          ? { ...p, integrantes: [...p.integrantes, alunoId] }
+          : p,
+      ),
+    );
+  }
+
   substituirUsuarios(usuarios: Usuario[]): void {
     this.usuarios$.next(usuarios);
   }
