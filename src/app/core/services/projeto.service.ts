@@ -325,11 +325,13 @@ export class ProjetoHttpService extends ProjetoService {
       );
   }
 
-  override removerOrientador(): Observable<void> {
-    return throwError(
-      () =>
-        new Error('Remover orientador ainda não está disponível no backend.'),
-    );
+  override removerOrientador(projetoId: string): Observable<void> {
+    return this.http
+      .delete(`${environment.apiBaseUrl}/projetos/${projetoId}/orientador`)
+      .pipe(
+        map(() => undefined),
+        catchError(erroHttp),
+      );
   }
 
   override remover(projetoId: string): Observable<void> {
