@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, delay, of } from 'rxjs';
+import { Observable, catchError, delay, map, of } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { NovoPrograma, Programa } from '../models';
@@ -14,6 +14,8 @@ import { MemoriaStore } from './memoria.store';
 export abstract class ProgramaService {
   abstract listar(): Observable<Programa[]>;
   abstract criar(novo: NovoPrograma): Observable<Programa>;
+  /** Backend recusa (409) se ainda houver projeto vinculado ao programa. */
+  abstract deletar(programaId: string): Observable<void>;
 }
 
 @Injectable()
@@ -33,6 +35,11 @@ export class ProgramaMockService extends ProgramaService {
     this.store.adicionarPrograma(programa);
     return of(programa).pipe(delay(300));
   }
+
+  override deletar(programaId: string): Observable<void> {
+    this.store.removerPrograma(programaId);
+    return of(undefined).pipe(delay(300));
+  }
 }
 
 /** Ambos os endpoints existem no backend de verdade — sem gaps aqui. */
@@ -50,5 +57,14 @@ export class ProgramaHttpService extends ProgramaService {
     return this.http
       .post<Programa>(`${environment.apiBaseUrl}/programas`, novo)
       .pipe(catchError(erroHttp));
+  }
+
+  override deletar(programaId: string): Observable<void> {
+    return this.http
+      .delete(`${environment.apiBaseUrl}/programas/${programaId}`)
+      .pipe(
+        map(() => undefined),
+        catchError(erroHttp),
+      );
   }
 }

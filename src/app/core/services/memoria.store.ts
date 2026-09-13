@@ -203,6 +203,12 @@ export class MemoriaStore {
     this.programas$.next([...this.programasAtuais, programa]);
   }
 
+  removerPrograma(programaId: string): void {
+    this.programas$.next(
+      this.programasAtuais.filter((p) => p.id !== programaId),
+    );
+  }
+
   adicionarProjeto(projeto: Projeto): void {
     this.projetos$.next([...this.projetosAtuais, projeto]);
   }

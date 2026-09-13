@@ -81,6 +81,24 @@ import { IconeComponent } from '../../shared/components/icone.component';
             </button>
           </div>
         } @else {
+          @if (souCoordenador()) {
+            <div class="pfcs__acoes-programa">
+              <button
+                type="button"
+                class="btn btn--outline btn--sm"
+                [disabled]="excluindoPrograma()"
+                (click)="excluirPrograma()"
+              >
+                <app-icone nome="lixeira" class="btn__icon" />
+                {{
+                  excluindoPrograma()
+                    ? 'Excluindo…'
+                    : 'Excluir programa desta turma'
+                }}
+              </button>
+            </div>
+          }
+
           <!-- ---------------------------- novo PFC ---------------------------- -->
           <form
             class="form-grid form-grid--2 novo-pfc"
@@ -394,6 +412,12 @@ import { IconeComponent } from '../../shared/components/icone.component';
       border-bottom: 1px solid var(--border);
     }
 
+    .pfcs__acoes-programa {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0.75rem 1.25rem 0;
+    }
+
     .pfc-edicao {
       padding: 0.5rem 0;
     }
@@ -509,6 +533,7 @@ export class GestaoPfcComponent {
   readonly erroPfc = signal('');
 
   readonly iniciandoPrograma = signal(false);
+  readonly excluindoPrograma = signal(false);
 
   readonly novoForm = this.fb.nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(3)]],
@@ -559,6 +584,33 @@ export class GestaoPfcComponent {
           this.erroPfc.set(e.message);
         },
       });
+  }
+
+  /**
+   * O backend recusa (409) se a turma ainda tiver PFCs vinculados — a
+   * mensagem de erro já vem pronta do Go (`programa possui projetos
+   * vinculados, não pode ser removido`) e aparece via `erroPfc`.
+   */
+  excluirPrograma(): void {
+    const programa = this.programaAtual();
+
+    if (!programa) {
+      return;
+    }
+
+    this.erroPfc.set('');
+    this.excluindoPrograma.set(true);
+
+    this.programaService.deletar(programa.id).subscribe({
+      next: () => {
+        this.excluindoPrograma.set(false);
+        this.recarregarProgramas$.next();
+      },
+      error: (e: Error) => {
+        this.excluindoPrograma.set(false);
+        this.erroPfc.set(e.message);
+      },
+    });
   }
 
   invalidoNovo(): boolean {
