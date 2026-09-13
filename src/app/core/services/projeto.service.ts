@@ -313,10 +313,16 @@ export class ProjetoHttpService extends ProjetoService {
       );
   }
 
-  override atualizar(): Observable<void> {
-    return throwError(
-      () => new Error('Editar PFC ainda não está disponível no backend.'),
-    );
+  override atualizar(
+    projetoId: string,
+    dados: AtualizacaoProjeto,
+  ): Observable<void> {
+    return this.http
+      .put(`${environment.apiBaseUrl}/projetos/${projetoId}`, dados)
+      .pipe(
+        map(() => undefined),
+        catchError(erroHttp),
+      );
   }
 
   override removerOrientador(): Observable<void> {
@@ -326,9 +332,12 @@ export class ProjetoHttpService extends ProjetoService {
     );
   }
 
-  override remover(): Observable<void> {
-    return throwError(
-      () => new Error('Excluir PFC ainda não está disponível no backend.'),
-    );
+  override remover(projetoId: string): Observable<void> {
+    return this.http
+      .delete(`${environment.apiBaseUrl}/projetos/${projetoId}`)
+      .pipe(
+        map(() => undefined),
+        catchError(erroHttp),
+      );
   }
 }
