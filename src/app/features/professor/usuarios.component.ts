@@ -3,7 +3,8 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { switchMap } from 'rxjs';
 
-import { Perfil, ROTULO_PERFIL, Usuario } from '../../core/models';
+import { Perfil, ROTULO_PERFIL, Usuario, rotuloCurso } from '../../core/models';
+import { CursoService } from '../../core/services/curso.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 
@@ -79,6 +80,24 @@ import { IconeComponent } from '../../shared/components/icone.component';
               />
               @if (invalido('nome')) {
                 <span class="field__error">Informe o nome completo.</span>
+              }
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="turma">Turma</label>
+              <select
+                id="turma"
+                class="control"
+                formControlName="cursoId"
+                [class.control--invalid]="invalido('cursoId')"
+              >
+                <option value="">Selecione a turma</option>
+                @for (c of cursos(); track c.id) {
+                  <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                }
+              </select>
+              @if (invalido('cursoId')) {
+                <span class="field__error">Escolha a turma do aluno.</span>
               }
             </div>
 
@@ -255,14 +274,20 @@ import { IconeComponent } from '../../shared/components/icone.component';
 })
 export class UsuariosComponent {
   private readonly usuarioService = inject(UsuarioService);
+  private readonly cursoService = inject(CursoService);
   private readonly fb = inject(FormBuilder);
+
+  readonly rotuloCurso = rotuloCurso;
 
   readonly busca = signal('');
   readonly perfilFiltro = signal<Perfil | 'TODOS'>('TODOS');
 
+  readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
+
   readonly form = this.fb.nonNullable.group({
     rgm: ['', [Validators.required, Validators.pattern(/^\d{4,12}$/)]],
     nome: ['', [Validators.required, Validators.minLength(3)]],
+    cursoId: ['', [Validators.required]],
   });
 
   readonly salvando = signal(false);
@@ -310,7 +335,7 @@ export class UsuariosComponent {
     );
   }
 
-  invalido(campo: 'rgm' | 'nome'): boolean {
+  invalido(campo: 'rgm' | 'nome' | 'cursoId'): boolean {
     const controle = this.form.controls[campo];
     return controle.invalid && controle.touched;
   }
@@ -325,9 +350,9 @@ export class UsuariosComponent {
     }
 
     this.salvando.set(true);
-    const { rgm, nome } = this.form.getRawValue();
+    const { rgm, nome, cursoId } = this.form.getRawValue();
 
-    this.usuarioService.criarPorProfessor({ rgm, nome }).subscribe({
+    this.usuarioService.criarPorProfessor({ rgm, nome, cursoId }).subscribe({
       next: () => {
         this.salvando.set(false);
         this.sucesso.set(true);

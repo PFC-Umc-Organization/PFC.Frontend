@@ -23,13 +23,14 @@ export interface NovoUsuario {
 }
 
 /**
- * Pré-cadastro feito pelo professor: só RGM e nome. O aluno ainda não tem
- * e-mail/senha próprios, mas já existe na base e pode ser escolhido como
- * integrante de um PFC.
+ * Pré-cadastro feito pelo professor: RGM, nome e a turma do aluno. O aluno
+ * ainda não tem e-mail/senha próprios, mas já existe na base e pode ser
+ * escolhido como integrante de um PFC — só por quem for da mesma turma.
  */
 export interface NovoUsuarioProfessor {
   rgm: string;
   nome: string;
+  cursoId: string;
 }
 
 export interface Credenciais {

@@ -74,7 +74,7 @@ export class UsuarioMockService extends UsuarioService {
       email: `${rgm}@athena.edu`,
       perfil: 'ALUNO',
       status: 'ATIVO',
-      cursoIds: this.cursoIdsPadrao('ALUNO'),
+      cursoIds: [novo.cursoId],
       rgm,
     };
 
