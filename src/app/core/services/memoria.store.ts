@@ -6,6 +6,8 @@ import {
   Curso,
   Entrega,
   Material,
+  Matricula,
+  Programa,
   Projeto,
   StatusAtividade,
   StatusEntrega,
@@ -17,6 +19,8 @@ import {
   CURSOS_SEED,
   ENTREGAS_SEED,
   MATERIAIS_SEED,
+  MATRICULAS_SEED,
+  PROGRAMAS_SEED,
   PROJETOS_SEED,
   USUARIOS_SEED,
 } from './dados-mock';
@@ -31,11 +35,17 @@ import {
 @Injectable({ providedIn: 'root' })
 export class MemoriaStore {
   private readonly cursos$ = new BehaviorSubject<Curso[]>([...CURSOS_SEED]);
+  private readonly programas$ = new BehaviorSubject<Programa[]>([
+    ...PROGRAMAS_SEED,
+  ]);
   private readonly projetos$ = new BehaviorSubject<Projeto[]>([
     ...PROJETOS_SEED,
   ]);
   private readonly usuarios$ = new BehaviorSubject<Usuario[]>([
     ...USUARIOS_SEED,
+  ]);
+  private readonly matriculas$ = new BehaviorSubject<Matricula[]>([
+    ...MATRICULAS_SEED,
   ]);
   private readonly atividades$ = new BehaviorSubject<Atividade[]>([
     ...ATIVIDADES_SEED,
@@ -48,8 +58,10 @@ export class MemoriaStore {
   ]);
 
   readonly cursos = this.cursos$.asObservable();
+  readonly programas = this.programas$.asObservable();
   readonly projetos = this.projetos$.asObservable();
   readonly usuarios = this.usuarios$.asObservable();
+  readonly matriculas = this.matriculas$.asObservable();
   readonly atividades = this.atividades$.asObservable();
   readonly entregas = this.entregas$.asObservable();
   readonly materiais = this.materiais$.asObservable();
@@ -60,12 +72,20 @@ export class MemoriaStore {
     return this.cursos$.value;
   }
 
+  get programasAtuais(): Programa[] {
+    return this.programas$.value;
+  }
+
   get projetosAtuais(): Projeto[] {
     return this.projetos$.value;
   }
 
   get usuariosAtuais(): Usuario[] {
     return this.usuarios$.value;
+  }
+
+  get matriculasAtuais(): Matricula[] {
+    return this.matriculas$.value;
   }
 
   get atividadesAtuais(): Atividade[] {
@@ -93,25 +113,47 @@ export class MemoriaStore {
     return this.projetosAtuais.find((p) => p.id === projetoId)?.nome ?? '—';
   }
 
+  /** Programa (turma) já iniciado para este curso, se houver. */
+  programaDoCurso(cursoId: string): Programa | undefined {
+    return this.programasAtuais.find((p) => p.cursoId === cursoId);
+  }
+
+  projetosDoPrograma(programaId: string): Projeto[] {
+    return this.projetosAtuais.filter((p) => p.programaId === programaId);
+  }
+
+  /**
+   * PFCs da turma. Sem Programa iniciado pra esse curso, a lista é vazia —
+   * é o que sinaliza pra Gestão de PFC mostrar "nenhum PFC iniciado ainda".
+   */
   projetosDoCurso(cursoId: string): Projeto[] {
-    return this.projetosAtuais.filter((p) => p.cursoId === cursoId);
+    const programa = this.programaDoCurso(cursoId);
+    return programa ? this.projetosDoPrograma(programa.id) : [];
   }
 
-  /** Grupo a que o aluno pertence. Um aluno participa de um projeto só. */
-  projetoDoAluno(alunoId: string): Projeto | undefined {
-    return this.projetosAtuais.find((p) => p.integrantes.includes(alunoId));
+  /**
+   * Grupo a que o aluno pertence, pelo RGM (é assim que `integrantes` é
+   * armazenado — ver comentário em `Projeto`). Um aluno participa de um
+   * projeto só.
+   */
+  projetoDoAluno(rgm: string): Projeto | undefined {
+    return this.projetosAtuais.find((p) => p.integrantes.includes(rgm));
   }
 
-  integrantesDoProjeto(projetoId: string): Usuario[] {
+  /** Integrantes resolvidos: `nome` fica `null` se o RGM ainda não é conta. */
+  integrantesDoProjeto(
+    projetoId: string,
+  ): { rgm: string; nome: string | null }[] {
     const projeto = this.projetosAtuais.find((p) => p.id === projetoId);
 
     if (!projeto) {
       return [];
     }
 
-    return projeto.integrantes
-      .map((id) => this.usuariosAtuais.find((u) => u.id === id))
-      .filter((u): u is Usuario => u !== undefined);
+    return projeto.integrantes.map((rgm) => ({
+      rgm,
+      nome: this.usuariosAtuais.find((u) => u.rgm === rgm)?.nome ?? null,
+    }));
   }
 
   /* ----------------------------- escrita ----------------------------- */
@@ -120,17 +162,119 @@ export class MemoriaStore {
     this.usuarios$.next([...this.usuariosAtuais, usuario]);
   }
 
+  atualizarUsuario(
+    usuarioId: string,
+    dados: Partial<Pick<Usuario, 'nome' | 'status'>> & { cursoId?: string },
+  ): void {
+    const { cursoId, ...resto } = dados;
+
+    this.usuarios$.next(
+      this.usuariosAtuais.map((u) =>
+        u.id === usuarioId
+          ? { ...u, ...resto, cursoIds: cursoId ? [cursoId] : u.cursoIds }
+          : u,
+      ),
+    );
+  }
+
+  /**
+   * Remove o usuário e limpa os vínculos dele: sai dos grupos como
+   * integrante (pelo RGM) e deixa de ser orientador de qualquer PFC.
+   */
+  removerUsuario(usuarioId: string): void {
+    const usuario = this.usuariosAtuais.find((u) => u.id === usuarioId);
+
+    this.usuarios$.next(
+      this.usuariosAtuais.filter((u) => u.id !== usuarioId),
+    );
+    this.projetos$.next(
+      this.projetosAtuais.map((p) => ({
+        ...p,
+        integrantes: usuario?.rgm
+          ? p.integrantes.filter((rgm) => rgm !== usuario.rgm)
+          : p.integrantes,
+        orientadorId:
+          p.orientadorId === usuarioId ? undefined : p.orientadorId,
+      })),
+    );
+  }
+
+  adicionarPrograma(programa: Programa): void {
+    this.programas$.next([...this.programasAtuais, programa]);
+  }
+
   adicionarProjeto(projeto: Projeto): void {
     this.projetos$.next([...this.projetosAtuais, projeto]);
   }
 
-  adicionarIntegranteAoProjeto(projetoId: string, alunoId: string): void {
+  adicionarIntegranteAoProjeto(projetoId: string, rgm: string): void {
     this.projetos$.next(
       this.projetosAtuais.map((p) =>
-        p.id === projetoId && !p.integrantes.includes(alunoId)
-          ? { ...p, integrantes: [...p.integrantes, alunoId] }
+        p.id === projetoId && !p.integrantes.includes(rgm)
+          ? { ...p, integrantes: [...p.integrantes, rgm] }
           : p,
       ),
+    );
+  }
+
+  removerIntegranteDoProjeto(projetoId: string, rgm: string): void {
+    this.projetos$.next(
+      this.projetosAtuais.map((p) =>
+        p.id === projetoId
+          ? { ...p, integrantes: p.integrantes.filter((r) => r !== rgm) }
+          : p,
+      ),
+    );
+  }
+
+  /**
+   * Grava RGMs na allowlist de matrícula (upsert — RGM repetido não duplica).
+   */
+  provisionarMatriculas(rgms: string[]): void {
+    const existentes = new Set(this.matriculasAtuais.map((m) => m.rgm));
+    const novas = rgms
+      .filter((rgm) => !existentes.has(rgm))
+      .map((rgm): Matricula => ({ rgm, status: 'ATIVO' }));
+
+    this.matriculas$.next([...this.matriculasAtuais, ...novas]);
+  }
+
+  /** Remove RGMs da allowlist — não afeta nenhuma conta que já exista. */
+  removerMatriculas(rgms: string[]): void {
+    const alvo = new Set(rgms);
+    this.matriculas$.next(
+      this.matriculasAtuais.filter((m) => !alvo.has(m.rgm)),
+    );
+  }
+
+  atualizarProjeto(
+    projetoId: string,
+    dados: Partial<Pick<Projeto, 'nome' | 'descricao'>>,
+  ): void {
+    this.projetos$.next(
+      this.projetosAtuais.map((p) =>
+        p.id === projetoId ? { ...p, ...dados } : p,
+      ),
+    );
+  }
+
+  definirOrientador(projetoId: string, orientadorId: string | null): void {
+    this.projetos$.next(
+      this.projetosAtuais.map((p) =>
+        p.id === projetoId
+          ? { ...p, orientadorId: orientadorId ?? undefined }
+          : p,
+      ),
+    );
+  }
+
+  /** Remove o PFC e as entregas registradas para ele — não sobra órfão. */
+  removerProjeto(projetoId: string): void {
+    this.projetos$.next(
+      this.projetosAtuais.filter((p) => p.id !== projetoId),
+    );
+    this.entregas$.next(
+      this.entregasAtuais.filter((e) => e.projetoId !== projetoId),
     );
   }
 
@@ -140,6 +284,17 @@ export class MemoriaStore {
 
   adicionarAtividade(atividade: Atividade): void {
     this.atividades$.next([...this.atividadesAtuais, atividade]);
+  }
+
+  atualizarAtividade(
+    atividadeId: string,
+    dados: Partial<Pick<Atividade, 'titulo' | 'descricao' | 'prazo'>>,
+  ): void {
+    this.atividades$.next(
+      this.atividadesAtuais.map((a) =>
+        a.id === atividadeId ? { ...a, ...dados } : a,
+      ),
+    );
   }
 
   removerAtividade(atividadeId: string): void {

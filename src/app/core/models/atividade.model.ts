@@ -26,6 +26,13 @@ export interface NovaAtividade {
   prazo: string;
 }
 
+/** Edição de uma atividade já publicada. */
+export interface AtualizacaoAtividade {
+  titulo?: string;
+  descricao?: string;
+  prazo?: string;
+}
+
 /** Atividade + números agregados, como aparece na tabela do professor. */
 export interface AtividadeResumo {
   atividade: Atividade;

@@ -7,7 +7,6 @@ import {
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
-import { SENHA_MOCK } from '../../core/services/dados-mock';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { AuthCardComponent } from './auth-card.component';
 
@@ -85,13 +84,6 @@ import { AuthCardComponent } from './auth-card.component';
           Não tem uma conta?
           <a routerLink="/criar-conta">Criar conta</a>
         </p>
-
-        <aside class="dica">
-          <strong>Ambiente de demonstração</strong>
-          Entre com <code>pedro.silva&#64;athena.edu</code> (aluno) ou
-          <code>alessandro.horas&#64;athena.edu</code> (professor). Senha:
-          <code>{{ senhaDemo }}</code>
-        </aside>
       </form>
     </app-auth-card>
   `,
@@ -119,29 +111,6 @@ import { AuthCardComponent } from './auth-card.component';
       font-size: 0.875rem;
       color: var(--muted-foreground);
     }
-
-    .dica {
-      display: grid;
-      gap: 0.25rem;
-      padding: 0.875rem;
-      font-size: 0.75rem;
-      line-height: 1.6;
-      color: var(--muted-foreground);
-      background: var(--muted);
-      border-left: 3px solid var(--bronze);
-    }
-
-    .dica strong {
-      color: var(--foreground);
-    }
-
-    .dica code {
-      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
-      font-size: 0.6875rem;
-      background: var(--card);
-      padding: 0.0625rem 0.25rem;
-      border: 1px solid var(--border);
-    }
   `,
 })
 export class LoginComponent {
@@ -149,7 +118,6 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  readonly senhaDemo = SENHA_MOCK;
   readonly carregando = signal(false);
   readonly erro = signal('');
 

@@ -1,94 +1,76 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 
-import { Credenciais, NovoUsuario, Perfil, Usuario } from '../models';
+import { Credenciais, NovoUsuario, RespostaCadastro, Usuario } from '../models';
 import { UsuarioService } from './usuario.service';
 
 const CHAVE_SESSAO = 'athena.sessao';
 
+interface Sessao {
+  usuario: Usuario;
+  /** IdToken do Cognito — enviado como Bearer nas rotas protegidas. */
+  token: string;
+}
+
 /**
  * Sessão do usuário.
  *
- * Hoje a autenticação é mockada pelo UsuarioService. Quando o backend em Go
- * entrar, só `entrar`/`cadastrar` mudam: passam a receber o JWT e guardá-lo
- * aqui — os guards e os componentes continuam iguais.
+ * `entrar` fala com o Cognito (via `POST /auth/login` no backend) e recebe
+ * usuário + token de volta. `cadastrar` NÃO loga automaticamente: o Cognito
+ * pode exigir confirmação por e-mail antes do primeiro login.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly usuarios = inject(UsuarioService);
 
-  private readonly _usuario = signal<Usuario | null>(this.restaurarSessao());
+  private readonly _sessao = signal<Sessao | null>(this.restaurarSessao());
 
-  /** Perfil pelo qual a interface está sendo renderizada ("Ver como"). */
-  private readonly _perfilVisao = signal<Perfil | null>(null);
+  readonly usuario = computed(() => this._sessao()?.usuario ?? null);
+  readonly token = computed(() => this._sessao()?.token ?? null);
+  readonly autenticado = computed(() => this._sessao() !== null);
 
-  readonly usuario = this._usuario.asReadonly();
-  readonly autenticado = computed(() => this._usuario() !== null);
-
-  /** Perfil real do usuário logado. */
-  readonly perfil = computed<Perfil | null>(() => this._usuario()?.perfil ?? null);
-
-  /** Perfil efetivo: o real, ou o escolhido no "Ver como" pelo professor. */
-  readonly perfilVisao = computed<Perfil | null>(
-    () => this._perfilVisao() ?? this.perfil(),
-  );
-
-  readonly ehProfessor = computed(() => this.perfil() === 'PROFESSOR');
-  readonly vendoComoAluno = computed(() => this.perfilVisao() === 'ALUNO');
+  readonly perfil = computed(() => this._sessao()?.usuario.perfil ?? null);
 
   readonly primeiroNome = computed(
-    () => this._usuario()?.nome.split(' ').at(0) ?? '',
+    () => this._sessao()?.usuario.nome.split(' ').at(0) ?? '',
   );
 
   entrar(credenciais: Credenciais): Observable<Usuario> {
-    return this.usuarios
-      .autenticar(credenciais)
-      .pipe(tap((usuario) => this.iniciarSessao(usuario)));
+    return this.usuarios.autenticar(credenciais).pipe(
+      tap(({ usuario, token }) => this.iniciarSessao(usuario, token)),
+      map(({ usuario }) => usuario),
+    );
   }
 
-  cadastrar(novo: NovoUsuario): Observable<Usuario> {
-    return this.usuarios
-      .criar(novo)
-      .pipe(tap((usuario) => this.iniciarSessao(usuario)));
+  /** Cadastro self-service do aluno. Não inicia sessão — ver confirmação por e-mail. */
+  cadastrar(novo: NovoUsuario): Observable<RespostaCadastro> {
+    return this.usuarios.criar(novo);
   }
 
   sair(): void {
-    this._usuario.set(null);
-    this._perfilVisao.set(null);
+    this._sessao.set(null);
     this.limparSessao();
   }
 
-  /**
-   * Alterna a visão da interface. Só o professor pode inspecionar a visão do
-   * aluno; o aluno não tem como espiar a área administrativa.
-   */
-  definirPerfilVisao(perfil: Perfil): void {
-    if (!this.ehProfessor()) {
-      return;
-    }
-    this._perfilVisao.set(perfil);
-  }
-
-  private iniciarSessao(usuario: Usuario): void {
-    this._usuario.set(usuario);
-    this._perfilVisao.set(null);
-    this.persistirSessao(usuario);
+  private iniciarSessao(usuario: Usuario, token: string): void {
+    this._sessao.set({ usuario, token });
+    this.persistirSessao(usuario, token);
   }
 
   /* ------------------------- persistência local ------------------------- */
 
-  private restaurarSessao(): Usuario | null {
+  private restaurarSessao(): Sessao | null {
     try {
       const bruto = localStorage.getItem(CHAVE_SESSAO);
-      return bruto ? (JSON.parse(bruto) as Usuario) : null;
+      return bruto ? (JSON.parse(bruto) as Sessao) : null;
     } catch {
       return null;
     }
   }
 
-  private persistirSessao(usuario: Usuario): void {
+  private persistirSessao(usuario: Usuario, token: string): void {
     try {
-      localStorage.setItem(CHAVE_SESSAO, JSON.stringify(usuario));
+      localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ usuario, token }));
     } catch {
       /* modo privado ou storage bloqueado — a sessão vive só em memória */
     }

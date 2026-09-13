@@ -9,6 +9,7 @@ import {
   Material,
   ROTULO_TIPO_MATERIAL,
   TipoMaterial,
+  ehEquipeAcademica,
   rotuloCurso,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -162,28 +163,11 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
           </p>
         </header>
 
-        @if (ehPreviaDoProfessor()) {
-          <p class="aviso">
-            <app-icone nome="alerta" />
-            <span>
-              Prévia da visão do aluno
-              @if (nomeProjetoPrevia()) {
-                — projeto <strong>{{ nomeProjetoPrevia() }}</strong>
-              }
-              . Como professor, você não pode enviar entregas por aqui.
-            </span>
-          </p>
-        }
-
         <section class="card">
           <div class="card__body">
             <h2 class="section-title">Enviar entrega</h2>
 
-            @if (ehPreviaDoProfessor()) {
-              <p class="vazio mt-6">
-                Entre como aluno para enviar uma entrega.
-              </p>
-            } @else if (disponiveis().length === 0) {
+            @if (disponiveis().length === 0) {
               <p class="vazio mt-6">
                 Nenhuma atividade disponível para entrega no momento.
               </p>
@@ -351,22 +335,6 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
       color: var(--success);
     }
 
-    .aviso {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
-      font-size: 0.875rem;
-      color: var(--foreground);
-      background: color-mix(in oklch, var(--bronze) 8%, transparent);
-      border: 1px solid color-mix(in oklch, var(--bronze) 35%, transparent);
-    }
-
-    .aviso app-icone {
-      color: var(--bronze);
-      margin-top: 0.125rem;
-    }
-
     .upload {
       display: flex;
       align-items: center;
@@ -413,7 +381,9 @@ export class MateriaisComponent {
     initialValue: [] as Material[],
   });
 
-  readonly visaoProfessor = computed(() => this.auth.perfilVisao() === 'PROFESSOR');
+  readonly visaoProfessor = computed(() =>
+    ehEquipeAcademica(this.auth.perfil()),
+  );
   readonly salvando = signal(false);
 
   readonly form = this.fb.nonNullable.group({
@@ -424,37 +394,17 @@ export class MateriaisComponent {
     cursoId: [''],
   });
 
-  /** Professor olhando a interface do aluno via "Ver como". */
-  readonly ehPreviaDoProfessor = computed(
-    () => this.auth.ehProfessor() && this.auth.perfilVisao() === 'ALUNO',
-  );
-
-  /** Todos os projetos — usado só para achar um grupo de exemplo na prévia. */
-  private readonly projetos = toSignal(this.projetoService.listar(), {
-    initialValue: [],
-  });
-
-  /** Projeto do grupo do aluno logado. */
+  /** Projeto do grupo do aluno logado, resolvido pelo RGM dele. */
   private readonly projetoDoAluno = toSignal(
-    toObservable(computed(() => this.auth.usuario()?.id ?? '')).pipe(
-      switchMap((id) => (id ? this.projetoService.doAluno(id) : of(null))),
+    toObservable(computed(() => this.auth.usuario()?.rgm ?? '')).pipe(
+      switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
     ),
     { initialValue: null },
   );
 
-  /**
-   * Qual projeto a tela mostra. Para o aluno é o grupo dele; para o
-   * professor em prévia (que não pertence a projeto nenhum), o primeiro
-   * projeto cadastrado — só para ele poder conferir a tela.
-   */
-  private readonly projetoAlvoId = computed(() =>
-    this.ehPreviaDoProfessor()
-      ? (this.projetos()[0]?.id ?? '')
-      : (this.projetoDoAluno()?.id ?? ''),
-  );
-
-  readonly nomeProjetoPrevia = computed(
-    () => this.projetos().find((p) => p.id === this.projetoAlvoId())?.nome ?? '',
+  /** Qual projeto a tela mostra: o grupo do aluno logado. */
+  private readonly projetoAlvoId = computed(
+    () => this.projetoDoAluno()?.id ?? '',
   );
 
   readonly itensEntregaveis = toSignal(
@@ -551,7 +501,7 @@ export class MateriaisComponent {
     const arquivo = this.arquivo();
     const projetoId = this.projetoAlvoId();
 
-    if (!atividadeId || !arquivo || !projetoId || this.ehPreviaDoProfessor()) {
+    if (!atividadeId || !arquivo || !projetoId) {
       return;
     }
 

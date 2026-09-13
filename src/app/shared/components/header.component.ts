@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 
+import { ehEquipeAcademica } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { IconeComponent, NomeIcone } from './icone.component';
 
@@ -41,34 +42,6 @@ interface ItemNav {
               </a>
             }
           </nav>
-
-          @if (auth.ehProfessor()) {
-            <div class="vercomo">
-              <span class="vercomo__rotulo">Ver como</span>
-              <div
-                class="segmented segmented--onDark"
-                role="group"
-                aria-label="Alternar visão de perfil"
-              >
-                <button
-                  type="button"
-                  class="segmented__item"
-                  [attr.aria-pressed]="auth.vendoComoAluno()"
-                  (click)="auth.definirPerfilVisao('ALUNO')"
-                >
-                  Aluno
-                </button>
-                <button
-                  type="button"
-                  class="segmented__item"
-                  [attr.aria-pressed]="!auth.vendoComoAluno()"
-                  (click)="auth.definirPerfilVisao('PROFESSOR')"
-                >
-                  Professor
-                </button>
-              </div>
-            </div>
-          }
 
           <div class="sessao">
             <span class="sessao__nome">{{ auth.usuario()?.nome }}</span>
@@ -195,28 +168,6 @@ interface ItemNav {
       );
     }
 
-    /* --------------------------- ver como --------------------------- */
-    .vercomo {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .vercomo__rotulo {
-      font-size: 0.6875rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: color-mix(in oklch, var(--primary-foreground) 60%, transparent);
-      display: none;
-    }
-
-    @media (min-width: 640px) {
-      .vercomo__rotulo {
-        display: block;
-      }
-    }
-
     /* ---------------------------- sessão ---------------------------- */
     .sessao {
       display: flex;
@@ -275,13 +226,14 @@ export class HeaderComponent {
 
   private readonly navProfessor: ItemNav[] = [
     { rotulo: 'Início', rota: '/', icone: 'painel' },
-    { rotulo: 'Gestão de PFC', rota: '/gestao', icone: 'prancheta' },
+    { rotulo: 'Gestão de PFC', rota: '/gestao', icone: 'templo' },
+    { rotulo: 'Atividades', rota: '/atividades', icone: 'prancheta' },
     { rotulo: 'Usuários', rota: '/usuarios', icone: 'usuarios' },
     { rotulo: 'Materiais', rota: '/materiais', icone: 'livro' },
   ];
 
   readonly itensNav = computed(() =>
-    this.auth.perfilVisao() === 'PROFESSOR' ? this.navProfessor : this.navAluno,
+    ehEquipeAcademica(this.auth.perfil()) ? this.navProfessor : this.navAluno,
   );
 
   sair(): void {

@@ -1,7 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, combineLatest, delay, map, of } from 'rxjs';
+import { Observable, combineLatest, delay, map, of, throwError } from 'rxjs';
 
-import { Atividade, AtividadeResumo, NovaAtividade } from '../models';
+import {
+  Atividade,
+  AtividadeResumo,
+  AtualizacaoAtividade,
+  NovaAtividade,
+} from '../models';
 import { MemoriaStore } from './memoria.store';
 
 export abstract class AtividadeService {
@@ -12,6 +17,11 @@ export abstract class AtividadeService {
    */
   abstract listarResumos(cursoId?: string): Observable<AtividadeResumo[]>;
   abstract criar(nova: NovaAtividade): Observable<Atividade>;
+  /** Edita uma atividade já publicada (título, descrição e/ou prazo). */
+  abstract atualizar(
+    atividadeId: string,
+    dados: AtualizacaoAtividade,
+  ): Observable<Atividade>;
   abstract remover(atividadeId: string): Observable<void>;
 }
 
@@ -59,6 +69,22 @@ export class AtividadeMockService extends AtividadeService {
 
     this.store.adicionarAtividade(atividade);
     return of(atividade).pipe(delay(400));
+  }
+
+  override atualizar(
+    atividadeId: string,
+    dados: AtualizacaoAtividade,
+  ): Observable<Atividade> {
+    this.store.atualizarAtividade(atividadeId, dados);
+    const atividade = this.store.atividadesAtuais.find(
+      (a) => a.id === atividadeId,
+    );
+
+    if (!atividade) {
+      return throwError(() => new Error('Atividade não encontrada.'));
+    }
+
+    return of(atividade).pipe(delay(300));
   }
 
   override remover(atividadeId: string): Observable<void> {

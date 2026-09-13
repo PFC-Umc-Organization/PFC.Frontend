@@ -481,28 +481,6 @@ select.control {
   color: var(--primary-foreground);
 }
 
-/* Variante sobre o header navy */
-.segmented--onDark {
-  border-color: color-mix(in oklch, var(--primary-foreground) 25%, transparent);
-  background: transparent;
-  padding: 0;
-}
-
-.segmented--onDark .segmented__item {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.75rem;
-  color: color-mix(in oklch, var(--primary-foreground) 70%, transparent);
-}
-
-.segmented--onDark .segmented__item:hover {
-  color: var(--primary-foreground);
-}
-
-.segmented--onDark .segmented__item[aria-pressed='true'] {
-  background: var(--marble);
-  color: var(--primary);
-}
-
 /* -------------------------------------------------------------------------
    9. Badges e indicadores de status
    ------------------------------------------------------------------------- */

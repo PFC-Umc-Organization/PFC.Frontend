@@ -16,7 +16,8 @@ export type NomeIcone =
   | 'link-externo'
   | 'lixeira'
   | 'alerta'
-  | 'templo';
+  | 'templo'
+  | 'editar';
 
 /**
  * Ícones desenhados inline (traçado no estilo Lucide, como no protótipo).
@@ -133,6 +134,12 @@ export type NomeIcone =
         }
         @case ('templo') {
           <path d="M3 21h18M5 21V7h14v14M3 7h18M4 3h16M9 7v14M15 7v14" />
+        }
+        @case ('editar') {
+          <path
+            d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .622.622l4.353-1.321a2 2 0 0 0 .83-.497z"
+          />
+          <path d="m15 5 4 4" />
         }
       }
     </svg>

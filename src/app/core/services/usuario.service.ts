@@ -1,14 +1,19 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, delay, map, of, throwError } from 'rxjs';
+import { Observable, catchError, delay, map, of, throwError } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import {
+  AtualizacaoUsuario,
   Credenciais,
   NovoUsuario,
-  NovoUsuarioProfessor,
   Perfil,
+  RespostaAutenticacao,
+  RespostaCadastro,
   Usuario,
 } from '../models';
 import { SENHA_MOCK } from './dados-mock';
+import { erroHttp } from './http-erro';
 import { MemoriaStore } from './memoria.store';
 
 export interface FiltroUsuario {
@@ -18,10 +23,17 @@ export interface FiltroUsuario {
 
 export abstract class UsuarioService {
   abstract listar(filtro?: FiltroUsuario): Observable<Usuario[]>;
-  abstract criar(novo: NovoUsuario): Observable<Usuario>;
-  /** Pré-cadastro feito pelo professor, só com RGM e nome (sempre um aluno). */
-  abstract criarPorProfessor(novo: NovoUsuarioProfessor): Observable<Usuario>;
-  abstract autenticar(credenciais: Credenciais): Observable<Usuario>;
+  /** Cadastro self-service (POST /auth/registrar) — sempre cria ALUNO. */
+  abstract criar(novo: NovoUsuario): Observable<RespostaCadastro>;
+  abstract autenticar(
+    credenciais: Credenciais,
+  ): Observable<RespostaAutenticacao>;
+  /** Edição feita pelo professor na tela de Usuários. */
+  abstract atualizar(
+    usuarioId: string,
+    dados: AtualizacaoUsuario,
+  ): Observable<Usuario>;
+  abstract remover(usuarioId: string): Observable<void>;
 }
 
 @Injectable()
@@ -34,7 +46,7 @@ export class UsuarioMockService extends UsuarioService {
     );
   }
 
-  override criar(novo: NovoUsuario): Observable<Usuario> {
+  override criar(novo: NovoUsuario): Observable<RespostaCadastro> {
     const emailEmUso = this.store.usuariosAtuais.some(
       (u) => u.email.toLowerCase() === novo.email.trim().toLowerCase(),
     );
@@ -49,40 +61,19 @@ export class UsuarioMockService extends UsuarioService {
       id: `u-${crypto.randomUUID()}`,
       nome: novo.nome.trim(),
       email: novo.email.trim().toLowerCase(),
-      perfil: novo.perfil,
-      status: 'ATIVO',
-      cursoIds: this.cursoIdsPadrao(novo.perfil),
-    };
-
-    this.store.adicionarUsuario(usuario);
-    return of(usuario).pipe(delay(400));
-  }
-
-  override criarPorProfessor(novo: NovoUsuarioProfessor): Observable<Usuario> {
-    const rgm = novo.rgm.trim();
-    const rgmEmUso = this.store.usuariosAtuais.some((u) => u.rgm === rgm);
-
-    if (rgmEmUso) {
-      return throwError(
-        () => new Error('Já existe um usuário com esse RGM.'),
-      ).pipe(delay(250));
-    }
-
-    const usuario: Usuario = {
-      id: `u-${crypto.randomUUID()}`,
-      nome: novo.nome.trim(),
-      email: `${rgm}@athena.edu`,
       perfil: 'ALUNO',
       status: 'ATIVO',
-      cursoIds: [novo.cursoId],
-      rgm,
+      cursoIds: this.cursoIdsPadrao('ALUNO'),
     };
 
     this.store.adicionarUsuario(usuario);
-    return of(usuario).pipe(delay(400));
+    return of({
+      mensagem:
+        'Cadastro recebido — no mock, sua conta já está pronta pra entrar.',
+    }).pipe(delay(400));
   }
 
-  private cursoIdsPadrao(perfil: Perfil): string[] {
+  protected cursoIdsPadrao(perfil: Perfil): string[] {
     return perfil === 'ALUNO'
       ? ['c-eng-noite']
       : ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'];
@@ -90,10 +81,10 @@ export class UsuarioMockService extends UsuarioService {
 
   /**
    * Login mockado: qualquer e-mail cadastrado entra com a senha `athena123`.
-   * Quando o backend em Go subir, esta implementação é substituída por uma
-   * que faz POST /auth/login e guarda o JWT.
    */
-  override autenticar(credenciais: Credenciais): Observable<Usuario> {
+  override autenticar(
+    credenciais: Credenciais,
+  ): Observable<RespostaAutenticacao> {
     const usuario = this.store.usuariosAtuais.find(
       (u) => u.email.toLowerCase() === credenciais.email.trim().toLowerCase(),
     );
@@ -104,7 +95,26 @@ export class UsuarioMockService extends UsuarioService {
       ).pipe(delay(500));
     }
 
-    return of(usuario).pipe(delay(500));
+    return of({ usuario, token: `mock-token-${usuario.id}` }).pipe(delay(500));
+  }
+
+  override atualizar(
+    usuarioId: string,
+    dados: AtualizacaoUsuario,
+  ): Observable<Usuario> {
+    this.store.atualizarUsuario(usuarioId, dados);
+    const usuario = this.store.usuariosAtuais.find((u) => u.id === usuarioId);
+
+    if (!usuario) {
+      return throwError(() => new Error('Usuário não encontrado.'));
+    }
+
+    return of(usuario).pipe(delay(300));
+  }
+
+  override remover(usuarioId: string): Observable<void> {
+    this.store.removerUsuario(usuarioId);
+    return of(undefined).pipe(delay(300));
   }
 
   private aplicarFiltro(
@@ -122,5 +132,34 @@ export class UsuarioMockService extends UsuarioService {
         u.email.toLowerCase().includes(termo);
       return casaPerfil && casaBusca;
     });
+  }
+}
+
+/**
+ * `autenticar`/`criar` falam com o backend de verdade (`/auth/login`,
+ * `/auth/registrar`). `listar`/`atualizar`/`remover` continuam no mock: o
+ * backend ainda não tem nenhuma rota de listagem/gestão de usuários (ver
+ * README, seção "Gaps conhecidos") — a tela de Usuários segue funcionando
+ * em memória local até esse endpoint existir.
+ */
+@Injectable()
+export class UsuarioHttpService extends UsuarioMockService {
+  private readonly http = inject(HttpClient);
+
+  override autenticar(
+    credenciais: Credenciais,
+  ): Observable<RespostaAutenticacao> {
+    return this.http
+      .post<RespostaAutenticacao>(
+        `${environment.apiBaseUrl}/auth/login`,
+        credenciais,
+      )
+      .pipe(catchError(erroHttp));
+  }
+
+  override criar(novo: NovoUsuario): Observable<RespostaCadastro> {
+    return this.http
+      .post<RespostaCadastro>(`${environment.apiBaseUrl}/auth/registrar`, novo)
+      .pipe(catchError(erroHttp));
   }
 }

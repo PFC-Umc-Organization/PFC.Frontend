@@ -2,13 +2,14 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { of, switchMap } from 'rxjs';
 
-import { ItemTimeline, rotuloCurso } from '../../core/models';
+import { ItemTimeline, ehEquipeAcademica, rotuloCurso } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { CursoService } from '../../core/services/curso.service';
 import {
   EntregaService,
   MatrizStatus,
 } from '../../core/services/entrega.service';
+import { ProgramaService } from '../../core/services/programa.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { IconeComponent } from '../../shared/components/icone.component';
@@ -75,13 +76,16 @@ const TODOS = '';
               <div class="integrantes">
                 <p class="eyebrow">Integrantes do grupo</p>
                 <ul class="integrantes__lista mt-2">
-                  @for (i of d.integrantes; track i.id) {
+                  @for (i of d.integrantes; track i.rgm) {
                     <li class="integrante">
                       <app-icone nome="usuarios" class="integrante__icone" />
-                      <span>
+                      @if (i.nome) {
                         <span class="cell-strong">{{ i.nome }}</span>
-                        <span class="integrante__email">{{ i.email }}</span>
-                      </span>
+                      } @else {
+                        <span class="cell-strong muted">
+                          RGM {{ i.rgm }} (aguardando cadastro)
+                        </span>
+                      }
                     </li>
                   } @empty {
                     <li class="muted text-sm">
@@ -142,23 +146,7 @@ const TODOS = '';
         }
       } @else {
         <!-- -------------------------- visão aluno -------------------------- -->
-        @if (ehPreviaDoProfessor()) {
-          <p class="aviso">
-            <app-icone nome="alerta" />
-            <span>
-              Prévia da visão do aluno
-              @if (nomeProjetoPrevia()) {
-                — projeto <strong>{{ nomeProjetoPrevia() }}</strong>
-              }
-              . Como professor, você não pode marcar entregas por aqui.
-            </span>
-          </p>
-        }
-
-        <app-timeline
-          [itens]="itensAluno()"
-          [interativo]="!ehPreviaDoProfessor()"
-        />
+        <app-timeline [itens]="itensAluno()" />
       }
     </div>
   `,
@@ -209,37 +197,17 @@ const TODOS = '';
       margin-top: 0.125rem;
     }
 
-    .integrante__email {
-      display: block;
-      font-size: 0.75rem;
-      color: var(--muted-foreground);
-    }
-
     .card__head-icone {
       --icone-size: 1.125rem;
       color: var(--primary);
     }
 
-    .aviso {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      padding: 0.75rem 1rem;
-      font-size: 0.875rem;
-      color: var(--foreground);
-      background: color-mix(in oklch, var(--bronze) 8%, transparent);
-      border: 1px solid color-mix(in oklch, var(--bronze) 35%, transparent);
-    }
-
-    .aviso app-icone {
-      color: var(--bronze);
-      margin-top: 0.125rem;
-    }
   `,
 })
 export class InicioComponent {
   private readonly auth = inject(AuthService);
   private readonly cursoService = inject(CursoService);
+  private readonly programaService = inject(ProgramaService);
   private readonly projetoService = inject(ProjetoService);
   private readonly entregaService = inject(EntregaService);
   private readonly usuarioService = inject(UsuarioService);
@@ -252,21 +220,27 @@ export class InicioComponent {
     initialValue: [],
   });
 
+  private readonly programas = toSignal(this.programaService.listar(), {
+    initialValue: [],
+  });
+
+  /** Programa (turma) do curso escolhido — pode não existir ainda. */
+  private readonly programaSelecionadoId = computed(
+    () => this.programas().find((p) => p.cursoId === this.cursoSelecionado())?.id,
+  );
+
   /** Projetos do curso escolhido — é isto que alimenta o segundo select. */
   readonly projetos = toSignal(
-    toObservable(this.cursoSelecionado).pipe(
-      switchMap((cursoId) => this.projetoService.listar(cursoId)),
+    toObservable(this.programaSelecionadoId).pipe(
+      switchMap((programaId) =>
+        programaId ? this.projetoService.listar(programaId) : of([]),
+      ),
     ),
     { initialValue: [] },
   );
 
-  readonly visaoProfessor = computed(
-    () => this.auth.perfilVisao() === 'PROFESSOR',
-  );
-
-  /** Professor olhando a interface do aluno via "Ver como". */
-  readonly ehPreviaDoProfessor = computed(
-    () => this.auth.ehProfessor() && this.auth.perfilVisao() === 'ALUNO',
+  readonly visaoProfessor = computed(() =>
+    ehEquipeAcademica(this.auth.perfil()),
   );
 
   readonly detalhe = toSignal(
@@ -292,29 +266,20 @@ export class InicioComponent {
     { initialValue: { atividades: [], linhas: [] } as MatrizStatus },
   );
 
-  /** Projeto do grupo do aluno logado — resolvido pelo service, não pelos filtros. */
+  /**
+   * Projeto do grupo do aluno logado — resolvido pelo service, não pelos
+   * filtros. Busca pelo RGM (é assim que `integrantes` é armazenado).
+   */
   private readonly projetoDoAluno = toSignal(
-    toObservable(computed(() => this.auth.usuario()?.id ?? '')).pipe(
-      switchMap((id) => (id ? this.projetoService.doAluno(id) : of(null))),
+    toObservable(computed(() => this.auth.usuario()?.rgm ?? '')).pipe(
+      switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
     ),
     { initialValue: null },
   );
 
-  /**
-   * Qual projeto a timeline da visão do aluno mostra. Para o aluno é o grupo
-   * dele; para o professor em prévia, o projeto que ele filtrou (ou o
-   * primeiro do curso, quando está vendo todos).
-   */
-  private readonly projetoAlvo = computed(() => {
-    if (this.ehPreviaDoProfessor()) {
-      return this.projetoSelecionado() || (this.projetos()[0]?.id ?? '');
-    }
-
-    return this.projetoDoAluno()?.id ?? '';
-  });
-
-  readonly nomeProjetoPrevia = computed(
-    () => this.projetos().find((p) => p.id === this.projetoAlvo())?.nome ?? '',
+  /** Qual projeto a timeline da visão do aluno mostra: o grupo dele. */
+  private readonly projetoAlvo = computed(
+    () => this.projetoDoAluno()?.id ?? '',
   );
 
   readonly itensAluno = toSignal(

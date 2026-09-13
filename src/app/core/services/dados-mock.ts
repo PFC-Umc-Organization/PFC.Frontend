@@ -3,6 +3,8 @@ import {
   Curso,
   Entrega,
   Material,
+  Matricula,
+  Programa,
   Projeto,
   Usuario,
 } from '../models';
@@ -44,7 +46,7 @@ export const USUARIOS_SEED: Usuario[] = [
     id: 'u-1',
     nome: 'Prof. Alessandro Horas',
     email: 'alessandro.horas@athena.edu',
-    perfil: 'PROFESSOR',
+    perfil: 'COORDENADOR',
     status: 'ATIVO',
     cursoIds: ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'],
   },
@@ -55,6 +57,7 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-eng-noite'],
+    rgm: '20260001',
   },
   {
     id: 'u-3',
@@ -63,6 +66,7 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-eng-noite'],
+    rgm: '20260002',
   },
   {
     id: 'u-4',
@@ -71,6 +75,7 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-eng-noite'],
+    rgm: '20260003',
   },
   {
     id: 'u-5',
@@ -79,6 +84,7 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-eng-noite'],
+    rgm: '20260004',
   },
   {
     id: 'u-6',
@@ -87,6 +93,7 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-eng-manha'],
+    rgm: '20260005',
   },
   {
     id: 'u-7',
@@ -95,6 +102,7 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-eng-manha'],
+    rgm: '20260006',
   },
   {
     id: 'u-8',
@@ -103,6 +111,7 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-si-noite'],
+    rgm: '20260007',
   },
   {
     id: 'u-9',
@@ -111,7 +120,29 @@ export const USUARIOS_SEED: Usuario[] = [
     perfil: 'ALUNO',
     status: 'ATIVO',
     cursoIds: ['c-si-noite'],
+    rgm: '20260008',
   },
+];
+
+/**
+ * Um Programa por turma que já tem PFC em andamento. A turma "SI - Manhã"
+ * fica de propósito sem programa, pra exercitar o estado "nenhum PFC
+ * iniciado ainda" na tela de Gestão de PFC.
+ */
+export const PROGRAMAS_SEED: Programa[] = [
+  { id: 'pr-eng-noite', cursoId: 'c-eng-noite' },
+  { id: 'pr-eng-manha', cursoId: 'c-eng-manha' },
+  { id: 'pr-si-noite', cursoId: 'c-si-noite' },
+];
+
+/**
+ * RGMs pré-autorizados que ainda não viraram conta (ninguém com esses RGMs
+ * se cadastrou ainda) — mostra o estado "aguardando cadastro" na tela de
+ * Usuários.
+ */
+export const MATRICULAS_SEED: Matricula[] = [
+  { rgm: '20260009', status: 'ATIVO' },
+  { rgm: '20260010', status: 'ATIVO' },
 ];
 
 export const PROJETOS_SEED: Projeto[] = [
@@ -119,29 +150,29 @@ export const PROJETOS_SEED: Projeto[] = [
     id: 'p-athena',
     nome: 'Athena',
     descricao: 'Portal de acompanhamento de PFC para coordenação e alunos.',
-    cursoId: 'c-eng-noite',
-    integrantes: ['u-2', 'u-3'],
+    programaId: 'pr-eng-noite',
+    integrantes: ['20260001', '20260002'],
   },
   {
     id: 'p-web-cursos',
     nome: 'Web-Cursos',
     descricao: 'Plataforma de catálogo e matrícula em cursos livres.',
-    cursoId: 'c-eng-noite',
-    integrantes: ['u-4', 'u-5'],
+    programaId: 'pr-eng-noite',
+    integrantes: ['20260003', '20260004'],
   },
   {
     id: 'p-agenda-lab',
     nome: 'Agenda-Lab',
     descricao: 'Reserva de laboratórios e equipamentos do campus.',
-    cursoId: 'c-eng-manha',
-    integrantes: ['u-6', 'u-7'],
+    programaId: 'pr-eng-manha',
+    integrantes: ['20260005', '20260006'],
   },
   {
     id: 'p-almox',
     nome: 'Almoxarifado Digital',
     descricao: 'Controle de estoque e requisições internas.',
-    cursoId: 'c-si-noite',
-    integrantes: ['u-8', 'u-9'],
+    programaId: 'pr-si-noite',
+    integrantes: ['20260007', '20260008'],
   },
 ];
 

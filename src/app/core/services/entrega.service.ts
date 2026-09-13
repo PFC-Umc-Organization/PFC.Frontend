@@ -13,8 +13,8 @@ export interface MatrizStatus {
 export abstract class EntregaService {
   /** Timeline de um grupo: as atividades do cronograma com o status do projeto. */
   abstract timelineDoProjeto(projetoId: string): Observable<ItemTimeline[]>;
-  /** Atalho para a visão do aluno — resolve o projeto do grupo dele. */
-  abstract timelineDoAluno(alunoId: string): Observable<ItemTimeline[]>;
+  /** Atalho para a visão do aluno — resolve o projeto do grupo dele pelo RGM. */
+  abstract timelineDoAluno(rgm: string): Observable<ItemTimeline[]>;
   abstract matrizDoCurso(cursoId: string): Observable<MatrizStatus>;
   abstract marcarEntregue(
     atividadeId: string,
@@ -63,7 +63,7 @@ export class EntregaMockService extends EntregaService {
     );
   }
 
-  override timelineDoAluno(alunoId: string): Observable<ItemTimeline[]> {
+  override timelineDoAluno(rgm: string): Observable<ItemTimeline[]> {
     return combineLatest([
       this.store.atividades,
       this.store.entregas,
@@ -71,7 +71,7 @@ export class EntregaMockService extends EntregaService {
       this.store.usuarios,
     ]).pipe(
       map(([atividades]) => {
-        const projeto = this.store.projetoDoAluno(alunoId);
+        const projeto = this.store.projetoDoAluno(rgm);
 
         if (!projeto) {
           return [];
