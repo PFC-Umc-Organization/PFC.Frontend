@@ -8,17 +8,10 @@ const CHAVE_SESSAO = 'athena.sessao';
 
 interface Sessao {
   usuario: Usuario;
-  /** IdToken do Cognito — enviado como Bearer nas rotas protegidas. */
   token: string;
 }
 
-/**
- * Sessão do usuário.
- *
- * `entrar` fala com o Cognito (via `POST /auth/login` no backend) e recebe
- * usuário + token de volta. `cadastrar` NÃO loga automaticamente: o Cognito
- * pode exigir confirmação por e-mail antes do primeiro login.
- */
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly usuarios = inject(UsuarioService);
@@ -72,7 +65,6 @@ export class AuthService {
     try {
       localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ usuario, token }));
     } catch {
-      /* modo privado ou storage bloqueado — a sessão vive só em memória */
     }
   }
 
@@ -80,7 +72,6 @@ export class AuthService {
     try {
       localStorage.removeItem(CHAVE_SESSAO);
     } catch {
-      /* idem */
     }
   }
 }

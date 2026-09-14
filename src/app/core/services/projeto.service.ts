@@ -27,18 +27,12 @@ import { ProgramaService } from './programa.service';
 import { UsuarioService } from './usuario.service';
 
 export abstract class ProjetoService {
-  /** Sem `programaId`, devolve os projetos de todos os programas. */
   abstract listar(programaId?: string): Observable<Projeto[]>;
   abstract detalhe(projetoId: string): Observable<ProjetoDetalhe | null>;
-  /** Projeto do grupo a que o aluno pertence, pelo RGM dele. */
   abstract doAluno(rgm: string): Observable<Projeto | null>;
-  /** Cadastro do PFC — restrito ao coordenador de PFC. */
   abstract criar(novo: NovoProjeto): Observable<Projeto>;
-  /** Adiciona um aluno (pelo RGM) ao grupo — restrito ao coordenador. */
   abstract adicionarIntegrante(projetoId: string, rgm: string): Observable<void>;
-  /** Remove um aluno (pelo RGM) do grupo — restrito ao coordenador. */
   abstract removerIntegrante(projetoId: string, rgm: string): Observable<void>;
-  /** Edição feita pelo coordenador na Gestão de PFC (nome/descrição). */
   abstract atualizar(
     projetoId: string,
     dados: AtualizacaoProjeto,
@@ -47,7 +41,6 @@ export abstract class ProjetoService {
     projetoId: string,
     orientadorId: string,
   ): Observable<void>;
-  /** Limpa o orientador do PFC, sem excluir o grupo. */
   abstract removerOrientador(projetoId: string): Observable<void>;
   abstract remover(projetoId: string): Observable<void>;
 }
@@ -69,11 +62,7 @@ export class ProjetoMockService extends ProjetoService {
     );
   }
 
-  /**
-   * Depende de usuários além de projetos: se um integrante se cadastrar
-   * (ganhando nome) ou um orientador for renomeado, o detalhe reflete na
-   * hora.
-   */
+  
   override detalhe(projetoId: string): Observable<ProjetoDetalhe | null> {
     return combineLatest([
       this.store.projetos,
@@ -171,18 +160,7 @@ export class ProjetoMockService extends ProjetoService {
   }
 }
 
-/**
- * `listar`, `criar`, `adicionarIntegrante`, `removerIntegrante` e
- * `definirOrientador` falam com o backend de verdade.
- *
- * `detalhe` e `doAluno` não têm endpoint próprio (não existe "buscar um
- * projeto" nem "achar o projeto de um RGM") — são resolvidos no cliente,
- * agregando `listar()` sobre todos os programas.
- *
- * `atualizar`, `removerOrientador` e `remover` ainda não têm rota no
- * backend (ver README, "Gaps conhecidos") — falham com um erro explícito
- * em vez de escrever silenciosamente num store que ninguém mais lê.
- */
+
 @Injectable()
 export class ProjetoHttpService extends ProjetoService {
   private readonly http = inject(HttpClient);

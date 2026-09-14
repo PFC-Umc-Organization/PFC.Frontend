@@ -3,10 +3,7 @@ import { Component, Input } from '@angular/core';
 import { ItemTimeline, ROTULO_LEGENDA } from '../../core/models';
 import { EntregavelCardComponent } from './entregavel-card.component';
 
-/**
- * Faixa horizontal de entregáveis, com os quadrados ligados por fios —
- * a "Timeline de Entregas" do protótipo.
- */
+
 @Component({
   selector: 'app-timeline',
   standalone: true,

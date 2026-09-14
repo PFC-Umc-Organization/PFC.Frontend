@@ -16,7 +16,6 @@ import { IconeComponent } from '../../shared/components/icone.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { TimelineComponent } from '../aluno/timeline.component';
 
-/** Valor do select que representa "não filtrei por projeto nenhum". */
 const TODOS = '';
 
 @Component({
@@ -266,10 +265,7 @@ export class InicioComponent {
     { initialValue: { atividades: [], linhas: [] } as MatrizStatus },
   );
 
-  /**
-   * Projeto do grupo do aluno logado — resolvido pelo service, não pelos
-   * filtros. Busca pelo RGM (é assim que `integrantes` é armazenado).
-   */
+  
   private readonly projetoDoAluno = toSignal(
     toObservable(computed(() => this.auth.usuario()?.rgm ?? '')).pipe(
       switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
@@ -277,7 +273,6 @@ export class InicioComponent {
     { initialValue: null },
   );
 
-  /** Qual projeto a timeline da visão do aluno mostra: o grupo dele. */
   private readonly projetoAlvo = computed(
     () => this.projetoDoAluno()?.id ?? '',
   );
@@ -292,11 +287,7 @@ export class InicioComponent {
   );
 
   constructor() {
-    /**
-     * Trocar de curso invalida o projeto escolhido — ele pertence ao curso
-     * anterior. Sem isto, a tela ficaria mostrando um projeto que não está
-     * mais na lista do select.
-     */
+    
     effect(() => {
       const projetos = this.projetos();
       const atual = this.projetoSelecionado();

@@ -7,11 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 
-/**
- * Só leitura: quem cria o PFC e monta o grupo é o coordenador, na tela de
- * Gestão de PFC — o aluno não tem escrita nesse domínio (o backend
- * restringe `POST/PUT/DELETE` de projeto e integrantes ao COORDENADOR).
- */
+
 @Component({
   selector: 'app-meu-pfc',
   standalone: true,

@@ -4,10 +4,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { Perfil } from '../models';
 import { AuthService } from '../services/auth.service';
 
-/**
- * Restringe a rota a determinados perfis.
- * Uso: `canActivate: [authGuard, perfilGuard(['PROFESSOR'])]`
- */
+
 export function perfilGuard(perfisPermitidos: Perfil[]): CanActivateFn {
   return () => {
     const auth = inject(AuthService);

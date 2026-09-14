@@ -463,12 +463,7 @@ export class GestaoPfcComponent {
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
   readonly turmaSelecionada = signal('c-eng-noite');
 
-  /**
-   * `listar()` do HttpClient é um Observable frio — dispara uma vez e
-   * acaba. Sem esse `Subject` como gatilho manual, criar/editar não
-   * atualizaria a tela até um F5 (a chamada HTTP original já tinha
-   * completado, não há BehaviorSubject vivo como no mock).
-   */
+  
   private readonly recarregarProgramas$ = new Subject<void>();
   private readonly recarregarPfcs$ = new Subject<void>();
 
@@ -480,7 +475,6 @@ export class GestaoPfcComponent {
     { initialValue: [] as Programa[] },
   );
 
-  /** Programa (turma) já iniciado para a turma escolhida, se houver. */
   readonly programaAtual = computed(
     () =>
       this.programas().find((p) => p.cursoId === this.turmaSelecionada()) ??

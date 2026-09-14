@@ -21,13 +21,7 @@ import { TimelineComponent } from '../aluno/timeline.component';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 
-/**
- * Para o professor, é a tela de "Materiais de Apoio" (publicar links de
- * modelos, guias e gravações). Para o aluno, é a tela de "Entregáveis":
- * escolher uma atividade do cronograma, anexar o arquivo e enviar a entrega
- * do grupo — como no `MateriaisComponent` original, essa tela não existe no
- * protótipo do Lovable e segue o mesmo sistema visual das outras.
- */
+
 @Component({
   selector: 'app-materiais',
   standalone: true,

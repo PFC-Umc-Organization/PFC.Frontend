@@ -4,16 +4,14 @@ import { Observable, combineLatest, delay, map, of } from 'rxjs';
 import { Atividade, ItemTimeline, LinhaStatusProjeto } from '../models';
 import { MemoriaStore } from './memoria.store';
 
-/** Matriz projeto × atividade da visão geral do curso. */
 export interface MatrizStatus {
   atividades: Atividade[];
   linhas: LinhaStatusProjeto[];
 }
 
 export abstract class EntregaService {
-  /** Timeline de um grupo: as atividades do cronograma com o status do projeto. */
+  
   abstract timelineDoProjeto(projetoId: string): Observable<ItemTimeline[]>;
-  /** Atalho para a visão do aluno — resolve o projeto do grupo dele pelo RGM. */
   abstract timelineDoAluno(rgm: string): Observable<ItemTimeline[]>;
   abstract matrizDoCurso(cursoId: string): Observable<MatrizStatus>;
   abstract marcarEntregue(
@@ -24,7 +22,6 @@ export abstract class EntregaService {
     atividadeId: string,
     projetoId: string,
   ): Observable<void>;
-  /** Envia o arquivo da entrega de um grupo para uma atividade do cronograma. */
   abstract entregar(
     atividadeId: string,
     projetoId: string,
@@ -37,10 +34,7 @@ export abstract class EntregaService {
 export class EntregaMockService extends EntregaService {
   private readonly store = inject(MemoriaStore);
 
-  /**
-   * O cronograma é o mesmo para todo mundo, então a timeline lista TODAS as
-   * atividades — o que varia de projeto para projeto é só o status.
-   */
+ 
   override timelineDoProjeto(projetoId: string): Observable<ItemTimeline[]> {
     return combineLatest([
       this.store.atividades,

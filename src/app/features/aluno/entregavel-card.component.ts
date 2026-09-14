@@ -9,7 +9,7 @@ import {
 import { IconeComponent } from '../../shared/components/icone.component';
 import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 
-/** Um quadrado da timeline de entregas. */
+
 @Component({
   selector: 'app-entregavel-card',
   standalone: true,
@@ -179,7 +179,6 @@ export class EntregavelCardComponent {
     this._item.set(valor);
   }
 
-  /** Quando falso, o card é somente leitura (visão do professor). */
   @Input() interativo = true;
 
   readonly item = computed(

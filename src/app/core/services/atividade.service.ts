@@ -11,13 +11,9 @@ import { MemoriaStore } from './memoria.store';
 
 export abstract class AtividadeService {
   abstract listar(): Observable<Atividade[]>;
-  /**
-   * Resumos com os números agregados. Sem `cursoId`, conta os projetos de
-   * todos os cursos; com ele, restringe a contagem àquele curso.
-   */
+ 
   abstract listarResumos(cursoId?: string): Observable<AtividadeResumo[]>;
   abstract criar(nova: NovaAtividade): Observable<Atividade>;
-  /** Edita uma atividade já publicada (título, descrição e/ou prazo). */
   abstract atualizar(
     atividadeId: string,
     dados: AtualizacaoAtividade,
@@ -37,10 +33,7 @@ export class AtividadeMockService extends AtividadeService {
     );
   }
 
-  /**
-   * Depende de entregas e projetos, por isso o combineLatest — qualquer
-   * mudança nessas coleções recalcula a lista.
-   */
+  
   override listarResumos(cursoId?: string): Observable<AtividadeResumo[]> {
     return combineLatest([
       this.listar(),

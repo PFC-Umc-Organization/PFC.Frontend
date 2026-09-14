@@ -6,11 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { AuthCardComponent } from './auth-card.component';
 
-/**
- * Cadastro público — sempre cria ALUNO (o backend ignora qualquer outro
- * perfil enviado por aqui; contas de professor/coordenador só existem via
- * AdminCreateUser, fora deste fluxo). Por isso não há seletor de perfil.
- */
+
 @Component({
   selector: 'app-cadastro',
   standalone: true,

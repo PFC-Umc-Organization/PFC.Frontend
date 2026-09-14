@@ -25,13 +25,7 @@ import {
   USUARIOS_SEED,
 } from './dados-mock';
 
-/**
- * Fonte de verdade em memória usada pelas implementações mock dos services.
- *
- * Existe um único store para o app inteiro, então marcar uma entrega na
- * timeline do aluno reflete na hora nas tabelas do professor — do mesmo jeito
- * que aconteceria com o backend real.
- */
+
 @Injectable({ providedIn: 'root' })
 export class MemoriaStore {
   private readonly cursos$ = new BehaviorSubject<Curso[]>([...CURSOS_SEED]);
@@ -122,25 +116,17 @@ export class MemoriaStore {
     return this.projetosAtuais.filter((p) => p.programaId === programaId);
   }
 
-  /**
-   * PFCs da turma. Sem Programa iniciado pra esse curso, a lista é vazia —
-   * é o que sinaliza pra Gestão de PFC mostrar "nenhum PFC iniciado ainda".
-   */
+  
   projetosDoCurso(cursoId: string): Projeto[] {
     const programa = this.programaDoCurso(cursoId);
     return programa ? this.projetosDoPrograma(programa.id) : [];
   }
 
-  /**
-   * Grupo a que o aluno pertence, pelo RGM (é assim que `integrantes` é
-   * armazenado — ver comentário em `Projeto`). Um aluno participa de um
-   * projeto só.
-   */
+ 
   projetoDoAluno(rgm: string): Projeto | undefined {
     return this.projetosAtuais.find((p) => p.integrantes.includes(rgm));
   }
 
-  /** Integrantes resolvidos: `nome` fica `null` se o RGM ainda não é conta. */
   integrantesDoProjeto(
     projetoId: string,
   ): { rgm: string; nome: string | null }[] {
@@ -177,10 +163,7 @@ export class MemoriaStore {
     );
   }
 
-  /**
-   * Remove o usuário e limpa os vínculos dele: sai dos grupos como
-   * integrante (pelo RGM) e deixa de ser orientador de qualquer PFC.
-   */
+ 
   removerUsuario(usuarioId: string): void {
     const usuario = this.usuariosAtuais.find((u) => u.id === usuarioId);
 
@@ -233,9 +216,7 @@ export class MemoriaStore {
     );
   }
 
-  /**
-   * Grava RGMs na allowlist de matrícula (upsert — RGM repetido não duplica).
-   */
+  
   provisionarMatriculas(rgms: string[]): void {
     const existentes = new Set(this.matriculasAtuais.map((m) => m.rgm));
     const novas = rgms
@@ -274,7 +255,6 @@ export class MemoriaStore {
     );
   }
 
-  /** Remove o PFC e as entregas registradas para ele — não sobra órfão. */
   removerProjeto(projetoId: string): void {
     this.projetos$.next(
       this.projetosAtuais.filter((p) => p.id !== projetoId),
@@ -365,10 +345,7 @@ export class MemoriaStore {
 
   /* --------------------------- regras de status --------------------------- */
 
-  /**
-   * Status da entrega de um projeto numa atividade. Sem registro de entrega,
-   * o que decide é o prazo: vencido vira atraso, não vencido fica pendente.
-   */
+  
   statusEntrega(
     atividade: Atividade,
     projetoId: string,
@@ -388,10 +365,7 @@ export class MemoriaStore {
     return agora > prazo ? 'ATRASADO' : 'PENDENTE';
   }
 
-  /**
-   * Situação agregada da atividade. Sem `cursoId`, considera todos os projetos
-   * da plataforma; com ele, só os projetos daquele curso.
-   */
+  
   statusAtividade(
     atividade: Atividade,
     cursoId?: string,
@@ -416,14 +390,12 @@ export class MemoriaStore {
     return statuses.some((s) => s === 'ATRASADO') ? 'ATRASADA' : 'EM_ANDAMENTO';
   }
 
-  /** Nome do arquivo entregue por um projeto numa atividade, se houver. */
   arquivoEntrega(atividadeId: string, projetoId: string): string | undefined {
     return this.entregasAtuais.find(
       (e) => e.atividadeId === atividadeId && e.projetoId === projetoId,
     )?.arquivoNome;
   }
 
-  /** Quantos projetos já entregaram a atividade. */
   entregasRecebidas(atividadeId: string, cursoId?: string): number {
     const ids = new Set(
       (cursoId ? this.projetosDoCurso(cursoId) : this.projetosAtuais).map(

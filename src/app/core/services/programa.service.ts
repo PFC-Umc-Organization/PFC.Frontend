@@ -7,14 +7,10 @@ import { NovoPrograma, Programa } from '../models';
 import { erroHttp } from './http-erro';
 import { MemoriaStore } from './memoria.store';
 
-/**
- * Espelha o domínio `programa` do backend: agrupa os PFCs de uma turma sob
- * um Curso. Só o coordenador de PFC cria — a UI já restringe isso.
- */
+
 export abstract class ProgramaService {
   abstract listar(): Observable<Programa[]>;
   abstract criar(novo: NovoPrograma): Observable<Programa>;
-  /** Backend recusa (409) se ainda houver projeto vinculado ao programa. */
   abstract deletar(programaId: string): Observable<void>;
 }
 
@@ -42,7 +38,6 @@ export class ProgramaMockService extends ProgramaService {
   }
 }
 
-/** Ambos os endpoints existem no backend de verdade — sem gaps aqui. */
 @Injectable()
 export class ProgramaHttpService extends ProgramaService {
   private readonly http = inject(HttpClient);

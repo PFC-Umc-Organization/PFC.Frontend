@@ -9,10 +9,7 @@ import {
   Usuario,
 } from '../models';
 
-/**
- * Semente de dados em memória.
- * Enquanto o backend em Go não estiver de pé, é isto que alimenta as telas.
- */
+
 
 export const CURSOS_SEED: Curso[] = [
   {
@@ -124,22 +121,14 @@ export const USUARIOS_SEED: Usuario[] = [
   },
 ];
 
-/**
- * Um Programa por turma que já tem PFC em andamento. A turma "SI - Manhã"
- * fica de propósito sem programa, pra exercitar o estado "nenhum PFC
- * iniciado ainda" na tela de Gestão de PFC.
- */
+
 export const PROGRAMAS_SEED: Programa[] = [
   { id: 'pr-eng-noite', cursoId: 'c-eng-noite' },
   { id: 'pr-eng-manha', cursoId: 'c-eng-manha' },
   { id: 'pr-si-noite', cursoId: 'c-si-noite' },
 ];
 
-/**
- * RGMs pré-autorizados que ainda não viraram conta (ninguém com esses RGMs
- * se cadastrou ainda) — mostra o estado "aguardando cadastro" na tela de
- * Usuários.
- */
+
 export const MATRICULAS_SEED: Matricula[] = [
   { rgm: '20260009', status: 'ATIVO' },
   { rgm: '20260010', status: 'ATIVO' },
@@ -176,10 +165,7 @@ export const PROJETOS_SEED: Projeto[] = [
   },
 ];
 
-/**
- * Cronograma institucional: estas atividades valem para TODOS os projetos.
- * Publicar uma nova aqui faz ela aparecer na timeline de todo grupo.
- */
+
 export const ATIVIDADES_SEED: Atividade[] = [
   {
     id: 'a-1',
@@ -215,11 +201,7 @@ export const ATIVIDADES_SEED: Atividade[] = [
   },
 ];
 
-/**
- * Entregas efetivamente registradas, por projeto. O que não está aqui é
- * considerado não entregue — e o status (pendente ou atrasado) sai da
- * comparação do prazo com a data corrente.
- */
+
 export const ENTREGAS_SEED: Entrega[] = [
   {
     id: 'e-1',
@@ -299,5 +281,5 @@ export const MATERIAIS_SEED: Material[] = [
   },
 ];
 
-/** Senha aceita por qualquer usuário enquanto o login é mockado. */
+
 export const SENHA_MOCK = 'athena123';

@@ -1,12 +1,4 @@
-/* =========================================================================
-   Athena — Design System
-   Tokens extraídos do protótipo (Lovable) e portados para CSS/SCSS padrão.
-   Identidade: neoclássica — navy + bronze, mármore, cantos retos.
-   ========================================================================= */
 
-/* -------------------------------------------------------------------------
-   1. Tokens
-   ------------------------------------------------------------------------- */
 :root {
   /* Marca */
   --primary: oklch(38% 0.14 264);
@@ -15,35 +7,29 @@
   --bronze-foreground: oklch(99% 0.005 85);
   --greek: oklch(38% 0.14 264);
 
-  /* Superfícies — offwhite quente; nada de branco puro, nem nos cartões.
-     A hierarquia vem do degrau entre fundo e superfície elevada. */
+ 
   --background: oklch(96.2% 0.009 85);
   --marble: oklch(98.2% 0.006 85);
   --card: oklch(98.2% 0.006 85);
   --card-foreground: oklch(22% 0.04 260);
   --popover: oklch(98.8% 0.004 80);
 
-  /* Texto */
   --foreground: oklch(22% 0.04 260);
   --muted: oklch(94% 0.01 250);
   --muted-foreground: oklch(55% 0.05 260);
 
-  /* Estados */
   --success: oklch(46% 0.12 154);
   --destructive: oklch(58% 0.22 25);
   --accent: var(--bronze);
 
-  /* Bordas e foco */
   --border: oklch(89% 0.012 250);
   --input: oklch(89% 0.012 250);
   --ring: oklch(38% 0.14 264);
 
-  /* Tipografia */
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI',
     Roboto, sans-serif;
 
-  /* Métricas — o desenho é de cantos retos por decisão estética */
   --radius: 0;
   --radius-pill: 999px;
   --header-h: 5rem;
@@ -324,7 +310,6 @@ h4 {
   flex-shrink: 0;
 }
 
-/* Link em forma de botão — "Esqueci minha senha" */
 .link-button {
   display: block;
   font-size: 0.875rem;
@@ -388,12 +373,7 @@ h4 {
   box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 12%, transparent);
 }
 
-/**
- * O select nativo desenha a seta encostada na borda e ignora o padding, então
- * desligamos a aparência padrão e posicionamos um chevron próprio, com folga.
- * A cor do traço espelha --primary; como data URI não aceita var(), ela está
- * fixa aqui e precisa ser reajustada se o token de marca mudar.
- */
+
 select.control {
   appearance: none;
   padding-right: 2.5rem;
@@ -414,7 +394,6 @@ select.control {
   border-color: var(--destructive);
 }
 
-/* Campo com ícone à esquerda */
 .control-wrap {
   position: relative;
 }

@@ -2,13 +2,7 @@ import { Component, Input } from '@angular/core';
 
 import { IconeComponent } from '../../shared/components/icone.component';
 
-/**
- * Moldura das telas de acesso.
- *
- * Diferente do resto do portal (e do protótipo do Lovable, que usava um painel
- * lateral com moldura de coluna dórica), aqui a página é lisa e o cartão fica
- * centralizado — no espírito das telas de entrada da Microsoft.
- */
+
 @Component({
   selector: 'app-auth-card',
   standalone: true,

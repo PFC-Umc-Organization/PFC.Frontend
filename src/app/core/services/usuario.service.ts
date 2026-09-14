@@ -23,12 +23,10 @@ export interface FiltroUsuario {
 
 export abstract class UsuarioService {
   abstract listar(filtro?: FiltroUsuario): Observable<Usuario[]>;
-  /** Cadastro self-service (POST /auth/registrar) — sempre cria ALUNO. */
   abstract criar(novo: NovoUsuario): Observable<RespostaCadastro>;
   abstract autenticar(
     credenciais: Credenciais,
   ): Observable<RespostaAutenticacao>;
-  /** Edição feita pelo professor na tela de Usuários. */
   abstract atualizar(
     usuarioId: string,
     dados: AtualizacaoUsuario,
@@ -79,9 +77,7 @@ export class UsuarioMockService extends UsuarioService {
       : ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'];
   }
 
-  /**
-   * Login mockado: qualquer e-mail cadastrado entra com a senha `athena123`.
-   */
+  
   override autenticar(
     credenciais: Credenciais,
   ): Observable<RespostaAutenticacao> {
@@ -135,13 +131,7 @@ export class UsuarioMockService extends UsuarioService {
   }
 }
 
-/**
- * `autenticar`/`criar` falam com o backend de verdade (`/auth/login`,
- * `/auth/registrar`). `listar`/`atualizar`/`remover` continuam no mock: o
- * backend ainda não tem nenhuma rota de listagem/gestão de usuários (ver
- * README, seção "Gaps conhecidos") — a tela de Usuários segue funcionando
- * em memória local até esse endpoint existir.
- */
+
 @Injectable()
 export class UsuarioHttpService extends UsuarioMockService {
   private readonly http = inject(HttpClient);

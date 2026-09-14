@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { Curso } from '../models';
 import { MemoriaStore } from './memoria.store';
 
-/** Contrato consumido pelos componentes. Trocar a implementação = trocar o provider. */
 export abstract class CursoService {
   abstract listar(): Observable<Curso[]>;
 }

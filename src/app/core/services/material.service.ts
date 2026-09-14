@@ -5,7 +5,6 @@ import { Material, NovoMaterial } from '../models';
 import { MemoriaStore } from './memoria.store';
 
 export abstract class MaterialService {
-  /** Materiais gerais + os do curso informado. */
   abstract listar(cursoId?: string | null): Observable<Material[]>;
   abstract criar(novo: NovoMaterial): Observable<Material>;
   abstract remover(materialId: string): Observable<void>;
