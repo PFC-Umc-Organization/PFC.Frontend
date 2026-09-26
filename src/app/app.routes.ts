@@ -22,6 +22,15 @@ export const rotas: Routes = [
         (m) => m.CadastroComponent,
       ),
   },
+  {
+    path: 'confirmar-conta',
+    canActivate: [visitanteGuard],
+    title: 'Confirmar conta — Athena',
+    loadComponent: () =>
+      import('./features/auth/confirmar-conta.component').then(
+        (m) => m.ConfirmarContaComponent,
+      ),
+  },
 
   /* ------------------------- área interna ------------------------- */
   {

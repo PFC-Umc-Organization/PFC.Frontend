@@ -7,6 +7,7 @@ import {
 import { Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
+import { ErroApi } from '../../core/services/http-erro';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { AuthCardComponent } from './auth-card.component';
 
@@ -28,7 +29,16 @@ import { AuthCardComponent } from './auth-card.component';
         @if (erro()) {
           <p class="alerta" role="alert">
             <app-icone nome="alerta" />
-            <span>{{ erro() }}</span>
+            <span>
+              {{ erro() }}
+              @if (naoConfirmada()) {
+                <a
+                  routerLink="/confirmar-conta"
+                  [queryParams]="{ email: form.controls.email.value }"
+                  >Confirmar agora</a
+                >
+              }
+            </span>
           </p>
         }
 
@@ -120,6 +130,8 @@ export class LoginComponent {
 
   readonly carregando = signal(false);
   readonly erro = signal('');
+  /** Login recusado porque a conta ainda espera o código do e-mail (403). */
+  readonly naoConfirmada = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -146,8 +158,9 @@ export class LoginComponent {
         this.carregando.set(false);
         void this.router.navigate(['/']);
       },
-      error: (e: Error) => {
+      error: (e: ErroApi) => {
         this.carregando.set(false);
+        this.naoConfirmada.set(e.status === 403);
         this.erro.set(e.message || 'Não foi possível entrar.');
       },
     });

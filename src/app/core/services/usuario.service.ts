@@ -38,6 +38,9 @@ export abstract class UsuarioService {
   abstract readonly edicaoDisponivel: boolean;
   abstract listar(filtro?: FiltroUsuario): Observable<Usuario[]>;
   abstract criar(novo: NovoUsuario): Observable<RespostaCadastro>;
+  /** Confirma a conta com o código de 6 dígitos enviado por e-mail. */
+  abstract confirmar(email: string, codigo: string): Observable<RespostaCadastro>;
+  abstract reenviarCodigo(email: string): Observable<RespostaCadastro>;
   abstract autenticar(
     credenciais: Credenciais,
   ): Observable<RespostaAutenticacao>;
@@ -85,6 +88,16 @@ export class UsuarioMockService extends UsuarioService {
       mensagem:
         'Cadastro recebido — no mock, sua conta já está pronta pra entrar.',
     }).pipe(delay(400));
+  }
+
+  override confirmar(): Observable<RespostaCadastro> {
+    return of({ mensagem: 'Conta confirmada — você já pode entrar.' }).pipe(
+      delay(300),
+    );
+  }
+
+  override reenviarCodigo(): Observable<RespostaCadastro> {
+    return of({ mensagem: 'Enviamos um código novo.' }).pipe(delay(300));
   }
 
   protected cursoIdsPadrao(perfil: Perfil): string[] {
@@ -196,6 +209,27 @@ export class UsuarioHttpService extends UsuarioService {
   override criar(novo: NovoUsuario): Observable<RespostaCadastro> {
     return this.http
       .post<RespostaCadastro>(`${environment.apiBaseUrl}/auth/registrar`, novo)
+      .pipe(catchError(erroHttp));
+  }
+
+  override confirmar(
+    email: string,
+    codigo: string,
+  ): Observable<RespostaCadastro> {
+    return this.http
+      .post<RespostaCadastro>(`${environment.apiBaseUrl}/auth/confirmar`, {
+        email,
+        codigo,
+      })
+      .pipe(catchError(erroHttp));
+  }
+
+  override reenviarCodigo(email: string): Observable<RespostaCadastro> {
+    return this.http
+      .post<RespostaCadastro>(
+        `${environment.apiBaseUrl}/auth/reenviar-codigo`,
+        { email },
+      )
       .pipe(catchError(erroHttp));
   }
 

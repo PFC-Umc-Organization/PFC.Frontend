@@ -11,6 +11,22 @@ interface Sessao {
   token: string;
 }
 
+/**
+ * Lê o `exp` do JWT (sem validar assinatura — quem valida é o API Gateway).
+ * Token ilegível conta como expirado. Tokens do mock (não-JWT) nunca expiram.
+ */
+function tokenExpirado(token: string): boolean {
+  const partes = token.split('.');
+  if (partes.length !== 3) return false;
+  try {
+    const base64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(base64)) as { exp?: number };
+    return typeof exp === 'number' && exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -40,6 +56,14 @@ export class AuthService {
     return this.usuarios.criar(novo);
   }
 
+  confirmar(email: string, codigo: string): Observable<RespostaCadastro> {
+    return this.usuarios.confirmar(email, codigo);
+  }
+
+  reenviarCodigo(email: string): Observable<RespostaCadastro> {
+    return this.usuarios.reenviarCodigo(email);
+  }
+
   sair(): void {
     this._sessao.set(null);
     this.limparSessao();
@@ -55,7 +79,15 @@ export class AuthService {
   private restaurarSessao(): Sessao | null {
     try {
       const bruto = localStorage.getItem(CHAVE_SESSAO);
-      return bruto ? (JSON.parse(bruto) as Sessao) : null;
+      if (!bruto) return null;
+      const sessao = JSON.parse(bruto) as Sessao;
+      // Sessão salva com token já vencido: descarta em vez de abrir o app
+      // "logado" e tomar 401 em todas as chamadas.
+      if (tokenExpirado(sessao.token)) {
+        localStorage.removeItem(CHAVE_SESSAO);
+        return null;
+      }
+      return sessao;
     } catch {
       return null;
     }
