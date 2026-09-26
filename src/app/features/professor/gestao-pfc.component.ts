@@ -1,7 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, combineLatest, of, startWith, switchMap } from 'rxjs';
+import {
+  Subject,
+  catchError,
+  combineLatest,
+  of,
+  startWith,
+  switchMap,
+} from 'rxjs';
 
 import {
   Programa,
@@ -493,9 +500,10 @@ export class GestaoPfcComponent {
     { initialValue: [] as Projeto[] },
   );
 
-  private readonly todosUsuarios = toSignal(this.usuarioService.listar(), {
-    initialValue: [] as Usuario[],
-  });
+  private readonly todosUsuarios = toSignal(
+    this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
+    { initialValue: [] as Usuario[] },
+  );
 
   readonly professores = computed(() =>
     this.todosUsuarios().filter((u) => ehEquipeAcademica(u.perfil)),

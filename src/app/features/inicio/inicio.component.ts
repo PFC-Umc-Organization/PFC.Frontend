@@ -1,8 +1,13 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { of, switchMap } from 'rxjs';
+import { catchError, of, switchMap } from 'rxjs';
 
-import { ItemTimeline, ehEquipeAcademica, rotuloCurso } from '../../core/models';
+import {
+  ItemTimeline,
+  Usuario,
+  ehEquipeAcademica,
+  rotuloCurso,
+} from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { CursoService } from '../../core/services/curso.service';
 import {
@@ -215,9 +220,10 @@ export class InicioComponent {
   readonly projetoSelecionado = signal(TODOS);
 
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
-  private readonly usuarios = toSignal(this.usuarioService.listar(), {
-    initialValue: [],
-  });
+  private readonly usuarios = toSignal(
+    this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
+    { initialValue: [] as Usuario[] },
+  );
 
   private readonly programas = toSignal(this.programaService.listar(), {
     initialValue: [],

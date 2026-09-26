@@ -117,10 +117,15 @@ contrato especulativo — os dois lados foram alinhados nesta rodada:
 | `POST`   | `/projetos/{id}/referencias`  | `{ doi }` — só integrantes; 409 se já estiver na lista                                            |
 | `DELETE` | `/projetos/{id}/referencias/{refId}` | só integrantes                                                                             |
 
+`GET /usuarios` lista as contas reais do Cognito (e-mail só vem pra
+professor/coordenador) e é chamado uma vez por sessão — o
+`UsuarioHttpService` guarda o resultado e o login zera. Conta de aluno vem
+com `rgm` (do e-mail `<rgm>@alunos.umc.br`), que é o que liga o RGM
+pré-autorizado à conta na tela de Usuários.
+
 **Gaps conhecidos** (o mock cobre, mas o backend ainda não tem endpoint):
-listar usuários/professores (`GET /usuarios`), listar a allowlist de
-matrícula (`GET /admin/students`), editar ou excluir um Projeto, e limpar o
-orientador de um Projeto.
+editar ou excluir usuário — no modo real a tela de Usuários esconde essas
+ações.
 
 A tabela abaixo é o restante do plano original (Atividades, Materiais,
 Entregas) — ainda sem contraparte no backend; a prioridade desta rodada

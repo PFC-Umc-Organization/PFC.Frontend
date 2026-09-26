@@ -1,6 +1,14 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, delay, map, of, throwError } from 'rxjs';
+import {
+  Observable,
+  catchError,
+  delay,
+  map,
+  of,
+  shareReplay,
+  throwError,
+} from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
@@ -22,6 +30,12 @@ export interface FiltroUsuario {
 }
 
 export abstract class UsuarioService {
+  /**
+   * Se editar/excluir conta é suportado. O backend real ainda não tem rota
+   * pra isso (exigiria AdminUpdateUserAttributes/AdminDeleteUser no
+   * Cognito), então a tela de Usuários esconde essas ações.
+   */
+  abstract readonly edicaoDisponivel: boolean;
   abstract listar(filtro?: FiltroUsuario): Observable<Usuario[]>;
   abstract criar(novo: NovoUsuario): Observable<RespostaCadastro>;
   abstract autenticar(
@@ -38,9 +52,11 @@ export abstract class UsuarioService {
 export class UsuarioMockService extends UsuarioService {
   private readonly store = inject(MemoriaStore);
 
+  override readonly edicaoDisponivel = true;
+
   override listar(filtro: FiltroUsuario = {}): Observable<Usuario[]> {
     return this.store.usuarios.pipe(
-      map((usuarios) => this.aplicarFiltro(usuarios, filtro)),
+      map((usuarios) => aplicarFiltro(usuarios, filtro)),
     );
   }
 
@@ -77,7 +93,7 @@ export class UsuarioMockService extends UsuarioService {
       : ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'];
   }
 
-  
+
   override autenticar(
     credenciais: Credenciais,
   ): Observable<RespostaAutenticacao> {
@@ -112,33 +128,63 @@ export class UsuarioMockService extends UsuarioService {
     this.store.removerUsuario(usuarioId);
     return of(undefined).pipe(delay(300));
   }
-
-  private aplicarFiltro(
-    usuarios: Usuario[],
-    { busca, perfil }: FiltroUsuario,
-  ): Usuario[] {
-    const termo = (busca ?? '').trim().toLowerCase();
-
-    return usuarios.filter((u) => {
-      const casaPerfil =
-        !perfil || perfil === 'TODOS' ? true : u.perfil === perfil;
-      const casaBusca =
-        termo.length === 0 ||
-        u.nome.toLowerCase().includes(termo) ||
-        u.email.toLowerCase().includes(termo);
-      return casaPerfil && casaBusca;
-    });
-  }
 }
 
+function aplicarFiltro(
+  usuarios: Usuario[],
+  { busca, perfil }: FiltroUsuario,
+): Usuario[] {
+  const termo = (busca ?? '').trim().toLowerCase();
 
+  return usuarios.filter((u) => {
+    const casaPerfil =
+      !perfil || perfil === 'TODOS' ? true : u.perfil === perfil;
+    const casaBusca =
+      termo.length === 0 ||
+      u.nome.toLowerCase().includes(termo) ||
+      u.email.toLowerCase().includes(termo) ||
+      (u.rgm ?? '').includes(termo);
+    return casaPerfil && casaBusca;
+  });
+}
+
+/**
+ * Contas reais do Cognito, via `GET /usuarios`. Não herda do mock: nada
+ * aqui lê os usuários de exemplo do `MemoriaStore`.
+ */
 @Injectable()
-export class UsuarioHttpService extends UsuarioMockService {
+export class UsuarioHttpService extends UsuarioService {
   private readonly http = inject(HttpClient);
+
+  override readonly edicaoDisponivel = false;
+
+  /**
+   * Uma chamada por sessão, compartilhada por todas as telas (Usuários,
+   * Início, Gestão, Meu PFC) — sem isso, cada tecla na busca da tela de
+   * Usuários viraria um ListUsers no Cognito. O login zera o cache, pra
+   * quem entra depois (com outro perfil) não herdar a lista do anterior.
+   * Se a chamada falhar, o shareReplay descarta o erro e a próxima tenta
+   * de novo.
+   */
+  private cache$: Observable<Usuario[]> | null = null;
+
+  override listar(filtro: FiltroUsuario = {}): Observable<Usuario[]> {
+    this.cache$ ??= this.http
+      .get<Usuario[]>(`${environment.apiBaseUrl}/usuarios`)
+      .pipe(
+        // Pro aluno o backend omite o e-mail (dado pessoal).
+        map((usuarios) => usuarios.map((u) => ({ ...u, email: u.email ?? '' }))),
+        catchError(erroHttp),
+        shareReplay(1),
+      );
+
+    return this.cache$.pipe(map((usuarios) => aplicarFiltro(usuarios, filtro)));
+  }
 
   override autenticar(
     credenciais: Credenciais,
   ): Observable<RespostaAutenticacao> {
+    this.cache$ = null;
     return this.http
       .post<RespostaAutenticacao>(
         `${environment.apiBaseUrl}/auth/login`,
@@ -151,5 +197,17 @@ export class UsuarioHttpService extends UsuarioMockService {
     return this.http
       .post<RespostaCadastro>(`${environment.apiBaseUrl}/auth/registrar`, novo)
       .pipe(catchError(erroHttp));
+  }
+
+  override atualizar(): Observable<Usuario> {
+    return throwError(
+      () => new Error('Editar usuário ainda não está disponível no backend.'),
+    );
+  }
+
+  override remover(): Observable<void> {
+    return throwError(
+      () => new Error('Excluir usuário ainda não está disponível no backend.'),
+    );
   }
 }

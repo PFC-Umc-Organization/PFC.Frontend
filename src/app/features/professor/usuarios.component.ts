@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, startWith, switchMap } from 'rxjs';
+import { Subject, catchError, of, startWith, switchMap } from 'rxjs';
 
 import {
   Matricula,
@@ -119,8 +119,19 @@ import { IconeComponent } from '../../shared/components/icone.component';
                 <tr>
                   <td class="cell-strong">{{ m.rgm }}</td>
                   <td>
-                    @if (jaEhConta(m.rgm)) {
-                      <span class="badge badge--primary">Já é uma conta</span>
+                    @if (contaDoRgm(m.rgm); as conta) {
+                      @if (conta.confirmado === false) {
+                        <span
+                          class="badge badge--muted"
+                          title="A conta existe, mas o e-mail ainda não foi confirmado"
+                        >
+                          Conta não confirmada
+                        </span>
+                      } @else {
+                        <span class="badge badge--primary">
+                          Conta criada{{ conta.nome ? ' — ' + conta.nome : '' }}
+                        </span>
+                      }
                     } @else {
                       <span class="badge badge--muted">
                         Aguardando cadastro
@@ -178,7 +189,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
               id="busca"
               type="search"
               class="control"
-              placeholder="Nome ou e-mail"
+              placeholder="Nome, e-mail ou RGM"
               [value]="busca()"
               (input)="aoBuscar($event)"
             />
@@ -208,6 +219,13 @@ import { IconeComponent } from '../../shared/components/icone.component';
           <h2 class="section-title">Pessoas cadastradas</h2>
         </div>
 
+        @if (erroUsuarios()) {
+          <p class="alerta alerta--lista" role="alert">
+            <app-icone nome="alerta" />
+            <span>{{ erroUsuarios() }}</span>
+          </p>
+        }
+
         <div class="table-scroll">
           <table class="data-table">
             <thead>
@@ -217,7 +235,9 @@ import { IconeComponent } from '../../shared/components/icone.component';
                 <th scope="col">E-mail</th>
                 <th scope="col">Função</th>
                 <th scope="col">Status</th>
-                <th scope="col"><span class="sr-only">Ações</span></th>
+                @if (edicaoDisponivel) {
+                  <th scope="col"><span class="sr-only">Ações</span></th>
+                }
               </tr>
             </thead>
             <tbody>
@@ -308,7 +328,14 @@ import { IconeComponent } from '../../shared/components/icone.component';
                   </tr>
                 } @else {
                   <tr>
-                    <td class="cell-strong">{{ u.nome }}</td>
+                    <td class="cell-strong">
+                      @if (u.nome) {
+                        {{ u.nome }}
+                      } @else {
+                        <!-- conta criada à mão no console, sem o atributo name -->
+                        <span class="muted">Sem nome cadastrado</span>
+                      }
+                    </td>
                     <td>{{ u.rgm ?? '—' }}</td>
                     <td>{{ u.email }}</td>
                     <td>
@@ -332,32 +359,37 @@ import { IconeComponent } from '../../shared/components/icone.component';
                       >
                         {{ u.status === 'ATIVO' ? 'Ativo' : 'Inativo' }}
                       </span>
+                      @if (u.confirmado === false) {
+                        <span class="badge badge--muted">E-mail não confirmado</span>
+                      }
                     </td>
-                    <td>
-                      <div class="row">
-                        <button
-                          type="button"
-                          class="acao-remover"
-                          (click)="iniciarEdicao(u)"
-                          [attr.aria-label]="'Editar usuário ' + u.nome"
-                        >
-                          <app-icone nome="editar" />
-                        </button>
-                        <button
-                          type="button"
-                          class="acao-remover"
-                          (click)="excluirUsuario(u.id)"
-                          [attr.aria-label]="'Excluir usuário ' + u.nome"
-                        >
-                          <app-icone nome="lixeira" />
-                        </button>
-                      </div>
-                    </td>
+                    @if (edicaoDisponivel) {
+                      <td>
+                        <div class="row">
+                          <button
+                            type="button"
+                            class="acao-remover"
+                            (click)="iniciarEdicao(u)"
+                            [attr.aria-label]="'Editar usuário ' + u.nome"
+                          >
+                            <app-icone nome="editar" />
+                          </button>
+                          <button
+                            type="button"
+                            class="acao-remover"
+                            (click)="excluirUsuario(u.id)"
+                            [attr.aria-label]="'Excluir usuário ' + u.nome"
+                          >
+                            <app-icone nome="lixeira" />
+                          </button>
+                        </div>
+                      </td>
+                    }
                   </tr>
                 }
               } @empty {
                 <tr>
-                  <td class="table-empty" colspan="6">
+                  <td class="table-empty" [attr.colspan]="edicaoDisponivel ? 6 : 5">
                     Nenhum usuário encontrado com esses filtros.
                   </td>
                 </tr>
@@ -399,6 +431,14 @@ import { IconeComponent } from '../../shared/components/icone.component';
       background: color-mix(in oklch, var(--destructive) 6%, transparent);
       border: 1px solid
         color-mix(in oklch, var(--destructive) 30%, transparent);
+    }
+
+    .alerta--lista {
+      margin: 0 1.25rem 1rem;
+    }
+
+    td .badge + .badge {
+      margin-left: 0.375rem;
     }
 
     .filtros {
@@ -480,17 +520,29 @@ export class UsuariosComponent {
     perfil: this.perfilFiltro(),
   }));
 
+  /** Editar/excluir só existem no mock — no backend real ficam ocultos. */
+  readonly edicaoDisponivel = this.usuarioService.edicaoDisponivel;
+  readonly erroUsuarios = signal('');
+
   readonly usuarios = toSignal(
     toObservable(this.filtro).pipe(
-      switchMap((f) => this.usuarioService.listar(f)),
+      switchMap((f) =>
+        this.usuarioService.listar(f).pipe(
+          catchError((e: Error) => {
+            this.erroUsuarios.set(e.message);
+            return of([] as Usuario[]);
+          }),
+        ),
+      ),
     ),
     { initialValue: [] as Usuario[] },
   );
 
   /** Métricas sempre sobre a base inteira, independentes dos filtros. */
-  private readonly todos = toSignal(this.usuarioService.listar(), {
-    initialValue: [] as Usuario[],
-  });
+  private readonly todos = toSignal(
+    this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
+    { initialValue: [] as Usuario[] },
+  );
 
   readonly totalAtivos = computed(
     () => this.todos().filter((u) => u.status === 'ATIVO').length,
@@ -516,8 +568,9 @@ export class UsuariosComponent {
     );
   }
 
-  jaEhConta(rgm: string): boolean {
-    return this.todos().some((u) => u.rgm === rgm);
+  /** Conta (aluno) cujo e-mail é <rgm>@… — o backend já devolve o `rgm`. */
+  contaDoRgm(rgm: string): Usuario | undefined {
+    return this.todos().find((u) => u.rgm === rgm);
   }
 
   invalidoProvisionamento(): boolean {

@@ -18,6 +18,7 @@ import {
   NovoProjeto,
   Projeto,
   ProjetoDetalhe,
+  Usuario,
   rotuloCurso,
 } from '../models';
 import { CursoService } from './curso.service';
@@ -194,7 +195,9 @@ export class ProjetoHttpService extends ProjetoService {
   override detalhe(projetoId: string): Observable<ProjetoDetalhe | null> {
     return combineLatest([
       this.listar(),
-      this.usuarioService.listar(),
+      // Sem a lista de usuários o detalhe ainda funciona — só os nomes
+      // de integrantes/orientador ficam em branco.
+      this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
       this.programaService.listar(),
       this.cursoService.listar(),
     ]).pipe(

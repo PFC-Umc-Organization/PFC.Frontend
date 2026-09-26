@@ -10,6 +10,11 @@ export interface Usuario {
   status: StatusUsuario;
   cursoIds: string[];
   rgm?: string;
+  /**
+   * false = a conta existe no Cognito, mas o e-mail ainda não foi
+   * confirmado (a pessoa ainda não consegue entrar). Ausente no mock.
+   */
+  confirmado?: boolean;
 }
 
 export interface NovoUsuario {
