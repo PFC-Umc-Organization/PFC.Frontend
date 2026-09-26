@@ -222,6 +222,7 @@ export class HeaderComponent {
     { rotulo: 'Início', rota: '/', icone: 'painel' },
     { rotulo: 'PFC', rota: '/meu-pfc', icone: 'templo' },
     { rotulo: 'Entregáveis', rota: '/materiais', icone: 'prancheta' },
+    { rotulo: 'Referências', rota: '/referencias', icone: 'busca' },
   ];
 
   private readonly navProfessor: ItemNav[] = [
@@ -230,6 +231,7 @@ export class HeaderComponent {
     { rotulo: 'Atividades', rota: '/atividades', icone: 'prancheta' },
     { rotulo: 'Usuários', rota: '/usuarios', icone: 'usuarios' },
     { rotulo: 'Materiais', rota: '/materiais', icone: 'livro' },
+    { rotulo: 'Referências', rota: '/referencias', icone: 'busca' },
   ];
 
   readonly itensNav = computed(() =>

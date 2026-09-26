@@ -40,7 +40,7 @@ import { AuthCardComponent } from './auth-card.component';
               id="email"
               type="email"
               class="control"
-              placeholder="voce@athena.edu"
+              placeholder="Seu email UMC"
               autocomplete="username"
               formControlName="email"
               [class.control--invalid]="invalido('email')"

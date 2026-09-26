@@ -46,6 +46,14 @@ export const rotas: Routes = [
           ),
       },
       {
+        path: 'referencias',
+        title: 'Referências — Athena',
+        loadComponent: () =>
+          import('./features/referencias/referencias.component').then(
+            (m) => m.ReferenciasComponent,
+          ),
+      },
+      {
         path: 'meu-pfc',
         canActivate: [perfilGuard(['ALUNO'])],
         title: 'Meu PFC — Athena',

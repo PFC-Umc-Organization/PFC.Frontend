@@ -42,6 +42,7 @@ A autenticação está mockada. Use:
 | `/usuarios`    | professor | Pré-autorização de RGMs (allowlist) + tabela de contas já cadastradas |
 | `/meu-pfc`     | aluno     | Visão só leitura do PFC do aluno (grupo e orientador)                 |
 | `/materiais`   | ambos     | Materiais de apoio (professor publica, aluno consulta)                |
+| `/referencias` | ambos     | Aluno busca artigos (OpenAlex/Crossref) e monta a lista ABNT do grupo; professor acompanha por PFC |
 
 Não existe mais alternância de visão pelo header — cada perfil só vê o que é
 seu. `/meu-pfc` é só leitura porque, no backend, quem cria o PFC e monta o
@@ -110,6 +111,11 @@ contrato especulativo — os dois lados foram alinhados nesta rodada:
 | `PUT`    | `/projetos/{id}/orientador`   | `{ orientadorId }` — só COORDENADOR; não aceita vazio (sem endpoint pra limpar ainda)              |
 | `PUT`    | `/projetos/{id}/integrantes`  | `{ rgm }` — adiciona; só COORDENADOR                                                              |
 | `DELETE` | `/projetos/{id}/integrantes`  | `{ rgm }` — remove; só COORDENADOR                                                                |
+| `GET`    | `/referencias/busca?q=&pagina=` | busca artigos por tema (backend consulta a **OpenAlex**)                                       |
+| `GET`    | `/referencias/doi?doi=`       | referência ABNT a partir do DOI (backend consulta o **Crossref**)                                 |
+| `GET`    | `/projetos/{id}/referencias`  | lista do grupo; integrantes e equipe acadêmica                                                    |
+| `POST`   | `/projetos/{id}/referencias`  | `{ doi }` — só integrantes; 409 se já estiver na lista                                            |
+| `DELETE` | `/projetos/{id}/referencias/{refId}` | só integrantes                                                                             |
 
 **Gaps conhecidos** (o mock cobre, mas o backend ainda não tem endpoint):
 listar usuários/professores (`GET /usuarios`), listar a allowlist de

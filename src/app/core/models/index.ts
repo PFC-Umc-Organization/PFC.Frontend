@@ -6,3 +6,4 @@ export * from './atividade.model';
 export * from './entrega.model';
 export * from './material.model';
 export * from './matricula.model';
+export * from './referencia.model';

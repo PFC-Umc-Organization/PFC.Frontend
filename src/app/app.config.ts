@@ -30,6 +30,10 @@ import {
   ProjetoService,
 } from './core/services/projeto.service';
 import {
+  ReferenciaHttpService,
+  ReferenciaService,
+} from './core/services/referencia.service';
+import {
   UsuarioHttpService,
   UsuarioService,
 } from './core/services/usuario.service';
@@ -38,8 +42,10 @@ import {
  * Este é o único ponto do app que sabe QUAL implementação dos services está
  * em uso.
  *
- * `Usuario` (login/cadastro), `Programa`, `Projeto` e `Matricula` já falam
- * com o backend real (ver README, seção "Endpoints que o front espera").
+ * `Usuario` (login/cadastro), `Programa`, `Projeto`, `Matricula` e
+ * `Referencia` já falam com o backend real (ver README, seção "Endpoints
+ * que o front espera"). Pra demonstrar sem backend, troque por
+ * `ReferenciaMockService`.
  * `Curso`, `Atividade`, `Entrega` e `Material` continuam no mock — o
  * backend ainda não tem esses domínios implementados.
  */
@@ -56,5 +62,6 @@ export const appConfig: ApplicationConfig = {
     { provide: EntregaService, useClass: EntregaMockService },
     { provide: MaterialService, useClass: MaterialMockService },
     { provide: MatriculaService, useClass: MatriculaHttpService },
+    { provide: ReferenciaService, useClass: ReferenciaHttpService },
   ],
 };

@@ -51,3 +51,22 @@ export const ROTULO_PERFIL: Record<Perfil, string> = {
 export function ehEquipeAcademica(perfil: Perfil | null): boolean {
   return perfil === 'PROFESSOR' || perfil === 'COORDENADOR';
 }
+
+/**
+ * RGM do aluno. O login real (`POST /auth/login`) ainda não devolve `rgm`,
+ * mas o e-mail de aluno é sempre `<rgm>@alunos.umc.br` — garantido pelo Pre
+ * Sign-up no Cognito —, então a parte local do e-mail é o RGM. É a mesma
+ * regra que o backend usa (`common.RGMDaRequisicao`).
+ */
+export function rgmDoUsuario(usuario: Usuario | null): string {
+  if (!usuario) {
+    return '';
+  }
+  if (usuario.rgm) {
+    return usuario.rgm;
+  }
+  if (usuario.perfil !== 'ALUNO') {
+    return '';
+  }
+  return usuario.email.split('@')[0] ?? '';
+}
