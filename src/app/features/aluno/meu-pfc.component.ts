@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { of, switchMap } from 'rxjs';
 
-import { Projeto, ProjetoDetalhe } from '../../core/models';
+import { Projeto, ProjetoDetalhe, rgmDoUsuario } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { IconeComponent } from '../../shared/components/icone.component';
@@ -109,7 +109,7 @@ export class MeuPfcComponent {
   private readonly projetoService = inject(ProjetoService);
 
   /** `integrantes` guarda RGM, não `Usuario.id` — a busca é pelo RGM do aluno. */
-  private readonly meuRgm = computed(() => this.auth.usuario()?.rgm ?? '');
+  private readonly meuRgm = computed(() => rgmDoUsuario(this.auth.usuario()));
 
   private readonly meuProjetoBase = toSignal(
     toObservable(this.meuRgm).pipe(

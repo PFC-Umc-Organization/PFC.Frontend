@@ -1,11 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of, switchMap } from 'rxjs';
+import { catchError, of, switchMap, tap } from 'rxjs';
 
 import {
   ItemTimeline,
-  Usuario,
+  Projeto,
   ehEquipeAcademica,
+  rgmDoUsuario,
   rotuloCurso,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -16,12 +17,9 @@ import {
 } from '../../core/services/entrega.service';
 import { ProgramaService } from '../../core/services/programa.service';
 import { ProjetoService } from '../../core/services/projeto.service';
-import { UsuarioService } from '../../core/services/usuario.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { TimelineComponent } from '../aluno/timeline.component';
-
-const TODOS = '';
 
 @Component({
   selector: 'app-inicio',
@@ -33,7 +31,7 @@ const TODOS = '';
         <!-- ------------------------ visão professor ------------------------ -->
         <div class="filtros">
           <div class="field">
-            <label class="field__label" for="curso">Curso</label>
+            <label class="field__label" for="curso">Turma</label>
             <select
               id="curso"
               class="control"
@@ -45,87 +43,41 @@ const TODOS = '';
               }
             </select>
           </div>
-
-          <div class="field">
-            <label class="field__label" for="projeto">Projeto</label>
-            <select
-              id="projeto"
-              class="control"
-              [value]="projetoSelecionado()"
-              (change)="trocarProjeto($event)"
-            >
-              <option value="">Todos os projetos</option>
-              @for (p of projetos(); track p.id) {
-                <option [value]="p.id">{{ p.nome }}</option>
-              }
-            </select>
-            @if (projetos().length === 0) {
-              <span class="field__hint">
-                Nenhum projeto cadastrado neste curso.
-              </span>
-            }
-          </div>
         </div>
 
-        @if (detalhe(); as d) {
-          <!-- ------------------- um projeto em foco ------------------- -->
-          <section class="card">
-            <div class="card__body grupo">
-              <div>
-                <p class="eyebrow">Projeto</p>
-                <h2 class="page-title mt-2">{{ d.projeto.nome }}</h2>
-                <p class="lead mt-2">{{ d.projeto.descricao }}</p>
-              </div>
+        <section class="card card--flush">
+          <div class="card__head">
+            <app-icone nome="prancheta" class="card__head-icone" />
+            <h2 class="section-title">
+              Status de entrega por projeto ({{ projetos().length }})
+            </h2>
+          </div>
 
-              <div class="integrantes">
-                <p class="eyebrow">Integrantes do grupo</p>
-                <ul class="integrantes__lista mt-2">
-                  @for (i of d.integrantes; track i.rgm) {
-                    <li class="integrante">
-                      <app-icone nome="usuarios" class="integrante__icone" />
-                      @if (i.nome) {
-                        <span class="cell-strong">{{ i.nome }}</span>
-                      } @else {
-                        <span class="cell-strong muted">
-                          RGM {{ i.rgm }} (aguardando cadastro)
-                        </span>
-                      }
-                    </li>
-                  } @empty {
-                    <li class="muted text-sm">
-                      Nenhum aluno vinculado a este projeto.
-                    </li>
+          @if (erroProjetos()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erroProjetos() }}</span>
+            </p>
+          }
+
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Projeto</th>
+                  @for (a of matriz().atividades; track a.id) {
+                    <th scope="col">{{ a.titulo }}</th>
                   }
-                </ul>
-              </div>
-            </div>
-          </section>
-
-          <app-timeline
-            [itens]="itensProjeto()"
-            [interativo]="false"
-            titulo="Timeline do projeto"
-        
-          />
-        } @else {
-          <!-- ------------- visão geral: todos os projetos ------------- -->
-          <section class="card card--flush">
-            <div class="card__head">
-              <app-icone nome="prancheta" class="card__head-icone" />
-              <h2 class="section-title">Status de entrega por projeto</h2>
-            </div>
-
-            <div class="table-scroll">
-              <table class="data-table">
-                <thead>
+                </tr>
+              </thead>
+              <tbody>
+                @if (carregandoProjetos()) {
                   <tr>
-                    <th scope="col">Projeto</th>
-                    @for (a of matriz().atividades; track a.id) {
-                      <th scope="col">{{ a.titulo }}</th>
-                    }
+                    <td class="table-empty" [attr.colspan]="matriz().atividades.length + 1">
+                      Carregando projetos…
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
+                } @else {
                   @for (linha of matriz().linhas; track linha.projeto.id) {
                     <tr>
                       <td class="cell-strong">{{ linha.projeto.nome }}</td>
@@ -139,15 +91,19 @@ const TODOS = '';
                         class="table-empty"
                         [attr.colspan]="matriz().atividades.length + 1"
                       >
-                        Nenhum projeto cadastrado neste curso.
+                        @if (programaSelecionadoId()) {
+                          Nenhum projeto cadastrado nesta turma.
+                        } @else {
+                          Nenhum PFC iniciado para esta turma — crie em Gestão de PFC.
+                        }
                       </td>
                     </tr>
                   }
-                </tbody>
-              </table>
-            </div>
-          </section>
-        }
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
       } @else {
         <!-- -------------------------- visão aluno -------------------------- -->
         <app-timeline [itens]="itensAluno()" />
@@ -156,49 +112,7 @@ const TODOS = '';
   `,
   styles: `
     .filtros {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: minmax(0, 1fr);
-      max-width: 40rem;
-    }
-
-    @media (min-width: 640px) {
-      .filtros {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    .grupo {
-      display: grid;
-      gap: 2rem;
-    }
-
-    @media (min-width: 768px) {
-      .grupo {
-        grid-template-columns: 1.2fr 1fr;
-        align-items: start;
-      }
-    }
-
-    .integrantes__lista {
-      display: grid;
-      gap: 0.75rem;
-      margin: 0;
-      padding: 0;
-      list-style: none;
-    }
-
-    .integrante {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-    }
-
-    .integrante__icone {
-      --icone-size: 1rem;
-      color: var(--bronze);
-      margin-top: 0.125rem;
+      max-width: 20rem;
     }
 
     .card__head-icone {
@@ -206,6 +120,17 @@ const TODOS = '';
       color: var(--primary);
     }
 
+    .alerta {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin: 0 1.25rem 1rem;
+      padding: 0.75rem;
+      font-size: 0.875rem;
+      color: var(--destructive);
+      background: color-mix(in oklch, var(--destructive) 6%, transparent);
+      border: 1px solid color-mix(in oklch, var(--destructive) 30%, transparent);
+    }
   `,
 })
 export class InicioComponent {
@@ -214,104 +139,84 @@ export class InicioComponent {
   private readonly programaService = inject(ProgramaService);
   private readonly projetoService = inject(ProjetoService);
   private readonly entregaService = inject(EntregaService);
-  private readonly usuarioService = inject(UsuarioService);
-
-  readonly cursoSelecionado = signal('c-eng-noite');
-  readonly projetoSelecionado = signal(TODOS);
-
-  readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
-  private readonly usuarios = toSignal(
-    this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
-    { initialValue: [] as Usuario[] },
-  );
-
-  private readonly programas = toSignal(this.programaService.listar(), {
-    initialValue: [],
-  });
-
-  /** Programa (turma) do curso escolhido — pode não existir ainda. */
-  private readonly programaSelecionadoId = computed(
-    () => this.programas().find((p) => p.cursoId === this.cursoSelecionado())?.id,
-  );
-
-  /** Projetos do curso escolhido — é isto que alimenta o segundo select. */
-  readonly projetos = toSignal(
-    toObservable(this.programaSelecionadoId).pipe(
-      switchMap((programaId) =>
-        programaId ? this.projetoService.listar(programaId) : of([]),
-      ),
-    ),
-    { initialValue: [] },
-  );
 
   readonly visaoProfessor = computed(() =>
     ehEquipeAcademica(this.auth.perfil()),
   );
 
-  readonly detalhe = toSignal(
-    toObservable(this.projetoSelecionado).pipe(
-      switchMap((id) => (id ? this.projetoService.detalhe(id) : of(null))),
-    ),
-    { initialValue: null },
+  /* ------------------------------ professor ------------------------------ */
+
+  readonly cursoSelecionado = signal('c-eng-noite');
+
+  readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
+
+  private readonly programas = toSignal(
+    this.programaService.listar().pipe(catchError(() => of([]))),
+    { initialValue: [] },
   );
 
-  readonly itensProjeto = toSignal(
-    toObservable(this.projetoSelecionado).pipe(
-      switchMap((id) =>
-        id ? this.entregaService.timelineDoProjeto(id) : of([]),
-      ),
+  /** Programa (turma) do curso escolhido — pode não existir ainda. */
+  readonly programaSelecionadoId = computed(
+    () => this.programas().find((p) => p.cursoId === this.cursoSelecionado())?.id,
+  );
+
+  readonly carregandoProjetos = signal(false);
+  readonly erroProjetos = signal('');
+
+  /** Todos os PFCs reais da turma — cada um vira uma linha da tabela. */
+  readonly projetos = toSignal(
+    toObservable(this.programaSelecionadoId).pipe(
+      tap(() => this.erroProjetos.set('')),
+      switchMap((programaId) => {
+        if (!programaId) {
+          return of([] as Projeto[]);
+        }
+        this.carregandoProjetos.set(true);
+        return this.projetoService.listar(programaId).pipe(
+          tap(() => this.carregandoProjetos.set(false)),
+          catchError((e: Error) => {
+            this.carregandoProjetos.set(false);
+            this.erroProjetos.set(e.message);
+            return of([] as Projeto[]);
+          }),
+        );
+      }),
     ),
-    { initialValue: [] as ItemTimeline[] },
+    { initialValue: [] as Projeto[] },
   );
 
   readonly matriz = toSignal(
-    toObservable(this.cursoSelecionado).pipe(
-      switchMap((id) => this.entregaService.matrizDoCurso(id)),
+    toObservable(this.projetos).pipe(
+      switchMap((projetos) => this.entregaService.matrizDosProjetos(projetos)),
     ),
     { initialValue: { atividades: [], linhas: [] } as MatrizStatus },
   );
 
-  
-  private readonly projetoDoAluno = toSignal(
-    toObservable(computed(() => this.auth.usuario()?.rgm ?? '')).pipe(
-      switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
-    ),
-    { initialValue: null },
-  );
+  /* -------------------------------- aluno -------------------------------- */
 
-  private readonly projetoAlvo = computed(
-    () => this.projetoDoAluno()?.id ?? '',
+  private readonly projetoDoAluno = toSignal(
+    toObservable(computed(() => rgmDoUsuario(this.auth.usuario()))).pipe(
+      switchMap((rgm) =>
+        rgm && !this.visaoProfessor()
+          ? this.projetoService.doAluno(rgm).pipe(catchError(() => of(null)))
+          : of(null),
+      ),
+    ),
+    { initialValue: null as Projeto | null },
   );
 
   readonly itensAluno = toSignal(
-    toObservable(this.projetoAlvo).pipe(
-      switchMap((id) =>
-        id ? this.entregaService.timelineDoProjeto(id) : of([]),
+    toObservable(this.projetoDoAluno).pipe(
+      switchMap((p) =>
+        p ? this.entregaService.timelineDoProjeto(p.id, p.nome) : of([]),
       ),
     ),
     { initialValue: [] as ItemTimeline[] },
   );
-
-  constructor() {
-    
-    effect(() => {
-      const projetos = this.projetos();
-      const atual = this.projetoSelecionado();
-
-      if (atual && !projetos.some((p) => p.id === atual)) {
-        this.projetoSelecionado.set(TODOS);
-      }
-    });
-  }
 
   rotulo = rotuloCurso;
 
   trocarCurso(evento: Event): void {
     this.cursoSelecionado.set((evento.target as HTMLSelectElement).value);
-    this.projetoSelecionado.set(TODOS);
-  }
-
-  trocarProjeto(evento: Event): void {
-    this.projetoSelecionado.set((evento.target as HTMLSelectElement).value);
   }
 }

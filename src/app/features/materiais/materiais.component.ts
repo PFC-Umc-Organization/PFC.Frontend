@@ -10,6 +10,7 @@ import {
   ROTULO_TIPO_MATERIAL,
   TipoMaterial,
   ehEquipeAcademica,
+  rgmDoUsuario,
   rotuloCurso,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -390,7 +391,7 @@ export class MateriaisComponent {
 
   /** Projeto do grupo do aluno logado, resolvido pelo RGM dele. */
   private readonly projetoDoAluno = toSignal(
-    toObservable(computed(() => this.auth.usuario()?.rgm ?? '')).pipe(
+    toObservable(computed(() => rgmDoUsuario(this.auth.usuario()))).pipe(
       switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
     ),
     { initialValue: null },
@@ -402,9 +403,9 @@ export class MateriaisComponent {
   );
 
   readonly itensEntregaveis = toSignal(
-    toObservable(this.projetoAlvoId).pipe(
-      switchMap((id) =>
-        id ? this.entregaService.timelineDoProjeto(id) : of([]),
+    toObservable(this.projetoDoAluno).pipe(
+      switchMap((p) =>
+        p ? this.entregaService.timelineDoProjeto(p.id, p.nome) : of([]),
       ),
     ),
     { initialValue: [] as ItemTimeline[] },

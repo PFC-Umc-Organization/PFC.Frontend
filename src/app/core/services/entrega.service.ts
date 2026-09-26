@@ -1,7 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, combineLatest, delay, map, of } from 'rxjs';
 
-import { Atividade, ItemTimeline, LinhaStatusProjeto } from '../models';
+import {
+  Atividade,
+  ItemTimeline,
+  LinhaStatusProjeto,
+  Projeto,
+} from '../models';
 import { MemoriaStore } from './memoria.store';
 
 export interface MatrizStatus {
@@ -11,9 +16,20 @@ export interface MatrizStatus {
 
 export abstract class EntregaService {
   
-  abstract timelineDoProjeto(projetoId: string): Observable<ItemTimeline[]>;
+  /** `projetoNome` evita depender do mock pra achar o nome de um projeto real. */
+  abstract timelineDoProjeto(
+    projetoId: string,
+    projetoNome?: string,
+  ): Observable<ItemTimeline[]>;
   abstract timelineDoAluno(rgm: string): Observable<ItemTimeline[]>;
-  abstract matrizDoCurso(cursoId: string): Observable<MatrizStatus>;
+  /**
+   * Matriz projeto × atividade. Recebe os projetos prontos (os reais,
+   * vindos do ProjetoService) em vez de buscá-los — assim as linhas nunca
+   * saem dos projetos de exemplo do mock.
+   */
+  abstract matrizDosProjetos(
+    projetos: Pick<Projeto, 'id' | 'nome'>[],
+  ): Observable<MatrizStatus>;
   abstract marcarEntregue(
     atividadeId: string,
     projetoId: string,
@@ -35,7 +51,10 @@ export class EntregaMockService extends EntregaService {
   private readonly store = inject(MemoriaStore);
 
  
-  override timelineDoProjeto(projetoId: string): Observable<ItemTimeline[]> {
+  override timelineDoProjeto(
+    projetoId: string,
+    projetoNome?: string,
+  ): Observable<ItemTimeline[]> {
     return combineLatest([
       this.store.atividades,
       this.store.entregas,
@@ -48,7 +67,7 @@ export class EntregaMockService extends EntregaService {
           .map<ItemTimeline>((atividade) => ({
             atividadeId: atividade.id,
             titulo: atividade.titulo,
-            projetoNome: this.store.nomeProjeto(projetoId),
+            projetoNome: projetoNome ?? this.store.nomeProjeto(projetoId),
             prazo: atividade.prazo,
             status: this.store.statusEntrega(atividade, projetoId),
             arquivoNome: this.store.arquivoEntrega(atividade.id, projetoId),
@@ -86,19 +105,16 @@ export class EntregaMockService extends EntregaService {
     );
   }
 
-  override matrizDoCurso(cursoId: string): Observable<MatrizStatus> {
-    return combineLatest([
-      this.store.atividades,
-      this.store.entregas,
-      this.store.projetos,
-    ]).pipe(
+  override matrizDosProjetos(
+    projetos: Pick<Projeto, 'id' | 'nome'>[],
+  ): Observable<MatrizStatus> {
+    return combineLatest([this.store.atividades, this.store.entregas]).pipe(
       map(([atividades]) => {
         const cronograma = atividades
           .slice()
           .sort((a, b) => a.prazo.localeCompare(b.prazo));
 
-        const linhas = this.store
-          .projetosDoCurso(cursoId)
+        const linhas = projetos
           .map<LinhaStatusProjeto>((projeto) => ({
             projeto: { id: projeto.id, nome: projeto.nome },
             celulas: cronograma.map((atividade) => ({
