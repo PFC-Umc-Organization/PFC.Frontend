@@ -46,127 +46,127 @@ import { IconeComponent } from '../../shared/components/icone.component';
           <div class="modal-body">
             <h3>1. IDENTIFICAÇÃO DO CONTROLADOR E DO SISTEMA</h3>
             <p>
-              O <strong>Athena (PFC Manager)</strong> é uma plataforma acadêmica desenvolvida para centralização, acompanhamento de cronogramas e gestão de entregas de Projetos de Final de Curso dos cursos de Bacharelado em Sistemas de Informação e Engenharia de Software da Universidade de Mogi das Cruzes (UMC)[cite: 2, 3]. Em uma implantação real em ambiente de produção, a instituição de ensino atua como Controladora dos dados pessoais[cite: 2].
+              O <strong>Athena (PFC Manager)</strong> é uma plataforma acadêmica desenvolvida para centralização, acompanhamento de cronogramas e gestão de entregas de Projetos de Final de Curso dos cursos de Bacharelado em Sistemas de Informação e Engenharia de Software da Universidade de Mogi das Cruzes (UMC). Em uma implantação real em ambiente de produção, a instituição de ensino atua como Controladora dos dados pessoais.
             </p>
 
             <h4>1.1 Encarregado de Dados (DPO)</h4>
             <p>
-              Nos termos do art. 41 da LGPD, o Athena disponibiliza um canal de contato para exercício de direitos e esclarecimento de dúvidas sobre tratamento de dados pessoais[cite: 2]:
+              Nos termos do art. 41 da LGPD, o Athena disponibiliza um canal de contato para exercício de direitos e esclarecimento de dúvidas sobre tratamento de dados pessoais:
             </p>
             <p><strong>Canal de contato do grupo responsável:</strong> pfc.srvlss@gmail.com</p>
             <p>
-              Em caráter acadêmico, o encarregado é representado pelos integrantes do grupo de TCC responsáveis pelo desenvolvimento do sistema, sob supervisão do professor orientador[cite: 2, 3]. Em uma eventual implantação institucional real, a UMC deverá designar formalmente um Encarregado de Dados (DPO) próprio[cite: 2].
+              Em caráter acadêmico, o encarregado é representado pelos integrantes do grupo de TCC responsáveis pelo desenvolvimento do sistema, sob supervisão do professor orientador. Em uma eventual implantação institucional real, a UMC deverá designar formalmente um Encarregado de Dados (DPO) próprio.
             </p>
 
             <h3>2. DADOS PESSOAIS TRATADOS E FINALIDADES CONCRETAS</h3>
-            <p>Em conformidade com o princípio da minimização, o sistema trata apenas os dados estritamente necessários para a execução do fluxo acadêmico[cite: 2]:</p>
+            <p>Em conformidade com o princípio da minimização, o sistema trata apenas os dados estritamente necessários para a execução do fluxo acadêmico:</p>
             <ul>
-              <li><strong>RGM (Registro Geral de Matrícula):</strong> Utilizado na funcionalidade de pré-autorização de alunos e liberação do cadastro na plataforma (Base Legal: Execução de Contrato / Procedimentos Preliminares — Art. 7º, V, LGPD)[cite: 2, 3].</li>
-              <li><strong>Nome Completo e E-mail Institucional:</strong> Utilizados para criação de conta, autenticação e identificação do usuário na interface (Base Legal: Execução de Contrato — Art. 7º, V, LGPD)[cite: 2, 3].</li>
-              <li><strong>Senha de Acesso:</strong> Autenticação do usuário. É armazenada exclusivamente sob a forma de hash criptográfico pelo serviço AWS Cognito, não havendo armazenamento em texto puro (Base Legal: Execução de Contrato — Art. 7º, V, LGPD)[cite: 2, 3].</li>
-              <li><strong>Vínculo de Grupos, Orientadores e Perfis:</strong> Associação de alunos a seus respectivos PFCs, definição de orientadores e gestão dos papéis de Aluno, Professor/Orientador e Banca (Base Legal: Execução de Contrato / Exercício Regular de Direitos — Art. 7º, V e VI, LGPD)[cite: 2, 3].</li>
-              <li><strong>Trabalhos Acadêmicos, Relatórios em PDF e Timestamps:</strong> Submissão de arquivos do PFC, registro preciso do horário de envio para verificação de prazos do cronograma e cálculo automatizado de penalidades por atraso (Base Legal: Execução de Contrato / Exercício Regular de Direitos — Art. 7º, V e VI, LGPD)[cite: 2, 3].</li>
-              <li><strong>Logs de Auditoria e Endereço IP:</strong> Registros de acesso e operações críticas gravados via AWS CloudWatch e AWS CloudTrail para fins de segurança e rastreabilidade de ações na infraestrutura (Base Legal: Cumprimento de Obrigação Legal — Art. 7º, II, LGPD)[cite: 2, 3].</li>
+              <li><strong>RGM (Registro Geral de Matrícula):</strong> Utilizado na funcionalidade de pré-autorização de alunos e liberação do cadastro na plataforma (Base Legal: Execução de Contrato / Procedimentos Preliminares — Art. 7º, V, LGPD).</li>
+              <li><strong>Nome Completo e E-mail Institucional:</strong> Utilizados para criação de conta, autenticação e identificação do usuário na interface (Base Legal: Execução de Contrato — Art. 7º, V, LGPD).</li>
+              <li><strong>Senha de Acesso:</strong> Autenticação do usuário. É armazenada exclusivamente sob a forma de hash criptográfico pelo serviço AWS Cognito, não havendo armazenamento em texto puro (Base Legal: Execução de Contrato — Art. 7º, V, LGPD).</li>
+              <li><strong>Vínculo de Grupos, Orientadores e Perfis:</strong> Associação de alunos a seus respectivos PFCs, definição de orientadores e gestão dos papéis de Aluno, Professor/Orientador e Banca (Base Legal: Execução de Contrato / Exercício Regular de Direitos — Art. 7º, V e VI, LGPD).</li>
+              <li><strong>Trabalhos Acadêmicos, Relatórios em PDF e Timestamps:</strong> Submissão de arquivos do PFC, registro preciso do horário de envio para verificação de prazos do cronograma e cálculo automatizado de penalidades por atraso (Base Legal: Execução de Contrato / Exercício Regular de Direitos — Art. 7º, V e VI, LGPD).</li>
+              <li><strong>Logs de Auditoria e Endereço IP:</strong> Registros de acesso e operações críticas gravados via AWS CloudWatch e AWS CloudTrail para fins de segurança e rastreabilidade de ações na infraestrutura (Base Legal: Cumprimento de Obrigação Legal — Art. 7º, II, LGPD).</li>
             </ul>
 
             <h3>3. COMPARTILHAMENTO E INFRAESTRUTURA EM NUVEM (AWS SERVERLESS)</h3>
             <p>
-              Os dados pessoais não são comercializados ou compartilhados com terceiros não autorizados[cite: 2]. A infraestrutura opera integralmente sob arquitetura Serverless na Amazon Web Services (AWS)[cite: 3]:
+              Os dados pessoais não são comercializados ou compartilhados com terceiros não autorizados. A infraestrutura opera integralmente sob arquitetura Serverless na Amazon Web Services (AWS):
             </p>
             <ul>
-              <li><strong>Amazon S3 & AWS CloudFront:</strong> Hospedagem estática da interface web e armazenamento isolado de arquivos em PDF enviados pelos alunos[cite: 2, 3].</li>
-              <li><strong>AWS Cognito & Active Directory:</strong> Autenticação de identidades, controle de sessões e verificação de perfil[cite: 3].</li>
-              <li><strong>AWS WAF, API Gateway & AWS Lambda (Golang):</strong> Intermediação e processamento seguro das rotas de backend sob demanda[cite: 3].</li>
-              <li><strong>Amazon DynamoDB:</strong> Persistência NoSQL de dados cadastrais, grupos, cronogramas e datas limite[cite: 3].</li>
-              <li><strong>AWS Secrets Manager, CloudWatch & CloudTrail:</strong> Proteção de credenciais da infraestrutura, monitoramento de logs de segurança e registro de auditoria das ações realizadas no ambiente AWS, sem gravação de senhas ou dados sensíveis nos registros[cite: 2, 3].</li>
+              <li><strong>Amazon S3 & AWS CloudFront:</strong> Hospedagem estática da interface web e armazenamento isolado de arquivos em PDF enviados pelos alunos.</li>
+              <li><strong>AWS Cognito & Active Directory:</strong> Autenticação de identidades, controle de sessões e verificação de perfil.</li>
+              <li><strong>AWS WAF, API Gateway & AWS Lambda (Golang):</strong> Intermediação e processamento seguro das rotas de backend sob demanda.</li>
+              <li><strong>Amazon DynamoDB:</strong> Persistência NoSQL de dados cadastrais, grupos, cronogramas e datas limite.</li>
+              <li><strong>AWS Secrets Manager, CloudWatch & CloudTrail:</strong> Proteção de credenciais da infraestrutura, monitoramento de logs de segurança e registro de auditoria das ações realizadas no ambiente AWS, sem gravação de senhas ou dados sensíveis nos registros.</li>
             </ul>
 
             <h4>3.1 Transferência Internacional de Dados</h4>
             <p>
-              O ambiente de produção do Athena está hospedado na região <code>us-east-1</code> (Norte da Virgínia, Estados Unidos) da AWS[cite: 3]. Dessa forma, os dados pessoais tratados pela plataforma são armazenados e processados fora do território nacional, caracterizando transferência internacional de dados nos termos do art. 33 da LGPD[cite: 2].
+              O ambiente de produção do Athena está hospedado na região <code>us-east-1</code> (Norte da Virgínia, Estados Unidos) da AWS. Dessa forma, os dados pessoais tratados pela plataforma são armazenados e processados fora do território nacional, caracterizando transferência internacional de dados nos termos do art. 33 da LGPD.
             </p>
             <p>
-              Essa transferência tem como base legal a necessidade de execução do contrato/serviço educacional (art. 33, II c/c art. 7º, V, LGPD), sendo a AWS uma provedora de nuvem que adota cláusulas contratuais e certificações internacionais de segurança e privacidade (incluindo conformidade com padrões como ISO 27001 e SOC 2)[cite: 2, 3]. Em uma implantação institucional definitiva, recomenda-se avaliar a migração para a região <code>sa-east-1</code> (São Paulo), de modo a manter os dados em território nacional e reduzir a complexidade regulatória[cite: 2].
+              Essa transferência tem como base legal a necessidade de execução do contrato/serviço educacional (art. 33, II c/c art. 7º, V, LGPD), sendo a AWS uma provedora de nuvem que adota cláusulas contratuais e certificações internacionais de segurança e privacidade (incluindo conformidade com padrões como ISO 27001 e SOC 2). Em uma implantação institucional definitiva, recomenda-se avaliar a migração para a região <code>sa-east-1</code> (São Paulo), de modo a manter os dados em território nacional e reduzir a complexidade regulatória.
             </p>
 
             <h4>3.2 Cookies e Tecnologias de Rastreamento</h4>
             <p>
-              O Athena não utiliza cookies de rastreamento, publicidade ou opcionais[cite: 2]. São empregados apenas os cookies/tokens estritamente necessários ao funcionamento do serviço, relacionados à manutenção da sessão autenticada do usuário via AWS Cognito, sem finalidade de análise de comportamento ou perfilamento[cite: 2, 3]. Por não haver cookies opcionais, não é apresentado banner de consentimento de cookies na plataforma[cite: 2].
+              O Athena não utiliza cookies de rastreamento, publicidade ou opcionais. São empregados apenas os cookies/tokens estritamente necessários ao funcionamento do serviço, relacionados à manutenção da sessão autenticada do usuário via AWS Cognito, sem finalidade de análise de comportamento ou perfilamento. Por não haver cookies opcionais, não é apresentado banner de consentimento de cookies na plataforma.
             </p>
 
             <h3>4. RETENÇÃO E DESCARTE DE DADOS</h3>
             <ul>
-              <li><strong>Dados cadastrais e arquivos do PFC:</strong> Permanecem armazenados enquanto o vínculo acadêmico do aluno ou docente com o PFC estiver ativo, e por até 12 (doze) meses após a defesa/aprovação final do trabalho, prazo após o qual são submetidos a procedimentos técnicos de exclusão ou anonimização para fins estatísticos acadêmicos[cite: 2, 3].</li>
-              <li><strong>Logs de auditoria e endereço IP:</strong> Mantidos pelo prazo de 6 (seis) meses, prazo compatível com boas práticas de segurança da informação, após o qual são descartados, salvo obrigação legal superveniente que determine prazo diverso[cite: 2].</li>
+              <li><strong>Dados cadastrais e arquivos do PFC:</strong> Permanecem armazenados enquanto o vínculo acadêmico do aluno ou docente com o PFC estiver ativo, e por até 12 (doze) meses após a defesa/aprovação final do trabalho, prazo após o qual são submetidos a procedimentos técnicos de exclusão ou anonimização para fins estatísticos acadêmicos.</li>
+              <li><strong>Logs de auditoria e endereço IP:</strong> Mantidos pelo prazo de 6 (seis) meses, prazo compatível com boas práticas de segurança da informação, após o qual são descartados, salvo obrigação legal superveniente que determine prazo diverso.</li>
             </ul>
             <p>
-              Ao final do ciclo acadêmico ou mediante solicitação justificada de encerramento, os arquivos gravados no Amazon S3 e as entradas no DynamoDB são submetidos aos mesmos procedimentos de exclusão ou anonimização[cite: 2, 3].
+              Ao final do ciclo acadêmico ou mediante solicitação justificada de encerramento, os arquivos gravados no Amazon S3 e as entradas no DynamoDB são submetidos aos mesmos procedimentos de exclusão ou anonimização.
             </p>
 
             <h3>5. DIREITOS DOS TITULARES</h3>
             <p>
-              O usuário pode exercer os direitos previstos no artigo 18 da LGPD (confirmação da existência de tratamento, acesso aos dados, correção de dados incompletos/inexatos, e solicitação de exclusão/anonimização), mediante solicitação enviada ao canal de contato indicado no item 1.1 desta política (pfc.srvlss@gmail.com)[cite: 2].
+              O usuário pode exercer os direitos previstos no artigo 18 da LGPD (confirmação da existência de tratamento, acesso aos dados, correção de dados incompletos/inexatos, e solicitação de exclusão/anonimização), mediante solicitação enviada ao canal de contato indicado no item 1.1 desta política (pfc.srvlss@gmail.com).
             </p>
             <p>
-              As solicitações serão respondidas em prazo razoável, buscando-se atender em até 15 (quinze) dias corridos, conforme boas práticas recomendadas pela LGPD, podendo esse prazo ser prorrogado mediante justificativa[cite: 2].
+              As solicitações serão respondidas em prazo razoável, buscando-se atender em até 15 (quinze) dias corridos, conforme boas práticas recomendadas pela LGPD, podendo esse prazo ser prorrogado mediante justificativa.
             </p>
 
             <h3>6. SEGURANÇA DA INFORMAÇÃO E RESPOSTA A INCIDENTES</h3>
             <h4>6.1 Medidas de Segurança</h4>
             <p>
-              O Athena adota medidas técnicas e organizacionais compatíveis com o porte acadêmico do projeto, entre elas: senhas armazenadas exclusivamente como hash criptográfico (AWS Cognito), tráfego criptografado via HTTPS, segregação de credenciais e segredos de infraestrutura em AWS Secrets Manager, controle de autorização por perfil validado no backend (Aluno, Professor/Orientador, Banca), e monitoramento de acessos e operações críticas via AWS CloudWatch e AWS CloudTrail[cite: 2, 3]. Detalhes técnicos adicionais de configuração de segurança não são divulgados nesta política, de modo a não facilitar tentativas de ataque[cite: 2].
+              O Athena adota medidas técnicas e organizacionais compatíveis com o porte acadêmico do projeto, entre elas: senhas armazenadas exclusivamente como hash criptográfico (AWS Cognito), tráfego criptografado via HTTPS, segregação de credenciais e segredos de infraestrutura em AWS Secrets Manager, controle de autorização por perfil validado no backend (Aluno, Professor/Orientador, Banca), e monitoramento de acessos e operações críticas via AWS CloudWatch e AWS CloudTrail. Detalhes técnicos adicionais de configuração de segurança não são divulgados nesta política, de modo a não facilitar tentativas de ataque.
             </p>
 
             <h4>6.2 Plano de Resposta a Incidentes</h4>
-            <p>Em caso de incidente de segurança envolvendo dados pessoais, o grupo responsável pelo Athena seguirá o seguinte fluxo[cite: 2]:</p>
+            <p>Em caso de incidente de segurança envolvendo dados pessoais, o grupo responsável pelo Athena seguirá o seguinte fluxo:</p>
             <ol>
-              <li>Detecção e confirmação do incidente a partir dos registros de auditoria (CloudWatch/CloudTrail) ou de notificação recebida[cite: 2, 3];</li>
-              <li>Contenção do problema e preservação das evidências relevantes[cite: 2];</li>
-              <li>Identificação dos dados pessoais e titulares potencialmente afetados[cite: 2];</li>
-              <li>Avaliação de risco ou dano relevante aos titulares[cite: 2];</li>
-              <li>Comunicação, quando aplicável, à Autoridade Nacional de Proteção de Dados (ANPD) e aos titulares afetados, em caso de risco ou dano relevante, nos termos do art. 48 da LGPD[cite: 2];</li>
-              <li>Correção da causa, acompanhamento dos efeitos e registro das medidas adotadas para fins de aprendizado e melhoria contínua[cite: 2].</li>
+              <li>Detecção e confirmação do incidente a partir dos registros de auditoria (CloudWatch/CloudTrail) ou de notificação recebida;</li>
+              <li>Contenção do problema e preservação das evidências relevantes;</li>
+              <li>Identificação dos dados pessoais e titulares potencialmente afetados;</li>
+              <li>Avaliação de risco ou dano relevante aos titulares;</li>
+              <li>Comunicação, quando aplicável, à Autoridade Nacional de Proteção de Dados (ANPD) e aos titulares afetados, em caso de risco ou dano relevante, nos termos do art. 48 da LGPD;</li>
+              <li>Correção da causa, acompanhamento dos efeitos e registro das medidas adotadas para fins de aprendizado e melhoria contínua.</li>
             </ol>
 
             <h4>6.3 Versionamento da Política</h4>
             <p>
-              Esta política é identificada por data de atualização e número de versão (indicados no cabeçalho deste documento)[cite: 2]. Alterações relevantes em seu conteúdo serão comunicadas aos usuários por meio da própria plataforma ou do e-mail institucional cadastrado[cite: 2].
+              Esta política é identificada por data de atualização e número de versão (indicados no cabeçalho deste documento). Alterações relevantes em seu conteúdo serão comunicadas aos usuários por meio da própria plataforma ou do e-mail institucional cadastrado.
             </p>
 
             <h3>7. TERMOS DE USO E CONDUTAS PROIBIDAS</h3>
-            <p>É expressamente proibido[cite: 2]:</p>
+            <p>É expressamente proibido:</p>
             <ul>
-              <li>Utilizar dados falsos de RGM ou e-mail para cadastro na plataforma[cite: 2, 3];</li>
-              <li>Tentar burlar as rotas de perfil no backend ou acessar funcionalidades fora do papel (Aluno, Professor/Orientador, Banca) atribuído ao usuário[cite: 2, 3];</li>
-              <li>Submeter arquivos maliciosos, corrompidos ou que não correspondam ao formato esperado (PDF)[cite: 2, 3];</li>
-              <li>Tentar alterar, falsificar ou burlar os timestamps automatizados de entrega das atividades[cite: 2, 3].</li>
+              <li>Utilizar dados falsos de RGM ou e-mail para cadastro na plataforma;</li>
+              <li>Tentar burlar as rotas de perfil no backend ou acessar funcionalidades fora do papel (Aluno, Professor/Orientador, Banca) atribuído ao usuário;</li>
+              <li>Submeter arquivos maliciosos, corrompidos ou que não correspondam ao formato esperado (PDF);</li>
+              <li>Tentar alterar, falsificar ou burlar os timestamps automatizados de entrega das atividades.</li>
             </ul>
 
             <h4>7.1 Propriedade Intelectual</h4>
             <p>
-              O código-fonte do Athena é disponibilizado publicamente em repositório no GitHub, sob licença de código aberto (open source), preservando-se a autoria dos desenvolvedores/alunos responsáveis pelo projeto[cite: 2, 3]. O repositório de infraestrutura permanece, até o momento, de caráter privado, podendo vir a se tornar público futuramente; independentemente de sua visibilidade, nenhum dado pessoal, credencial ou segredo de infraestrutura (chaves de acesso, senhas, variáveis sensíveis) deve constar em código-fonte versionado, público ou privado[cite: 2, 3].
+              O código-fonte do Athena é disponibilizado publicamente em repositório no GitHub, sob licença de código aberto (open source), preservando-se a autoria dos desenvolvedores/alunos responsáveis pelo projeto. O repositório de infraestrutura permanece, até o momento, de caráter privado, podendo vir a se tornar público futuramente; independentemente de sua visibilidade, nenhum dado pessoal, credencial ou segredo de infraestrutura (chaves de acesso, senhas, variáveis sensíveis) deve constar em código-fonte versionado, público ou privado.
             </p>
             <p>
-              Os trabalhos acadêmicos (PFCs) submetidos por meio da plataforma têm sua autoria preservada em favor dos respectivos alunos, conforme legislação de direitos autorais, podendo a UMC utilizá-los para fins acadêmicos e de acervo institucional, nos termos do regulamento próprio da instituição[cite: 2, 3].
+              Os trabalhos acadêmicos (PFCs) submetidos por meio da plataforma têm sua autoria preservada em favor dos respectivos alunos, conforme legislação de direitos autorais, podendo a UMC utilizá-los para fins acadêmicos e de acervo institucional, nos termos do regulamento próprio da instituição.
             </p>
 
             <h4>7.2 Limitação de Responsabilidade, Manutenção e Indisponibilidade</h4>
             <p>
-              O Athena é uma ferramenta de apoio acadêmico desenvolvida em contexto de Projeto Final de Curso, não havendo garantia de disponibilidade contínua (24/7), tampouco responsabilidade por eventuais indisponibilidades, perdas de dados decorrentes de falhas de infraestrutura de terceiros (AWS) ou uso indevido da plataforma por parte dos usuários[cite: 2, 3]. O sistema poderá passar por períodos de manutenção programada ou indisponibilidade temporária decorrente de atualizações, correções ou falhas na infraestrutura de nuvem, sem que isso gere direito a indenização, sendo recomendável que os usuários não dependam exclusivamente da plataforma para cumprimento de prazos críticos sem margem de segurança[cite: 2, 3].
+              O Athena é uma ferramenta de apoio acadêmico desenvolvida em contexto de Projeto Final de Curso, não havendo garantia de disponibilidade contínua (24/7), tampouco responsabilidade por eventuais indisponibilidades, perdas de dados decorrentes de falhas de infraestrutura de terceiros (AWS) ou uso indevido da plataforma por parte dos usuários. O sistema poderá passar por períodos de manutenção programada ou indisponibilidade temporária decorrente de atualizações, correções ou falhas na infraestrutura de nuvem, sem que isso gere direito a indenização, sendo recomendável que os usuários não dependam exclusivamente da plataforma para cumprimento de prazos críticos sem margem de segurança.
             </p>
 
             <h4>7.3 Requisitos de Acesso e Idade</h4>
             <p>
-              O uso do Athena é destinado a alunos, professores/orientadores e membros de banca regularmente vinculados aos cursos de Bacharelado em Sistemas de Informação e Engenharia de Software da UMC, sendo o acesso concedido mediante vínculo institucional válido (matrícula ativa ou vínculo docente)[cite: 2, 3]. Por se tratar de plataforma de uso acadêmico voltada a estudantes de ensino superior, não é esperado o cadastro de menores de idade; caso isso ocorra excepcionalmente, aplicam-se as salvaguardas adicionais previstas na LGPD para o tratamento de dados de crianças e adolescentes[cite: 2].
+              O uso do Athena é destinado a alunos, professores/orientadores e membros de banca regularmente vinculados aos cursos de Bacharelado em Sistemas de Informação e Engenharia de Software da UMC, sendo o acesso concedido mediante vínculo institucional válido (matrícula ativa ou vínculo docente). Por se tratar de plataforma de uso acadêmico voltada a estudantes de ensino superior, não é esperado o cadastro de menores de idade; caso isso ocorra excepcionalmente, aplicam-se as salvaguardas adicionais previstas na LGPD para o tratamento de dados de crianças e adolescentes.
             </p>
 
             <h4>7.4 Encerramento de Conta</h4>
             <p>
-              O acesso do usuário à plataforma poderá ser encerrado: (i) automaticamente, ao término do vínculo acadêmico ou docente do usuário com a instituição; (ii) mediante solicitação do próprio usuário; ou (iii) por decisão da coordenação do curso, em caso de violação das condutas proibidas previstas nesta seção[cite: 2, 3]. O encerramento da conta segue o disposto na Seção 4 (Retenção e Descarte de Dados) desta política quanto ao destino dos dados armazenados[cite: 2].
+              O acesso do usuário à plataforma poderá ser encerrado: (i) automaticamente, ao término do vínculo acadêmico ou docente do usuário com a instituição; (ii) mediante solicitação do próprio usuário; ou (iii) por decisão da coordenação do curso, em caso de violação das condutas proibidas previstas nesta seção. O encerramento da conta segue o disposto na Seção 4 (Retenção e Descarte de Dados) desta política quanto ao destino dos dados armazenados.
             </p>
 
             <p style="font-size: 0.75rem; color: #777; margin-top: 1.5rem;">
-              <em>Documento elaborado no âmbito de Projeto Final de Curso (TCC) da Universidade de Mogi das Cruzes (UMC)</em>[cite: 2, 3].
+              <em>Documento elaborado no âmbito de Projeto Final de Curso (TCC) da Universidade de Mogi das Cruzes (UMC)</em>.
             </p>
           </div>
 
