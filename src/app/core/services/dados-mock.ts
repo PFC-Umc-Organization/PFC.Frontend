@@ -43,7 +43,7 @@ export const USUARIOS_SEED: Usuario[] = [
     id: 'u-1',
     nome: 'Prof. Alessandro Horas',
     email: 'alessandro.horas@athena.edu',
-    perfil: 'COORDENADOR',
+    perfil: 'ADMIN',
     status: 'ATIVO',
     cursoIds: ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'],
   },

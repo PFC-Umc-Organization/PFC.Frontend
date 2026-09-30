@@ -261,7 +261,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
                       <td class="cell-strong">{{ p.nome }}</td>
                       <td>{{ nomesIntegrantes(p) }}</td>
                       <td>
-                        @if (souCoordenador()) {
+                        @if (souAdmin()) {
                           @if (editandoOrientadorId() === p.id) {
                             <div class="row">
                               <select
@@ -463,8 +463,8 @@ export class GestaoPfcComponent {
 
   readonly rotuloCurso = rotuloCurso;
 
-  readonly souCoordenador = computed(
-    () => this.auth.perfil() === 'COORDENADOR',
+  readonly souAdmin = computed(
+    () => this.auth.perfil() === 'ADMIN',
   );
 
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });

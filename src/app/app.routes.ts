@@ -73,7 +73,7 @@ export const rotas: Routes = [
       },
       {
         path: 'gestao',
-        canActivate: [perfilGuard(['PROFESSOR', 'COORDENADOR'])],
+        canActivate: [perfilGuard(['ORIENTADOR', 'ADMIN'])],
         title: 'Gestão de PFC — Athena',
         loadComponent: () =>
           import('./features/professor/gestao-pfc.component').then(
@@ -82,7 +82,7 @@ export const rotas: Routes = [
       },
       {
         path: 'atividades',
-        canActivate: [perfilGuard(['PROFESSOR', 'COORDENADOR'])],
+        canActivate: [perfilGuard(['ORIENTADOR', 'ADMIN'])],
         title: 'Atividades — Athena',
         loadComponent: () =>
           import('./features/professor/atividades.component').then(
@@ -91,7 +91,7 @@ export const rotas: Routes = [
       },
       {
         path: 'usuarios',
-        canActivate: [perfilGuard(['PROFESSOR', 'COORDENADOR'])],
+        canActivate: [perfilGuard(['ORIENTADOR', 'ADMIN'])],
         title: 'Usuários — Athena',
         loadComponent: () =>
           import('./features/professor/usuarios.component').then(

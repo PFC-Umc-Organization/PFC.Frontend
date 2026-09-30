@@ -1,4 +1,4 @@
-export type Perfil = 'ALUNO' | 'PROFESSOR' | 'COORDENADOR';
+export type Perfil = 'ALUNO' | 'ORIENTADOR' | 'ADMIN';
 
 export type StatusUsuario = 'ATIVO' | 'INATIVO';
 
@@ -48,13 +48,13 @@ export interface AtualizacaoUsuario {
 
 export const ROTULO_PERFIL: Record<Perfil, string> = {
   ALUNO: 'Aluno',
-  PROFESSOR: 'Professor',
-  COORDENADOR: 'Coordenador',
+  ORIENTADOR: 'Orientador',
+  ADMIN: 'Admin',
 };
 
 
 export function ehEquipeAcademica(perfil: Perfil | null): boolean {
-  return perfil === 'PROFESSOR' || perfil === 'COORDENADOR';
+  return perfil === 'ORIENTADOR' || perfil === 'ADMIN';
 }
 
 /**

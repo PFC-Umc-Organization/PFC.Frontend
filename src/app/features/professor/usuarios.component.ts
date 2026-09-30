@@ -205,8 +205,8 @@ import { IconeComponent } from '../../shared/components/icone.component';
             (change)="aoFiltrarPerfil($event)"
           >
             <option value="TODOS">Todos</option>
-            <option value="PROFESSOR">Professor</option>
-            <option value="COORDENADOR">Coordenador</option>
+            <option value="ORIENTADOR">Orientador</option>
+            <option value="ADMIN">Admin</option>
             <option value="ALUNO">Aluno</option>
           </select>
         </div>
