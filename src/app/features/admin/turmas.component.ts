@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, startWith, switchMap } from 'rxjs';
 
 import { CURSOS_DISPONIVEIS, Curso, NomeCurso, ROTULO_TURNO, Turno } from '../../core/models';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 
@@ -250,6 +251,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 export class TurmasComponent {
   private readonly fb = inject(FormBuilder);
   private readonly cursoService = inject(CursoService);
+  private readonly confirmacao = inject(ConfirmacaoService);
 
   private readonly recarregar$ = new Subject<void>();
 
@@ -344,8 +346,14 @@ export class TurmasComponent {
     });
   }
 
-  excluir(cursoId: string, nome: string): void {
-    if (!confirm(`Excluir a turma "${nome}"? Essa ação não pode ser desfeita.`)) {
+  async excluir(cursoId: string, nome: string): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Excluir turma',
+      mensagem: `Excluir a turma "${nome}"? Essa ação não pode ser desfeita.`,
+      textoConfirmar: 'Excluir',
+      perigo: true,
+    });
+    if (!confirmado) {
       return;
     }
 

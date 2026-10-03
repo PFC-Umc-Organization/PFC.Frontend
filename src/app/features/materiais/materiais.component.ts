@@ -14,6 +14,7 @@ import {
   rotuloCurso,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
 import { EntregaService } from '../../core/services/entrega.service';
 import { MaterialService } from '../../core/services/material.service';
@@ -118,7 +119,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
                 <button
                   type="button"
                   class="material__remover"
-                  (click)="remover(m.id)"
+                  (click)="remover(m.id, m.titulo)"
                   [attr.aria-label]="'Remover ' + m.titulo"
                 >
                   <app-icone nome="lixeira" />
@@ -363,6 +364,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 export class MateriaisComponent {
   private readonly fb = inject(FormBuilder);
   private readonly materialService = inject(MaterialService);
+  private readonly confirmacao = inject(ConfirmacaoService);
   private readonly cursoService = inject(CursoService);
   private readonly projetoService = inject(ProjetoService);
   private readonly entregaService = inject(EntregaService);
@@ -473,7 +475,16 @@ export class MateriaisComponent {
       });
   }
 
-  remover(materialId: string): void {
+  async remover(materialId: string, titulo: string): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Remover material',
+      mensagem: `Remover "${titulo}" da lista de materiais? Essa ação não pode ser desfeita.`,
+      textoConfirmar: 'Remover',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
     this.materialService.remover(materialId).subscribe();
   }
 

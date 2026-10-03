@@ -20,6 +20,7 @@ import {
   rotuloCurso,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
 import { MatriculaService } from '../../core/services/matricula.service';
 import { UsuarioService } from '../../core/services/usuario.service';
@@ -90,11 +91,14 @@ import { IconeComponent } from '../../shared/components/icone.component';
                   id="nova-conta-email"
                   type="email"
                   class="control"
+                  placeholder="nome@umc.br"
                   formControlName="email"
                   [class.control--invalid]="invalidoNovaConta('email')"
                 />
                 @if (invalidoNovaConta('email')) {
-                  <span class="field__error">Informe um e-mail válido.</span>
+                  <span class="field__error">
+                    Informe um e-mail institucional (@umc.br).
+                  </span>
                 }
               </div>
 
@@ -471,7 +475,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
                           <button
                             type="button"
                             class="acao-remover"
-                            (click)="excluirUsuario(u.id)"
+                            (click)="excluirUsuario(u.id, u.nome)"
                             [attr.aria-label]="'Excluir usuário ' + u.nome"
                           >
                             <app-icone nome="lixeira" />
@@ -570,6 +574,7 @@ export class UsuariosComponent {
   private readonly usuarioService = inject(UsuarioService);
   private readonly cursoService = inject(CursoService);
   private readonly matriculaService = inject(MatriculaService);
+  private readonly confirmacao = inject(ConfirmacaoService);
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
 
@@ -661,7 +666,10 @@ export class UsuariosComponent {
 
   readonly novaContaForm = this.fb.nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(3)]],
-    email: ['', [Validators.required, Validators.email]],
+    email: [
+      '',
+      [Validators.required, Validators.email, Validators.pattern(/@umc\.br$/i)],
+    ],
     perfil: ['ORIENTADOR' as 'ORIENTADOR' | 'ADMIN', [Validators.required]],
   });
 
@@ -779,7 +787,17 @@ export class UsuariosComponent {
     });
   }
 
-  removerMatricula(rgm: string): void {
+  async removerMatricula(rgm: string): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Remover pré-autorização',
+      mensagem: `Remover a pré-autorização do RGM ${rgm}? A pessoa deixa de poder se cadastrar com esse RGM.`,
+      textoConfirmar: 'Remover',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
+
     this.matriculaService
       .remover([rgm])
       .subscribe(() => this.recarregarMatriculas$.next());
@@ -825,7 +843,16 @@ export class UsuariosComponent {
       });
   }
 
-  excluirUsuario(usuarioId: string): void {
+  async excluirUsuario(usuarioId: string, nome: string): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Excluir usuário',
+      mensagem: `Excluir a conta de "${nome}"? Essa ação não pode ser desfeita.`,
+      textoConfirmar: 'Excluir',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
     this.usuarioService.remover(usuarioId).subscribe();
   }
 }

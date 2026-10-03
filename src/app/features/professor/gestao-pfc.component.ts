@@ -18,6 +18,7 @@ import {
   rotuloCurso,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
 import { ProgramaService } from '../../core/services/programa.service';
 import { ProjetoService } from '../../core/services/projeto.service';
@@ -456,6 +457,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 export class GestaoPfcComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
+  private readonly confirmacao = inject(ConfirmacaoService);
   private readonly cursoService = inject(CursoService);
   private readonly programaService = inject(ProgramaService);
   private readonly projetoService = inject(ProjetoService);
@@ -694,8 +696,14 @@ export class GestaoPfcComponent {
     });
   }
 
-  excluirPfc(projetoId: string, nome: string): void {
-    if (!confirm(`Excluir o PFC "${nome}"? Essa ação não pode ser desfeita.`)) {
+  async excluirPfc(projetoId: string, nome: string): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Excluir PFC',
+      mensagem: `Excluir o PFC "${nome}"? Essa ação não pode ser desfeita.`,
+      textoConfirmar: 'Excluir',
+      perigo: true,
+    });
+    if (!confirmado) {
       return;
     }
 

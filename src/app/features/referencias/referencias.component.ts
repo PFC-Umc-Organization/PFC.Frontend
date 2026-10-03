@@ -13,6 +13,7 @@ import {
   rgmDoUsuario,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { ReferenciaService } from '../../core/services/referencia.service';
 import { IconeComponent } from '../../shared/components/icone.component';
@@ -398,6 +399,7 @@ type ModoBusca = 'tema' | 'doi';
 })
 export class ReferenciasComponent {
   private readonly auth = inject(AuthService);
+  private readonly confirmacao = inject(ConfirmacaoService);
   private readonly projetoService = inject(ProjetoService);
   private readonly referenciaService = inject(ReferenciaService);
 
@@ -627,7 +629,17 @@ export class ReferenciasComponent {
     });
   }
 
-  remover(referencia: Referencia): void {
+  async remover(referencia: Referencia): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Remover referência',
+      mensagem: `Remover "${referencia.titulo}" da lista de referências?`,
+      textoConfirmar: 'Remover',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
+
     this.removendoId.set(referencia.id);
     this.avisoLista.set('');
 

@@ -8,6 +8,7 @@ import {
   StatusAtividade,
 } from '../../core/models';
 import { AtividadeService } from '../../core/services/atividade.service';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 
@@ -233,7 +234,7 @@ const TOM_STATUS: Record<StatusAtividade, string> = {
                         <button
                           type="button"
                           class="acao-remover"
-                          (click)="remover(r.atividade.id)"
+                          (click)="remover(r.atividade.id, r.atividade.titulo)"
                           [attr.aria-label]="
                             'Remover atividade ' + r.atividade.titulo
                           "
@@ -311,6 +312,7 @@ const TOM_STATUS: Record<StatusAtividade, string> = {
 export class AtividadesComponent {
   private readonly fb = inject(FormBuilder);
   private readonly atividades = inject(AtividadeService);
+  private readonly confirmacao = inject(ConfirmacaoService);
 
   readonly resumos = toSignal(this.atividades.listarResumos(), {
     initialValue: [],
@@ -372,7 +374,16 @@ export class AtividadesComponent {
     });
   }
 
-  remover(atividadeId: string): void {
+  async remover(atividadeId: string, titulo: string): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Remover atividade',
+      mensagem: `Remover a atividade "${titulo}"? Essa ação não pode ser desfeita.`,
+      textoConfirmar: 'Remover',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
     this.atividades.remover(atividadeId).subscribe();
   }
 
