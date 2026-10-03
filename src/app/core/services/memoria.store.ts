@@ -182,6 +182,20 @@ export class MemoriaStore {
     );
   }
 
+  adicionarCurso(curso: Curso): void {
+    this.cursos$.next([...this.cursosAtuais, curso]);
+  }
+
+  atualizarCurso(cursoId: string, dados: Omit<Curso, 'id'>): void {
+    this.cursos$.next(
+      this.cursosAtuais.map((c) => (c.id === cursoId ? { ...c, ...dados } : c)),
+    );
+  }
+
+  removerCurso(cursoId: string): void {
+    this.cursos$.next(this.cursosAtuais.filter((c) => c.id !== cursoId));
+  }
+
   adicionarPrograma(programa: Programa): void {
     this.programas$.next([...this.programasAtuais, programa]);
   }

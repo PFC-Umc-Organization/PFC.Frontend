@@ -9,6 +9,18 @@ export interface Curso {
   periodo: string;
 }
 
+export interface NovoCurso {
+  nome: string;
+  turno: Turno;
+  periodo: string;
+}
+
+export interface AtualizarCurso {
+  nome: string;
+  turno: Turno;
+  periodo: string;
+}
+
 export const ROTULO_TURNO: Record<Turno, string> = {
   MANHA: 'Manhã',
   NOITE: 'Noite',

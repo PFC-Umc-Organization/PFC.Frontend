@@ -234,9 +234,14 @@ export class HeaderComponent {
     { rotulo: 'Referências', rota: '/referencias', icone: 'busca' },
   ];
 
-  readonly itensNav = computed(() =>
-    ehEquipeAcademica(this.auth.perfil()) ? this.navProfessor : this.navAluno,
-  );
+  readonly itensNav = computed(() => {
+    if (!ehEquipeAcademica(this.auth.perfil())) {
+      return this.navAluno;
+    }
+    return this.auth.perfil() === 'ADMIN'
+      ? [...this.navProfessor, { rotulo: 'Turmas', rota: '/turmas', icone: 'calendario' } as ItemNav]
+      : this.navProfessor;
+  });
 
   sair(): void {
     this.auth.sair();

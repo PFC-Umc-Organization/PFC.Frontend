@@ -99,6 +99,15 @@ export const rotas: Routes = [
           ),
       },
       {
+        path: 'turmas',
+        canActivate: [perfilGuard(['ADMIN'])],
+        title: 'Turmas — Athena',
+        loadComponent: () =>
+          import('./features/admin/turmas.component').then(
+            (m) => m.TurmasComponent,
+          ),
+      },
+      {
         path: 'sem-acesso',
         title: 'Sem acesso — Athena',
         loadComponent: () =>

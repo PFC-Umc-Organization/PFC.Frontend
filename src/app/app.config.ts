@@ -8,7 +8,7 @@ import {
   AtividadeMockService,
   AtividadeService,
 } from './core/services/atividade.service';
-import { CursoMockService, CursoService } from './core/services/curso.service';
+import { CursoHttpService, CursoService } from './core/services/curso.service';
 import {
   EntregaMockService,
   EntregaService,
@@ -42,12 +42,12 @@ import {
  * Este é o único ponto do app que sabe QUAL implementação dos services está
  * em uso.
  *
- * `Usuario` (login/cadastro), `Programa`, `Projeto`, `Matricula` e
+ * `Usuario` (login/cadastro), `Curso`, `Programa`, `Projeto`, `Matricula` e
  * `Referencia` já falam com o backend real (ver README, seção "Endpoints
  * que o front espera"). Pra demonstrar sem backend, troque por
- * `ReferenciaMockService`.
- * `Curso`, `Atividade`, `Entrega` e `Material` continuam no mock — o
- * backend ainda não tem esses domínios implementados.
+ * `*MockService`.
+ * `Atividade`, `Entrega` e `Material` continuam no mock — o backend ainda
+ * não tem esses domínios implementados.
  */
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -55,7 +55,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([authInterceptor])),
 
     { provide: UsuarioService, useClass: UsuarioHttpService },
-    { provide: CursoService, useClass: CursoMockService },
+    { provide: CursoService, useClass: CursoHttpService },
     { provide: ProgramaService, useClass: ProgramaHttpService },
     { provide: ProjetoService, useClass: ProjetoHttpService },
     { provide: AtividadeService, useClass: AtividadeMockService },
