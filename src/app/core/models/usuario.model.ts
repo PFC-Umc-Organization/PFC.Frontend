@@ -46,6 +46,17 @@ export interface AtualizacaoUsuario {
   cursoId?: string;
 }
 
+/**
+ * Corpo de POST /admin/usuarios — cadastro de orientador/admin feito pelo
+ * administrador. Nunca é ALUNO aqui: aluno só se cadastra pelo próprio
+ * self sign-up.
+ */
+export interface NovaConta {
+  nome: string;
+  email: string;
+  perfil: 'ORIENTADOR' | 'ADMIN';
+}
+
 export const ROTULO_PERFIL: Record<Perfil, string> = {
   ALUNO: 'Aluno',
   ORIENTADOR: 'Orientador',

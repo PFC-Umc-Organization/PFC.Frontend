@@ -7,6 +7,7 @@ import {
   map,
   of,
   shareReplay,
+  tap,
   throwError,
 } from 'rxjs';
 
@@ -14,6 +15,7 @@ import { environment } from '../../../environments/environment';
 import {
   AtualizacaoUsuario,
   Credenciais,
+  NovaConta,
   NovoUsuario,
   Perfil,
   RespostaAutenticacao,
@@ -38,6 +40,8 @@ export abstract class UsuarioService {
   abstract readonly edicaoDisponivel: boolean;
   abstract listar(filtro?: FiltroUsuario): Observable<Usuario[]>;
   abstract criar(novo: NovoUsuario): Observable<RespostaCadastro>;
+  /** Cadastro de orientador/admin pelo administrador (POST /admin/usuarios). */
+  abstract criarConta(nova: NovaConta): Observable<RespostaCadastro>;
   /** Confirma a conta com o código de 6 dígitos enviado por e-mail. */
   abstract confirmar(email: string, codigo: string): Observable<RespostaCadastro>;
   abstract reenviarCodigo(email: string): Observable<RespostaCadastro>;
@@ -87,6 +91,30 @@ export class UsuarioMockService extends UsuarioService {
     return of({
       mensagem:
         'Cadastro recebido — no mock, sua conta já está pronta pra entrar.',
+    }).pipe(delay(400));
+  }
+
+  override criarConta(nova: NovaConta): Observable<RespostaCadastro> {
+    const emailEmUso = this.store.usuariosAtuais.some(
+      (u) => u.email.toLowerCase() === nova.email.trim().toLowerCase(),
+    );
+
+    if (emailEmUso) {
+      return throwError(
+        () => new Error('Já existe uma conta com esse e-mail.'),
+      ).pipe(delay(250));
+    }
+
+    this.store.adicionarUsuario({
+      id: `u-${crypto.randomUUID()}`,
+      nome: nova.nome.trim(),
+      email: nova.email.trim().toLowerCase(),
+      perfil: nova.perfil,
+      status: 'ATIVO',
+      cursoIds: this.cursoIdsPadrao(nova.perfil),
+    });
+    return of({
+      mensagem: 'Conta criada — no mock, já está pronta pra entrar.',
     }).pipe(delay(400));
   }
 
@@ -210,6 +238,17 @@ export class UsuarioHttpService extends UsuarioService {
     return this.http
       .post<RespostaCadastro>(`${environment.apiBaseUrl}/auth/registrar`, novo)
       .pipe(catchError(erroHttp));
+  }
+
+  override criarConta(nova: NovaConta): Observable<RespostaCadastro> {
+    return this.http
+      .post<RespostaCadastro>(`${environment.apiBaseUrl}/admin/usuarios`, nova)
+      .pipe(
+        tap(() => {
+          this.cache$ = null;
+        }),
+        catchError(erroHttp),
+      );
   }
 
   override confirmar(

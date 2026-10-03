@@ -1,7 +1,14 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, catchError, of, startWith, switchMap } from 'rxjs';
+import {
+  Subject,
+  catchError,
+  combineLatest,
+  of,
+  startWith,
+  switchMap,
+} from 'rxjs';
 
 import {
   Matricula,
@@ -12,6 +19,7 @@ import {
   Usuario,
   rotuloCurso,
 } from '../../core/models';
+import { AuthService } from '../../core/services/auth.service';
 import { CursoService } from '../../core/services/curso.service';
 import { MatriculaService } from '../../core/services/matricula.service';
 import { UsuarioService } from '../../core/services/usuario.service';
@@ -30,6 +38,92 @@ import { IconeComponent } from '../../shared/components/icone.component';
           Acompanhe perfis, funções e acessos da comunidade Athena.
         </p>
       </header>
+
+      <!-- ------------------- cadastrar orientador/admin ------------------- -->
+      @if (souAdmin()) {
+        <section class="card">
+          <div class="card__body">
+            <h2 class="section-title">Cadastrar orientador ou admin</h2>
+            <p class="lead text-sm mt-1">
+              A pessoa recebe um convite por e-mail do próprio Cognito para
+              definir a senha e entrar.
+            </p>
+
+            @if (sucessoContaCriada()) {
+              <p class="ok" role="status">
+                <app-icone nome="check" />
+                <span>{{ sucessoContaCriada() }}</span>
+              </p>
+            }
+
+            @if (erroContaCriada()) {
+              <p class="alerta" role="alert">
+                <app-icone nome="alerta" />
+                <span>{{ erroContaCriada() }}</span>
+              </p>
+            }
+
+            <form
+              class="form-grid form-grid--2 mt-6"
+              [formGroup]="novaContaForm"
+              (ngSubmit)="cadastrarConta()"
+            >
+              <div class="field">
+                <label class="field__label" for="nova-conta-nome">
+                  Nome completo
+                </label>
+                <input
+                  id="nova-conta-nome"
+                  type="text"
+                  class="control"
+                  formControlName="nome"
+                  [class.control--invalid]="invalidoNovaConta('nome')"
+                />
+                @if (invalidoNovaConta('nome')) {
+                  <span class="field__error">Informe o nome completo.</span>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="nova-conta-email">E-mail</label>
+                <input
+                  id="nova-conta-email"
+                  type="email"
+                  class="control"
+                  formControlName="email"
+                  [class.control--invalid]="invalidoNovaConta('email')"
+                />
+                @if (invalidoNovaConta('email')) {
+                  <span class="field__error">Informe um e-mail válido.</span>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="nova-conta-perfil">Perfil</label>
+                <select
+                  id="nova-conta-perfil"
+                  class="control"
+                  formControlName="perfil"
+                >
+                  <option value="ORIENTADOR">Orientador</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
+              <div class="form-grid__full">
+                <button
+                  type="submit"
+                  class="btn btn--primary"
+                  [disabled]="cadastrandoConta()"
+                >
+                  <app-icone nome="mais" class="btn__icon" />
+                  {{ cadastrandoConta() ? 'Cadastrando…' : 'Cadastrar' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      }
 
       <!-- ------------------- pré-autorizar por RGM ------------------- -->
       <section class="card">
@@ -476,9 +570,13 @@ export class UsuariosComponent {
   private readonly usuarioService = inject(UsuarioService);
   private readonly cursoService = inject(CursoService);
   private readonly matriculaService = inject(MatriculaService);
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
 
   readonly rotuloCurso = rotuloCurso;
+
+  /** Só admin cadastra orientador/admin — orientador não vê esse card. */
+  readonly souAdmin = computed(() => this.auth.perfil() === 'ADMIN');
 
   readonly busca = signal('');
   readonly perfilFiltro = signal<Perfil | 'TODOS'>('TODOS');
@@ -524,9 +622,19 @@ export class UsuariosComponent {
   readonly edicaoDisponivel = this.usuarioService.edicaoDisponivel;
   readonly erroUsuarios = signal('');
 
+  /**
+   * Gatilho manual de recarga — `listar()` do HttpClient é cacheado, então
+   * trocar o filtro não refaz a chamada; precisa de algo pra forçar depois
+   * de cadastrar uma conta nova (ver `cadastrarConta`).
+   */
+  private readonly recarregarUsuarios$ = new Subject<void>();
+
   readonly usuarios = toSignal(
-    toObservable(this.filtro).pipe(
-      switchMap((f) =>
+    combineLatest([
+      toObservable(this.filtro),
+      this.recarregarUsuarios$.pipe(startWith(undefined)),
+    ]).pipe(
+      switchMap(([f]) =>
         this.usuarioService.listar(f).pipe(
           catchError((e: Error) => {
             this.erroUsuarios.set(e.message);
@@ -540,9 +648,26 @@ export class UsuariosComponent {
 
   /** Métricas sempre sobre a base inteira, independentes dos filtros. */
   private readonly todos = toSignal(
-    this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
+    this.recarregarUsuarios$.pipe(
+      startWith(undefined),
+      switchMap(() =>
+        this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
+      ),
+    ),
     { initialValue: [] as Usuario[] },
   );
+
+  /* ------------------------ cadastro de orientador/admin ------------------------ */
+
+  readonly novaContaForm = this.fb.nonNullable.group({
+    nome: ['', [Validators.required, Validators.minLength(3)]],
+    email: ['', [Validators.required, Validators.email]],
+    perfil: ['ORIENTADOR' as 'ORIENTADOR' | 'ADMIN', [Validators.required]],
+  });
+
+  readonly cadastrandoConta = signal(false);
+  readonly sucessoContaCriada = signal('');
+  readonly erroContaCriada = signal('');
 
   readonly totalAtivos = computed(
     () => this.todos().filter((u) => u.status === 'ATIVO').length,
@@ -576,6 +701,35 @@ export class UsuariosComponent {
   invalidoProvisionamento(): boolean {
     const c = this.provisionamentoForm.controls.rgms;
     return c.invalid && c.touched;
+  }
+
+  invalidoNovaConta(campo: 'nome' | 'email'): boolean {
+    const c = this.novaContaForm.controls[campo];
+    return c.invalid && c.touched;
+  }
+
+  cadastrarConta(): void {
+    this.sucessoContaCriada.set('');
+    this.erroContaCriada.set('');
+
+    if (this.novaContaForm.invalid) {
+      this.novaContaForm.markAllAsTouched();
+      return;
+    }
+
+    this.cadastrandoConta.set(true);
+    this.usuarioService.criarConta(this.novaContaForm.getRawValue()).subscribe({
+      next: (resposta) => {
+        this.cadastrandoConta.set(false);
+        this.sucessoContaCriada.set(resposta.mensagem);
+        this.novaContaForm.reset({ nome: '', email: '', perfil: 'ORIENTADOR' });
+        this.recarregarUsuarios$.next();
+      },
+      error: (e: Error) => {
+        this.cadastrandoConta.set(false);
+        this.erroContaCriada.set(e.message);
+      },
+    });
   }
 
   private parseRgms(bruto: string): string[] {
