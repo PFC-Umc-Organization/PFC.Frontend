@@ -3,7 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, startWith, switchMap } from 'rxjs';
 
-import { Curso, ROTULO_TURNO, Turno } from '../../core/models';
+import { CURSOS_DISPONIVEIS, Curso, NomeCurso, ROTULO_TURNO, Turno } from '../../core/models';
 import { CursoService } from '../../core/services/curso.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 
@@ -44,17 +44,20 @@ import { IconeComponent } from '../../shared/components/icone.component';
             (ngSubmit)="criar()"
           >
             <div class="field">
-              <label class="field__label" for="novo-nome">Nome do curso</label>
-              <input
+              <label class="field__label" for="novo-nome">Curso</label>
+              <select
                 id="novo-nome"
-                type="text"
                 class="control"
-                placeholder="Ex.: Engenharia de Software"
                 formControlName="nome"
                 [class.control--invalid]="invalidoNovo('nome')"
-              />
+              >
+                <option value="" disabled>Selecione o curso</option>
+                @for (c of cursosDisponiveis; track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </select>
               @if (invalidoNovo('nome')) {
-                <span class="field__error">Informe o nome do curso.</span>
+                <span class="field__error">Selecione o curso.</span>
               }
             </div>
 
@@ -122,14 +125,17 @@ import { IconeComponent } from '../../shared/components/icone.component';
                         (ngSubmit)="salvarEdicao(c.id)"
                       >
                         <div class="field">
-                          <label class="field__label" for="edit-nome">Nome</label>
-                          <input
+                          <label class="field__label" for="edit-nome">Curso</label>
+                          <select
                             id="edit-nome"
-                            type="text"
                             class="control"
                             formControlName="nome"
                             [class.control--invalid]="invalidoEdicao('nome')"
-                          />
+                          >
+                            @for (opcao of cursosDisponiveis; track opcao) {
+                              <option [value]="opcao">{{ opcao }}</option>
+                            }
+                          </select>
                         </div>
                         <div class="field">
                           <label class="field__label" for="edit-turno">Turno</label>
@@ -259,14 +265,16 @@ export class TurmasComponent {
   readonly criando = signal(false);
   readonly editandoId = signal<string | null>(null);
 
+  readonly cursosDisponiveis = CURSOS_DISPONIVEIS;
+
   readonly novoForm = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.minLength(2)]],
+    nome: ['' as NomeCurso, [Validators.required]],
     turno: ['MANHA' as Turno, [Validators.required]],
     periodo: ['', [Validators.required]],
   });
 
   readonly editForm = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.minLength(2)]],
+    nome: ['' as NomeCurso, [Validators.required]],
     turno: ['MANHA' as Turno, [Validators.required]],
     periodo: ['', [Validators.required]],
   });
@@ -297,7 +305,7 @@ export class TurmasComponent {
     this.cursoService.criar(this.novoForm.getRawValue()).subscribe({
       next: () => {
         this.criando.set(false);
-        this.novoForm.reset({ nome: '', turno: 'MANHA', periodo: '' });
+        this.novoForm.reset({ nome: '' as NomeCurso, turno: 'MANHA', periodo: '' });
         this.recarregar$.next();
       },
       error: (e: Error) => {

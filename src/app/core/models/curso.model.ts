@@ -1,22 +1,32 @@
 export type Turno = 'MANHA' | 'NOITE';
 
+/**
+ * Cursos cobertos pelo sistema por enquanto — só a área de TI da
+ * faculdade. Lista fechada de propósito: cadastrar turma é escolher um
+ * destes, não digitar o nome livre.
+ */
+export type NomeCurso = 'Engenharia de Software' | 'Sistemas de Informação';
+
+export const CURSOS_DISPONIVEIS: NomeCurso[] = [
+  'Engenharia de Software',
+  'Sistemas de Informação',
+];
 
 export interface Curso {
   id: string;
-  /** Ex.: "Engenharia de Software". */
-  nome: string;
+  nome: NomeCurso;
   turno: Turno;
   periodo: string;
 }
 
 export interface NovoCurso {
-  nome: string;
+  nome: NomeCurso;
   turno: Turno;
   periodo: string;
 }
 
 export interface AtualizarCurso {
-  nome: string;
+  nome: NomeCurso;
   turno: Turno;
   periodo: string;
 }
