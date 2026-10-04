@@ -231,11 +231,11 @@ export class MemoriaStore {
   }
 
   
-  provisionarMatriculas(rgms: string[]): void {
+  provisionarMatriculas(rgms: string[], turmaId: string): void {
     const existentes = new Set(this.matriculasAtuais.map((m) => m.rgm));
     const novas = rgms
       .filter((rgm) => !existentes.has(rgm))
-      .map((rgm): Matricula => ({ rgm, status: 'ATIVO' }));
+      .map((rgm): Matricula => ({ rgm, status: 'ATIVO', turmaId }));
 
     this.matriculas$.next([...this.matriculasAtuais, ...novas]);
   }

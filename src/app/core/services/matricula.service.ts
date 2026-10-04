@@ -10,7 +10,10 @@ import { MemoriaStore } from './memoria.store';
 
 export abstract class MatriculaService {
   abstract listar(): Observable<Matricula[]>;
-  abstract provisionar(rgms: string[]): Observable<ResultadoMatricula>;
+  abstract provisionar(
+    rgms: string[],
+    turmaId: string,
+  ): Observable<ResultadoMatricula>;
   abstract remover(rgms: string[]): Observable<ResultadoMatricula>;
 }
 
@@ -22,8 +25,11 @@ export class MatriculaMockService extends MatriculaService {
     return this.store.matriculas;
   }
 
-  override provisionar(rgms: string[]): Observable<ResultadoMatricula> {
-    this.store.provisionarMatriculas(rgms);
+  override provisionar(
+    rgms: string[],
+    turmaId: string,
+  ): Observable<ResultadoMatricula> {
+    this.store.provisionarMatriculas(rgms, turmaId);
     return of({ processados: rgms.length, falhas: [] }).pipe(delay(400));
   }
 
@@ -43,10 +49,14 @@ export class MatriculaHttpService extends MatriculaService {
       .pipe(catchError(erroHttp));
   }
 
-  override provisionar(rgms: string[]): Observable<ResultadoMatricula> {
+  override provisionar(
+    rgms: string[],
+    turmaId: string,
+  ): Observable<ResultadoMatricula> {
     return this.http
       .post<ResultadoMatricula>(`${environment.apiBaseUrl}/admin/students`, {
         rgms,
+        turmaId,
       })
       .pipe(catchError(erroHttp));
   }

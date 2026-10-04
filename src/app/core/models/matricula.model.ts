@@ -3,6 +3,7 @@ import { StatusUsuario } from './usuario.model';
 export interface Matricula {
   rgm: string;
   status: StatusUsuario;
+  turmaId?: string;
 }
 
 export interface FalhaMatricula {

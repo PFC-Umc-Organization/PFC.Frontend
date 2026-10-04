@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   Subject,
   catchError,
@@ -29,7 +30,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 @Component({
   selector: 'app-usuarios',
   standalone: true,
-  imports: [ReactiveFormsModule, IconeComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconeComponent],
   template: `
     <div class="page">
       <header>
@@ -157,11 +158,41 @@ import { IconeComponent } from '../../shared/components/icone.component';
             </p>
           }
 
+          @if (cursos().length === 0) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>
+                Nenhuma turma cadastrada ainda — cadastre uma turma antes de
+                pré-autorizar RGMs.
+                <a routerLink="/turmas">Ir para Turmas</a>
+              </span>
+            </p>
+          } @else {
           <form
             class="form-grid mt-6"
             [formGroup]="provisionamentoForm"
             (ngSubmit)="provisionar()"
           >
+            <div class="field">
+              <label class="field__label" for="provisionamento-turma">
+                Turma
+              </label>
+              <select
+                id="provisionamento-turma"
+                class="control"
+                formControlName="turmaId"
+                [class.control--invalid]="invalidoProvisionamento('turmaId')"
+              >
+                <option value="" disabled>Selecione a turma</option>
+                @for (c of cursos(); track c.id) {
+                  <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                }
+              </select>
+              @if (invalidoProvisionamento('turmaId')) {
+                <span class="field__error">Selecione a turma.</span>
+              }
+            </div>
+
             <div class="field">
               <label class="field__label" for="rgms">RGMs</label>
               <textarea
@@ -169,13 +200,13 @@ import { IconeComponent } from '../../shared/components/icone.component';
                 class="control control--textarea"
                 placeholder="Um RGM por linha — ex.: 20260009"
                 formControlName="rgms"
-                [class.control--invalid]="invalidoProvisionamento()"
+                [class.control--invalid]="invalidoProvisionamento('rgms')"
               ></textarea>
               <span class="field__hint">
                 Aceita vários RGMs de uma vez — separados por linha ou
-                vírgula.
+                vírgula. Todos entram pré-autorizados na turma selecionada.
               </span>
-              @if (invalidoProvisionamento()) {
+              @if (invalidoProvisionamento('rgms')) {
                 <span class="field__error">
                   Informe ao menos um RGM válido (só números).
                 </span>
@@ -193,6 +224,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
               </button>
             </div>
           </form>
+          }
         </div>
       </section>
 
@@ -208,6 +240,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
             <thead>
               <tr>
                 <th scope="col">RGM</th>
+                <th scope="col">Turma</th>
                 <th scope="col">Situação</th>
                 <th scope="col"><span class="sr-only">Ações</span></th>
               </tr>
@@ -216,6 +249,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
               @for (m of matriculas(); track m.rgm) {
                 <tr>
                   <td class="cell-strong">{{ m.rgm }}</td>
+                  <td>{{ rotuloTurmaDoId(m.turmaId) }}</td>
                   <td>
                     @if (contaDoRgm(m.rgm); as conta) {
                       @if (conta.confirmado === false) {
@@ -251,7 +285,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
                 </tr>
               } @empty {
                 <tr>
-                  <td class="table-empty" colspan="3">
+                  <td class="table-empty" colspan="4">
                     Nenhum RGM pré-autorizado no momento.
                   </td>
                 </tr>
@@ -602,6 +636,7 @@ export class UsuariosComponent {
   );
 
   readonly provisionamentoForm = this.fb.nonNullable.group({
+    turmaId: ['', [Validators.required]],
     rgms: ['', [Validators.required]],
   });
 
@@ -706,9 +741,15 @@ export class UsuariosComponent {
     return this.todos().find((u) => u.rgm === rgm);
   }
 
-  invalidoProvisionamento(): boolean {
-    const c = this.provisionamentoForm.controls.rgms;
+  invalidoProvisionamento(campo: 'turmaId' | 'rgms'): boolean {
+    const c = this.provisionamentoForm.controls[campo];
     return c.invalid && c.touched;
+  }
+
+  /** Rótulo da turma pra exibir na lista de RGMs pré-autorizados. */
+  rotuloTurmaDoId(turmaId?: string): string {
+    const curso = this.cursos().find((c) => c.id === turmaId);
+    return curso ? this.rotuloCurso(curso) : '—';
   }
 
   invalidoNovaConta(campo: 'nome' | 'email'): boolean {
@@ -760,7 +801,8 @@ export class UsuariosComponent {
       return;
     }
 
-    const rgms = this.parseRgms(this.provisionamentoForm.getRawValue().rgms);
+    const { turmaId, rgms: rgmsBrutos } = this.provisionamentoForm.getRawValue();
+    const rgms = this.parseRgms(rgmsBrutos);
 
     if (rgms.length === 0) {
       this.erroProvisionamento.set(
@@ -771,11 +813,11 @@ export class UsuariosComponent {
 
     this.provisionando.set(true);
 
-    this.matriculaService.provisionar(rgms).subscribe({
+    this.matriculaService.provisionar(rgms, turmaId).subscribe({
       next: (resultado) => {
         this.provisionando.set(false);
         this.resultadoProvisionamento.set(resultado);
-        this.provisionamentoForm.reset();
+        this.provisionamentoForm.reset({ turmaId: '', rgms: '' });
         this.recarregarMatriculas$.next();
       },
       error: (e: Error) => {
