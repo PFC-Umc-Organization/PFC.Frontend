@@ -228,7 +228,6 @@ export class HeaderComponent {
   private readonly navProfessor: ItemNav[] = [
     { rotulo: 'Início', rota: '/', icone: 'painel' },
     { rotulo: 'Gestão de PFC', rota: '/gestao', icone: 'templo' },
-    { rotulo: 'Atividades', rota: '/atividades', icone: 'prancheta' },
     { rotulo: 'Usuários', rota: '/usuarios', icone: 'usuarios' },
     { rotulo: 'Materiais', rota: '/materiais', icone: 'livro' },
     { rotulo: 'Referências', rota: '/referencias', icone: 'busca' },

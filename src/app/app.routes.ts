@@ -81,15 +81,6 @@ export const rotas: Routes = [
           ),
       },
       {
-        path: 'atividades',
-        canActivate: [perfilGuard(['ORIENTADOR', 'ADMIN'])],
-        title: 'Atividades — Athena',
-        loadComponent: () =>
-          import('./features/professor/atividades.component').then(
-            (m) => m.AtividadesComponent,
-          ),
-      },
-      {
         path: 'usuarios',
         canActivate: [perfilGuard(['ORIENTADOR', 'ADMIN'])],
         title: 'Usuários — Athena',
