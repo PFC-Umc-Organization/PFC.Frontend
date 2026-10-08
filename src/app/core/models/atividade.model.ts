@@ -41,6 +41,8 @@ export interface NovaAtividade {
   titulo: string;
   descricao: string;
   prazo: string;
+  /** Formulário de entrega; sem ele a atividade nasce com o campo padrão. */
+  campos?: NovoCampoEntrega[];
 }
 
 

@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -7,6 +8,7 @@ import { of, switchMap } from 'rxjs';
 import {
   Atividade,
   CampoEntrega,
+  Entrega,
   ItemTimeline,
   Material,
   ROTULO_TIPO_MATERIAL,
@@ -30,7 +32,13 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 @Component({
   selector: 'app-materiais',
   standalone: true,
-  imports: [ReactiveFormsModule, IconeComponent, PrazoPipe, TimelineComponent],
+  imports: [
+    ReactiveFormsModule,
+    IconeComponent,
+    PrazoPipe,
+    TimelineComponent,
+    DatePipe,
+  ],
   template: `
     <div class="page">
       @if (visaoProfessor()) {
@@ -184,6 +192,9 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
                     @for (item of disponiveis(); track item.atividadeId) {
                       <option [value]="item.atividadeId">
                         {{ item.titulo }} — entrega até {{ item.prazo | prazo }}
+                        @if (item.status !== 'PENDENTE') {
+                          (já entregue — editar)
+                        }
                       </option>
                     }
                   </select>
@@ -257,7 +268,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
                     (click)="enviarEntrega()"
                   >
                     <app-icone nome="mais" class="btn__icon" />
-                    Enviar entrega
+                    {{ editando() ? 'Salvar alterações' : 'Enviar entrega' }}
                   </button>
                   @if (mensagem()) {
                     <p class="confirmacao">{{ mensagem() }}</p>
@@ -270,6 +281,60 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
             }
           </div>
         </section>
+
+        @if (minhasEntregas().length > 0) {
+          <section class="card">
+            <div class="card__body">
+              <h2 class="section-title">Suas entregas</h2>
+              <p class="lead mt-2">
+                O que o seu grupo enviou. Dá para editar até o prazo da atividade.
+              </p>
+
+              @for (m of minhasEntregas(); track m.atividade.id) {
+                <article class="entrega mt-6">
+                  <header class="entrega__topo">
+                    <div>
+                      <h3 class="entrega__titulo">{{ m.atividade.titulo }}</h3>
+                      <p class="entrega__sub">
+                        Enviada em {{ m.entrega.entregueEm | date: 'dd/MM/yyyy HH:mm' }}
+                        @if (m.entrega.entreguePor) {
+                          por {{ m.entrega.entreguePor }}
+                        }
+                      </p>
+                    </div>
+                    @if (m.podeEditar) {
+                      <button
+                        type="button"
+                        class="btn btn--outline btn--sm"
+                        (click)="editar(m.atividade.id)"
+                      >
+                        Editar
+                      </button>
+                    } @else {
+                      <span class="entrega__sub">Prazo encerrado</span>
+                    }
+                  </header>
+                  <dl class="entrega__lista">
+                    @for (l of m.linhas; track l.rotulo) {
+                      <dt>{{ l.rotulo }}</dt>
+                      <dd>
+                        @if (!l.valor) {
+                          <span class="entrega__sub">não preenchido</span>
+                        } @else if (l.tipo === 'LINK') {
+                          <a [href]="l.valor" target="_blank" rel="noopener noreferrer">
+                            {{ l.valor }}
+                          </a>
+                        } @else {
+                          {{ l.valor }}
+                        }
+                      </dd>
+                    }
+                  </dl>
+                </article>
+              }
+            </div>
+          </section>
+        }
 
         <app-timeline
           [itens]="itensEntregaveis()"
@@ -287,6 +352,48 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
       display: grid;
       gap: 1rem;
       grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    }
+
+    .entrega {
+      padding: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .entrega__topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .entrega__titulo {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .entrega__sub {
+      margin: 0.125rem 0 0;
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
+    }
+
+    .entrega__lista {
+      display: grid;
+      grid-template-columns: minmax(8rem, 14rem) 1fr;
+      gap: 0.5rem 1rem;
+      margin: 0.75rem 0 0;
+    }
+
+    .entrega__lista dt {
+      font-weight: 700;
+      font-size: 0.8125rem;
+    }
+
+    .entrega__lista dd {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     .campo-opcional {
@@ -457,9 +564,65 @@ export class MateriaisComponent {
     { initialValue: [] as ItemTimeline[] },
   );
 
-  /** Só entra na lista de seleção quem ainda pode ser entregue no prazo. */
+  private readonly atividadesDaTurma = toSignal(this.atividadeService.listar(), {
+    initialValue: [] as Atividade[],
+  });
+
+  /** Entregas do grupo, com as respostas (atualiza a cada envio). */
+  private readonly entregasDoGrupo = toSignal(
+    toObservable(this.projetoDoAluno).pipe(
+      switchMap((p) =>
+        p ? this.entregaService.entregasDoProjeto(p.id) : of([] as Entrega[]),
+      ),
+    ),
+    { initialValue: [] as Entrega[] },
+  );
+
+  /** Já entregue e ainda dentro do prazo = dá pra editar. */
+  private editavel(item: ItemTimeline): boolean {
+    return (
+      (item.status === 'ENTREGUE' || item.status === 'ENTREGUE_COM_ATRASO') &&
+      new Date(item.prazo) > new Date()
+    );
+  }
+
+  /** Entra na seleção: o que falta entregar e o que dá pra editar. */
   readonly disponiveis = computed(() =>
-    this.itensEntregaveis().filter((item) => item.status === 'PENDENTE'),
+    this.itensEntregaveis().filter(
+      (item) => item.status === 'PENDENTE' || this.editavel(item),
+    ),
+  );
+
+  /** Entregas já feitas, com cada resposta ao lado do nome do campo. */
+  readonly minhasEntregas = computed(() =>
+    this.entregasDoGrupo()
+      .map((entrega) => {
+        const atividade = this.atividadesDaTurma().find(
+          (a) => a.id === entrega.atividadeId,
+        );
+        if (!atividade) {
+          return null;
+        }
+        return {
+          atividade,
+          entrega,
+          podeEditar: new Date(atividade.prazo) > new Date(),
+          linhas: atividade.campos.map((c) => ({
+            rotulo: c.rotulo,
+            tipo: c.tipo,
+            valor: entrega.respostas?.[c.id] ?? '',
+          })),
+        };
+      })
+      .filter((m) => m !== null)
+      .sort((a, b) => a.atividade.prazo.localeCompare(b.atividade.prazo)),
+  );
+
+  /** A atividade escolhida já tem entrega — o envio vira uma edição. */
+  readonly editando = computed(() =>
+    this.entregasDoGrupo().some(
+      (e) => e.atividadeId === this.atividadeSelecionada(),
+    ),
   );
 
   readonly atividadeSelecionada = signal('');
@@ -552,10 +715,24 @@ export class MateriaisComponent {
   }
 
   aoTrocarAtividade(evento: Event): void {
-    this.atividadeSelecionada.set((evento.target as HTMLSelectElement).value);
-    this.respostas.set({});
+    this.escolherAtividade((evento.target as HTMLSelectElement).value);
+  }
+
+  /** Escolhe a atividade; se já foi entregue, preenche com o que foi enviado. */
+  private escolherAtividade(atividadeId: string): void {
+    const entrega = this.entregasDoGrupo().find(
+      (e) => e.atividadeId === atividadeId,
+    );
+    this.atividadeSelecionada.set(atividadeId);
+    this.respostas.set({ ...(entrega?.respostas ?? {}) });
     this.mensagem.set('');
     this.erroEntrega.set('');
+  }
+
+  /** Botão "Editar" da lista de entregas: carrega no formulário lá em cima. */
+  editar(atividadeId: string): void {
+    this.escolherAtividade(atividadeId);
+    document.getElementById('atividade')?.scrollIntoView({ behavior: 'smooth' });
   }
 
   aoDigitar(campoId: string, evento: Event): void {
@@ -594,7 +771,9 @@ export class MateriaisComponent {
       .subscribe({
         next: () => {
           this.enviando.set(false);
-          this.mensagem.set('Entrega enviada com sucesso.');
+          this.mensagem.set(
+            this.editando() ? 'Entrega atualizada.' : 'Entrega enviada com sucesso.',
+          );
           this.atividadeSelecionada.set('');
           this.respostas.set({});
         },

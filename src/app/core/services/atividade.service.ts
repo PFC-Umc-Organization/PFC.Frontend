@@ -88,7 +88,9 @@ export class AtividadeMockService extends AtividadeService {
       descricao: nova.descricao.trim(),
       prazo: nova.prazo,
       publicadaEm: new Date().toISOString(),
-      campos: [{ id: `c-${crypto.randomUUID()}`, ...CAMPO_ENTREGA_PADRAO }],
+      campos: (nova.campos?.length ? nova.campos : [CAMPO_ENTREGA_PADRAO]).map(
+        (c) => ({ ...c, rotulo: c.rotulo.trim(), id: `c-${crypto.randomUUID()}` }),
+      ),
     };
 
     this.store.adicionarAtividade(atividade);

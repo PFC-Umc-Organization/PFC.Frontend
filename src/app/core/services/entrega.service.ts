@@ -49,6 +49,10 @@ export abstract class EntregaService {
   abstract matrizDosProjetos(
     projetos: Pick<Projeto, 'id' | 'nome'>[],
   ): Observable<MatrizStatus>;
+  /** Entregas do grupo (com as respostas), atualizada a cada envio/remoção. */
+  abstract entregasDoProjeto(projetoId: string): Observable<Entrega[]>;
+  /** Apaga a entrega do grupo — o orientador devolve a atividade pra refazer. */
+  abstract remover(projetoId: string, atividadeId: string): Observable<void>;
   /**
    * Entrega (ou reenvia) o formulário do grupo. `respostas` é indexado pelo
    * id do campo; em campo de arquivo vai o nome do arquivo escolhido.
@@ -142,6 +146,17 @@ export class EntregaMockService extends EntregaService {
     );
   }
 
+  override entregasDoProjeto(projetoId: string): Observable<Entrega[]> {
+    return this.store.entregas.pipe(
+      map((entregas) => entregas.filter((e) => e.projetoId === projetoId)),
+    );
+  }
+
+  override remover(projetoId: string, atividadeId: string): Observable<void> {
+    this.store.definirEntrega(atividadeId, projetoId, null);
+    return of(undefined).pipe(delay(200));
+  }
+
   override entregar(
     atividadeId: string,
     projetoId: string,
@@ -165,7 +180,7 @@ export class EntregaHttpService extends EntregaService {
   private readonly projetos = inject(ProjetoService);
   private readonly recarregar$ = new BehaviorSubject<void>(undefined);
 
-  private entregasDoProjeto(projetoId: string): Observable<Entrega[]> {
+  override entregasDoProjeto(projetoId: string): Observable<Entrega[]> {
     return this.recarregar$.pipe(
       switchMap(() =>
         this.http
@@ -246,6 +261,18 @@ export class EntregaHttpService extends EntregaService {
         ),
       ),
     );
+  }
+
+  override remover(projetoId: string, atividadeId: string): Observable<void> {
+    return this.http
+      .delete(
+        `${environment.apiBaseUrl}/projetos/${projetoId}/entregas/${atividadeId}`,
+      )
+      .pipe(
+        tap(() => this.recarregar$.next()),
+        map(() => undefined),
+        catchError(erroHttp),
+      );
   }
 
   override entregar(

@@ -1,15 +1,20 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of, switchMap, tap } from 'rxjs';
+import { catchError, combineLatest, map, of, switchMap, tap } from 'rxjs';
 
 import {
+  Entrega,
   ItemTimeline,
+  TipoCampoEntrega,
   Projeto,
   ehEquipeAcademica,
   rgmDoUsuario,
   rotuloCurso,
 } from '../../core/models';
+import { AtividadeService } from '../../core/services/atividade.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
 import {
   EntregaService,
@@ -24,7 +29,7 @@ import { TimelineComponent } from '../aluno/timeline.component';
 @Component({
   selector: 'app-inicio',
   standalone: true,
-  imports: [TimelineComponent, StatusBadgeComponent, IconeComponent],
+  imports: [TimelineComponent, StatusBadgeComponent, IconeComponent, DatePipe],
   template: `
     <div class="page">
       @if (visaoProfessor()) {
@@ -82,7 +87,20 @@ import { TimelineComponent } from '../aluno/timeline.component';
                     <tr>
                       <td class="cell-strong">{{ linha.projeto.nome }}</td>
                       @for (c of linha.celulas; track c.atividadeId) {
-                        <td><app-status-badge [status]="c.status" /></td>
+                        <td>
+                          <button
+                            type="button"
+                            class="celula"
+                            [class.celula--ativa]="
+                              selecionada()?.projetoId === linha.projeto.id &&
+                              selecionada()?.atividadeId === c.atividadeId
+                            "
+                            (click)="abrir(linha.projeto.id, linha.projeto.nome, c.atividadeId)"
+                            [attr.aria-label]="'Ver entrega de ' + linha.projeto.nome"
+                          >
+                            <app-status-badge [status]="c.status" />
+                          </button>
+                        </td>
                       }
                     </tr>
                   } @empty {
@@ -104,6 +122,64 @@ import { TimelineComponent } from '../aluno/timeline.component';
             </table>
           </div>
         </section>
+
+        @if (detalhe(); as d) {
+          <section class="card" aria-live="polite">
+            <div class="card__body">
+              <div class="detalhe__topo">
+                <div>
+                  <h2 class="section-title">{{ d.atividade.titulo }}</h2>
+                  <p class="detalhe__sub">Projeto {{ d.projetoNome }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn--outline btn--sm"
+                  (click)="fechar()"
+                >
+                  Fechar
+                </button>
+              </div>
+
+              @if (d.entrega; as e) {
+                <p class="detalhe__sub">
+                  Entregue em {{ e.entregueEm | date: 'dd/MM/yyyy HH:mm' }}
+                  @if (e.entreguePor) {
+                    por {{ e.entreguePor }}
+                  }
+                </p>
+                <dl class="detalhe__lista">
+                  @for (l of d.linhas; track l.rotulo) {
+                    <dt>{{ l.rotulo }}</dt>
+                    <dd>
+                      @if (!l.valor) {
+                        <span class="detalhe__vazio">não preenchido</span>
+                      } @else if (l.tipo === 'LINK') {
+                        <a [href]="l.valor" target="_blank" rel="noopener noreferrer">
+                          {{ l.valor }}
+                        </a>
+                      } @else {
+                        {{ l.valor }}
+                      }
+                    </dd>
+                  }
+                </dl>
+                @if (erroRemocao()) {
+                  <p class="alerta alerta--solto" role="alert">{{ erroRemocao() }}</p>
+                }
+                <button
+                  type="button"
+                  class="btn btn--outline btn--sm"
+                  (click)="removerEntrega(d.projetoId, d.projetoNome, d.atividade.id)"
+                >
+                  <app-icone nome="lixeira" class="btn__icon" />
+                  Remover entrega (devolver ao grupo)
+                </button>
+              } @else {
+                <p class="detalhe__sub">Este grupo ainda não entregou esta atividade.</p>
+              }
+            </div>
+          </section>
+        }
       } @else {
         <!-- -------------------------- visão aluno -------------------------- -->
         <app-timeline [itens]="itensAluno()" />
@@ -118,6 +194,58 @@ import { TimelineComponent } from '../aluno/timeline.component';
     .card__head-icone {
       --icone-size: 1.125rem;
       color: var(--primary);
+    }
+
+    .celula {
+      padding: 0;
+      background: none;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .celula:hover,
+    .celula--ativa {
+      border-color: var(--primary);
+    }
+
+    .detalhe__topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .detalhe__sub {
+      margin: 0.25rem 0 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--muted-foreground);
+    }
+
+    .detalhe__lista {
+      display: grid;
+      grid-template-columns: minmax(8rem, 14rem) 1fr;
+      gap: 0.5rem 1rem;
+      margin: 0 0 1rem;
+    }
+
+    .detalhe__lista dt {
+      font-weight: 700;
+      font-size: 0.8125rem;
+    }
+
+    .detalhe__lista dd {
+      margin: 0;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .detalhe__vazio {
+      color: var(--muted-foreground);
+      font-style: italic;
+    }
+
+    .alerta--solto {
+      margin: 0 0 0.75rem;
     }
 
     .alerta {
@@ -139,6 +267,8 @@ export class InicioComponent {
   private readonly programaService = inject(ProgramaService);
   private readonly projetoService = inject(ProjetoService);
   private readonly entregaService = inject(EntregaService);
+  private readonly atividadeService = inject(AtividadeService);
+  private readonly confirmacao = inject(ConfirmacaoService);
 
   readonly visaoProfessor = computed(() =>
     ehEquipeAcademica(this.auth.perfil()),
@@ -191,6 +321,77 @@ export class InicioComponent {
     ),
     { initialValue: { atividades: [], linhas: [] } as MatrizStatus },
   );
+
+  /** Célula da matriz aberta no painel de detalhe. */
+  readonly selecionada = signal<{
+    projetoId: string;
+    projetoNome: string;
+    atividadeId: string;
+  } | null>(null);
+  readonly erroRemocao = signal('');
+
+  /** O que o grupo respondeu em cada campo da atividade escolhida. */
+  readonly detalhe = toSignal(
+    toObservable(this.selecionada).pipe(
+      switchMap((sel) =>
+        sel
+          ? combineLatest([
+              this.atividadeService.listar(),
+              this.entregaService.entregasDoProjeto(sel.projetoId),
+            ]).pipe(
+              map(([atividades, entregas]) => {
+                const atividade = atividades.find((a) => a.id === sel.atividadeId);
+                if (!atividade) {
+                  return null;
+                }
+                const entrega: Entrega | null =
+                  entregas.find((e) => e.atividadeId === sel.atividadeId) ?? null;
+                return {
+                  ...sel,
+                  atividade,
+                  entrega,
+                  linhas: atividade.campos.map((c) => ({
+                    rotulo: c.rotulo,
+                    tipo: c.tipo as TipoCampoEntrega,
+                    valor: entrega?.respostas?.[c.id] ?? '',
+                  })),
+                };
+              }),
+            )
+          : of(null),
+      ),
+    ),
+    { initialValue: null },
+  );
+
+  abrir(projetoId: string, projetoNome: string, atividadeId: string): void {
+    this.erroRemocao.set('');
+    this.selecionada.set({ projetoId, projetoNome, atividadeId });
+  }
+
+  fechar(): void {
+    this.selecionada.set(null);
+  }
+
+  async removerEntrega(
+    projetoId: string,
+    projetoNome: string,
+    atividadeId: string,
+  ): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Remover entrega',
+      mensagem: `Remover a entrega do projeto "${projetoNome}"? O grupo poderá entregar de novo.`,
+      textoConfirmar: 'Remover',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
+    this.erroRemocao.set('');
+    this.entregaService.remover(projetoId, atividadeId).subscribe({
+      error: (e: Error) => this.erroRemocao.set(e.message),
+    });
+  }
 
   /* -------------------------------- aluno -------------------------------- */
 

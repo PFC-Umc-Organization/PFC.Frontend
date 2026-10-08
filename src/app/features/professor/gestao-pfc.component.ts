@@ -12,6 +12,8 @@ import {
 
 import {
   Atividade,
+  CAMPO_ENTREGA_PADRAO,
+  NovoCampoEntrega,
   ROTULO_TIPO_CAMPO,
   TipoCampoEntrega,
   Programa,
@@ -442,6 +444,73 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
                 placeholder="O que o aluno precisa entregar, formato do arquivo, critérios de avaliação…"
                 formControlName="descricao"
               ></textarea>
+            </div>
+
+            <div class="form-grid__full campos">
+              <p class="field__label">Campos de entrega</p>
+              <p class="campos__aviso">
+                O que o grupo precisa preencher ao entregar. Pelo menos um campo.
+              </p>
+              <ul class="campos__lista">
+                @for (c of camposNovaAtividade(); track $index) {
+                  <li class="campos__item">
+                    <span class="cell-strong">{{ c.rotulo }}</span>
+                    <span class="campos__meta">
+                      {{ rotuloTipoCampo(c.tipo) }}
+                      · {{ c.obrigatorio ? 'obrigatório' : 'opcional' }}
+                    </span>
+                    <button
+                      type="button"
+                      class="acao-remover"
+                      [disabled]="camposNovaAtividade().length <= 1"
+                      (click)="removerCampoNovaAtividade($index)"
+                      [attr.aria-label]="'Remover campo ' + c.rotulo"
+                    >
+                      <app-icone nome="lixeira" />
+                    </button>
+                  </li>
+                }
+              </ul>
+              <div class="campos__novo">
+                <input
+                  class="control"
+                  type="text"
+                  placeholder="Nome do campo (ex: Link do repositório)"
+                  aria-label="Nome do novo campo"
+                  [value]="rascunhoRotulo()"
+                  (input)="rascunhoRotulo.set($any($event.target).value)"
+                  (keydown.enter)="
+                    $event.preventDefault(); adicionarCampoNovaAtividade()
+                  "
+                />
+                <select
+                  class="control"
+                  aria-label="Tipo do novo campo"
+                  [value]="rascunhoTipo()"
+                  (change)="rascunhoTipo.set($any($event.target).value)"
+                >
+                  @for (t of tiposCampo; track t) {
+                    <option [value]="t">{{ rotuloTipoCampo(t) }}</option>
+                  }
+                </select>
+                <label class="campos__check">
+                  <input
+                    type="checkbox"
+                    [checked]="rascunhoObrigatorio()"
+                    (change)="rascunhoObrigatorio.set($any($event.target).checked)"
+                  />
+                  Obrigatório
+                </label>
+                <button
+                  type="button"
+                  class="btn btn--outline btn--sm"
+                  [disabled]="!rascunhoRotulo().trim()"
+                  (click)="adicionarCampoNovaAtividade()"
+                >
+                  <app-icone nome="mais" class="btn__icon" />
+                  Adicionar campo
+                </button>
+              </div>
             </div>
 
             <div class="form-grid__full">
@@ -1153,11 +1222,17 @@ export class GestaoPfcComponent {
 
     this.salvandoAtividade.set(true);
 
-    this.atividadeService.criar(this.novaAtividadeForm.getRawValue()).subscribe({
+    this.atividadeService
+      .criar({
+        ...this.novaAtividadeForm.getRawValue(),
+        campos: this.camposNovaAtividade(),
+      })
+      .subscribe({
       next: () => {
         this.salvandoAtividade.set(false);
         this.sucessoAtividade.set(true);
         this.novaAtividadeForm.reset();
+        this.camposNovaAtividade.set([{ ...CAMPO_ENTREGA_PADRAO }]);
       },
       error: () => this.salvandoAtividade.set(false),
     });
@@ -1193,6 +1268,36 @@ export class GestaoPfcComponent {
   }
 
   /* --------------------------- campos de entrega --------------------------- */
+
+  /** Campos do formulário de entrega da atividade que está sendo criada. */
+  readonly camposNovaAtividade = signal<NovoCampoEntrega[]>([
+    { ...CAMPO_ENTREGA_PADRAO },
+  ]);
+  readonly rascunhoRotulo = signal('');
+  readonly rascunhoTipo = signal<TipoCampoEntrega>('TEXTO');
+  readonly rascunhoObrigatorio = signal(true);
+
+  adicionarCampoNovaAtividade(): void {
+    const rotulo = this.rascunhoRotulo().trim();
+    if (!rotulo) {
+      return;
+    }
+    this.camposNovaAtividade.update((campos) => [
+      ...campos,
+      {
+        rotulo,
+        tipo: this.rascunhoTipo(),
+        obrigatorio: this.rascunhoObrigatorio(),
+      },
+    ]);
+    this.rascunhoRotulo.set('');
+  }
+
+  removerCampoNovaAtividade(indice: number): void {
+    this.camposNovaAtividade.update((campos) =>
+      campos.length <= 1 ? campos : campos.filter((_, i) => i !== indice),
+    );
+  }
 
   readonly tiposCampo = Object.keys(ROTULO_TIPO_CAMPO) as TipoCampoEntrega[];
   readonly novoCampoRotulo = signal('');

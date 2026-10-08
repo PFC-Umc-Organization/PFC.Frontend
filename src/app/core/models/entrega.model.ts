@@ -15,6 +15,8 @@ export interface Entrega {
   observacao?: string;
   /** Resposta de cada campo do formulário da atividade, por id do campo. */
   respostas?: Record<string, string>;
+  /** Nome de quem enviou (vem do backend). */
+  entreguePor?: string;
 }
 
 /** Respostas do formulário de entrega, por id do campo (arquivo = nome). */
