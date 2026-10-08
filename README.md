@@ -37,8 +37,7 @@ A autenticação está mockada. Use:
 | `/entrar`      | público   | Login (tela branca, cartão centralizado)                              |
 | `/criar-conta` | público   | Cadastro com seleção de perfil                                        |
 | `/`            | ambos     | Hero + Timeline de Entregas; professor também vê o status por aluno   |
-| `/gestao`      | professor | PFCs por turma: criar, editar, excluir, montar grupo por RGM, orientador |
-| `/atividades`  | professor | Cadastro de atividades + "Cronograma de atividades"                   |
+| `/gestao`      | orientador/admin | PFCs por turma (criar, editar, excluir, grupo por RGM, orientador) + atividades e seus campos de entrega |
 | `/usuarios`    | professor | Pré-autorização de RGMs (allowlist) + tabela de contas já cadastradas |
 | `/meu-pfc`     | aluno     | Visão só leitura do PFC do aluno (grupo e orientador)                 |
 | `/materiais`   | ambos     | Materiais de apoio (professor publica, aluno consulta)                |
@@ -127,26 +126,28 @@ pré-autorizado à conta na tela de Usuários.
 editar ou excluir usuário — no modo real a tela de Usuários esconde essas
 ações.
 
-A tabela abaixo é o restante do plano original (Atividades, Materiais,
-Entregas) — ainda sem contraparte no backend; a prioridade desta rodada
-foram só os domínios acima:
+Atividades, campos de entrega e entregas também já existem no backend
+(`internal/atividade`):
 
-| Método   | Rota                                     | Observação                          |
-| -------- | ---------------------------------------- | ----------------------------------- |
-| `GET`    | `/atividades?turmaId=`                   |                                     |
-| `POST`   | `/atividades`                            |                                     |
-| `DELETE` | `/atividades/{id}`                       |                                     |
-| `GET`    | `/turmas/{id}/status-entregas`           | matriz aluno × atividade            |
-| `GET`    | `/alunos/{id}/timeline`                  | entregáveis do aluno com status     |
-| `PUT`    | `/atividades/{id}/entregas/{alunoId}`    | registra a entrega                  |
-| `DELETE` | `/atividades/{id}/entregas/{alunoId}`    | desfaz a entrega                    |
-| `GET`    | `/materiais?turmaId=`                    |                                     |
-| `POST`   | `/materiais`                             |                                     |
-| `DELETE` | `/materiais/{id}`                        |                                     |
+| Método   | Rota                                       | Observação                                                         |
+| -------- | ------------------------------------------ | ------------------------------------------------------------------ |
+| `GET`    | `/atividades`                              | lista com os `campos` do formulário de entrega                      |
+| `POST`   | `/atividades`                              | `{ titulo, descricao, prazo }`; nasce com 1 campo de arquivo obrigatório |
+| `PUT`    | `/atividades/{id}`                         | edita título/descrição/prazo (os três são obrigatórios)             |
+| `DELETE` | `/atividades/{id}`                         | remove também as entregas                                           |
+| `POST`   | `/atividades/{id}/campos`                  | `{ rotulo, tipo, obrigatorio }`; tipos ARQUIVO, TEXTO, TEXTO_LONGO, LINK |
+| `DELETE` | `/atividades/{id}/campos/{campoId}`        | 409 se for o último campo                                           |
+| `GET`    | `/atividades/{id}/entregas`                | entregas de todos os projetos (equipe acadêmica)                    |
+| `GET`    | `/projetos/{id}/entregas`                  | entregas do grupo                                                   |
+| `PUT`    | `/projetos/{id}/entregas/{atividadeId}`    | `{ respostas: { <campoId>: valor } }`; só integrantes               |
 
-As regras de status (pendente / atrasado / entregue com atraso) hoje vivem em
-`core/services/memoria.store.ts`. Quando o backend assumir esse cálculo, é só
-passar o status pronto no payload e apagar essas funções.
+Só **Materiais** segue sem backend (`MaterialMockService`). Campo de arquivo
+guarda apenas o **nome** do arquivo — ainda não há upload (seria S3 com URL
+pré-assinada).
+
+As regras de status (pendente / atrasado / entregue com atraso) são
+calculadas no cliente a partir do prazo e do `entregueEm`
+(`core/services/status-entrega.ts`; o modo mock usa as de `memoria.store.ts`).
 
 ## Design system
 

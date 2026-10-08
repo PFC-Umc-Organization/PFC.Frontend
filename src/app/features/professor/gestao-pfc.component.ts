@@ -12,6 +12,8 @@ import {
 
 import {
   Atividade,
+  ROTULO_TIPO_CAMPO,
+  TipoCampoEntrega,
   Programa,
   Projeto,
   ROTULO_STATUS_ATIVIDADE,
@@ -538,6 +540,83 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
                           ></textarea>
                         </div>
 
+                        <div class="form-grid__full campos">
+                          <p class="field__label">Campos de entrega</p>
+                          <ul class="campos__lista">
+                            @for (c of r.atividade.campos; track c.id) {
+                              <li class="campos__item">
+                                <span class="cell-strong">{{ c.rotulo }}</span>
+                                <span class="campos__meta">
+                                  {{ rotuloTipoCampo(c.tipo) }}
+                                  · {{ c.obrigatorio ? 'obrigatório' : 'opcional' }}
+                                </span>
+                                <button
+                                  type="button"
+                                  class="acao-remover"
+                                  [disabled]="r.atividade.campos.length <= 1"
+                                  (click)="removerCampo(r.atividade.id, c.id)"
+                                  [attr.aria-label]="'Remover campo ' + c.rotulo"
+                                >
+                                  <app-icone nome="lixeira" />
+                                </button>
+                              </li>
+                            }
+                          </ul>
+                          @if (r.atividade.campos.length <= 1) {
+                            <p class="campos__aviso">
+                              A atividade precisa de ao menos um campo de entrega.
+                            </p>
+                          }
+                          @if (erroCampo()) {
+                            <p class="campos__aviso campos__aviso--erro">
+                              {{ erroCampo() }}
+                            </p>
+                          }
+                          <div class="campos__novo">
+                            <input
+                              class="control"
+                              type="text"
+                              placeholder="Nome do campo (ex: Link do repositório)"
+                              aria-label="Nome do novo campo"
+                              [value]="novoCampoRotulo()"
+                              (input)="novoCampoRotulo.set($any($event.target).value)"
+                              (keydown.enter)="
+                                $event.preventDefault(); adicionarCampo(r.atividade.id)
+                              "
+                            />
+                            <select
+                              class="control"
+                              aria-label="Tipo do novo campo"
+                              [value]="novoCampoTipo()"
+                              (change)="
+                                novoCampoTipo.set($any($event.target).value)
+                              "
+                            >
+                              @for (t of tiposCampo; track t) {
+                                <option [value]="t">{{ rotuloTipoCampo(t) }}</option>
+                              }
+                            </select>
+                            <label class="campos__check">
+                              <input
+                                type="checkbox"
+                                [checked]="novoCampoObrigatorio()"
+                                (change)="
+                                  novoCampoObrigatorio.set($any($event.target).checked)
+                                "
+                              />
+                              Obrigatório
+                            </label>
+                            <button
+                              type="button"
+                              class="btn btn--outline btn--sm"
+                              (click)="adicionarCampo(r.atividade.id)"
+                            >
+                              <app-icone nome="mais" class="btn__icon" />
+                              Adicionar campo
+                            </button>
+                          </div>
+                        </div>
+
                         <div class="form-grid__full row">
                           <button type="submit" class="btn btn--primary btn--sm">
                             Salvar
@@ -645,6 +724,60 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
 
     .atividade-edicao {
       padding: 0.5rem 0;
+    }
+
+    .campos__lista {
+      list-style: none;
+      margin: 0.5rem 0;
+      padding: 0;
+      border: 1px solid var(--border);
+    }
+
+    .campos__item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .campos__item:last-child {
+      border-bottom: none;
+    }
+
+    .campos__meta {
+      flex: 1;
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
+    }
+
+    .campos__aviso {
+      margin: 0 0 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted-foreground);
+    }
+
+    .campos__aviso--erro {
+      color: var(--destructive);
+    }
+
+    .campos__novo {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .campos__novo .control {
+      width: auto;
+      flex: 1 1 12rem;
+    }
+
+    .campos__check {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.8125rem;
     }
 
     .ok {
@@ -1045,6 +1178,7 @@ export class GestaoPfcComponent {
 
   iniciarEdicaoAtividade(atividade: Atividade): void {
     this.erroEdicaoAtividade.set('');
+    this.erroCampo.set('');
     this.editandoAtividadeId.set(atividade.id);
     this.editAtividadeForm.setValue({
       titulo: atividade.titulo,
@@ -1055,6 +1189,40 @@ export class GestaoPfcComponent {
 
   cancelarEdicaoAtividade(): void {
     this.editandoAtividadeId.set(null);
+    this.erroCampo.set('');
+  }
+
+  /* --------------------------- campos de entrega --------------------------- */
+
+  readonly tiposCampo = Object.keys(ROTULO_TIPO_CAMPO) as TipoCampoEntrega[];
+  readonly novoCampoRotulo = signal('');
+  readonly novoCampoTipo = signal<TipoCampoEntrega>('TEXTO');
+  readonly novoCampoObrigatorio = signal(true);
+  readonly erroCampo = signal('');
+
+  rotuloTipoCampo(tipo: TipoCampoEntrega): string {
+    return ROTULO_TIPO_CAMPO[tipo];
+  }
+
+  adicionarCampo(atividadeId: string): void {
+    this.erroCampo.set('');
+    this.atividadeService
+      .adicionarCampo(atividadeId, {
+        rotulo: this.novoCampoRotulo(),
+        tipo: this.novoCampoTipo(),
+        obrigatorio: this.novoCampoObrigatorio(),
+      })
+      .subscribe({
+        next: () => this.novoCampoRotulo.set(''),
+        error: (e: Error) => this.erroCampo.set(e.message),
+      });
+  }
+
+  removerCampo(atividadeId: string, campoId: string): void {
+    this.erroCampo.set('');
+    this.atividadeService.removerCampo(atividadeId, campoId).subscribe({
+      error: (e: Error) => this.erroCampo.set(e.message),
+    });
   }
 
   salvarEdicaoAtividade(atividadeId: string): void {

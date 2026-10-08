@@ -13,7 +13,12 @@ export interface Entrega {
   /** Nome do arquivo anexado pelo grupo. */
   arquivoNome?: string;
   observacao?: string;
+  /** Resposta de cada campo do formulário da atividade, por id do campo. */
+  respostas?: Record<string, string>;
 }
+
+/** Respostas do formulário de entrega, por id do campo (arquivo = nome). */
+export type RespostasEntrega = Record<string, string>;
 
 
 export interface ItemTimeline {

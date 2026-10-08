@@ -3,6 +3,7 @@ import { BehaviorSubject } from 'rxjs';
 
 import {
   Atividade,
+  CampoEntrega,
   Curso,
   Entrega,
   Material,
@@ -297,6 +298,24 @@ export class MemoriaStore {
     );
   }
 
+  adicionarCampoEntrega(atividadeId: string, campo: CampoEntrega): void {
+    this.atividades$.next(
+      this.atividadesAtuais.map((a) =>
+        a.id === atividadeId ? { ...a, campos: [...a.campos, campo] } : a,
+      ),
+    );
+  }
+
+  removerCampoEntrega(atividadeId: string, campoId: string): void {
+    this.atividades$.next(
+      this.atividadesAtuais.map((a) =>
+        a.id === atividadeId
+          ? { ...a, campos: a.campos.filter((c) => c.id !== campoId) }
+          : a,
+      ),
+    );
+  }
+
   removerAtividade(atividadeId: string): void {
     this.atividades$.next(
       this.atividadesAtuais.filter((a) => a.id !== atividadeId),
@@ -321,7 +340,11 @@ export class MemoriaStore {
     atividadeId: string,
     projetoId: string,
     entregueEm: string | null,
-    detalhes?: { arquivoNome?: string; observacao?: string },
+    detalhes?: {
+      arquivoNome?: string;
+      observacao?: string;
+      respostas?: Record<string, string>;
+    },
   ): void {
     const existente = this.entregasAtuais.find(
       (e) => e.atividadeId === atividadeId && e.projetoId === projetoId,

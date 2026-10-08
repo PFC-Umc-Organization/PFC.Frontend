@@ -5,12 +5,12 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { rotas } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import {
-  AtividadeMockService,
+  AtividadeHttpService,
   AtividadeService,
 } from './core/services/atividade.service';
 import { CursoHttpService, CursoService } from './core/services/curso.service';
 import {
-  EntregaMockService,
+  EntregaHttpService,
   EntregaService,
 } from './core/services/entrega.service';
 import {
@@ -42,12 +42,11 @@ import {
  * Este é o único ponto do app que sabe QUAL implementação dos services está
  * em uso.
  *
- * `Usuario` (login/cadastro), `Curso`, `Programa`, `Projeto`, `Matricula` e
- * `Referencia` já falam com o backend real (ver README, seção "Endpoints
+ * `Usuario` (login/cadastro), `Curso`, `Programa`, `Projeto`, `Matricula`, `Referencia`,
+ * `Atividade` e `Entrega` já falam com o backend real (ver README, seção "Endpoints
  * que o front espera"). Pra demonstrar sem backend, troque por
  * `*MockService`.
- * `Atividade`, `Entrega` e `Material` continuam no mock — o backend ainda
- * não tem esses domínios implementados.
+ * Só `Material` continua no mock — o backend ainda não tem esse domínio.
  */
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -58,8 +57,8 @@ export const appConfig: ApplicationConfig = {
     { provide: CursoService, useClass: CursoHttpService },
     { provide: ProgramaService, useClass: ProgramaHttpService },
     { provide: ProjetoService, useClass: ProjetoHttpService },
-    { provide: AtividadeService, useClass: AtividadeMockService },
-    { provide: EntregaService, useClass: EntregaMockService },
+    { provide: AtividadeService, useClass: AtividadeHttpService },
+    { provide: EntregaService, useClass: EntregaHttpService },
     { provide: MaterialService, useClass: MaterialMockService },
     { provide: MatriculaService, useClass: MatriculaHttpService },
     { provide: ReferenciaService, useClass: ReferenciaHttpService },

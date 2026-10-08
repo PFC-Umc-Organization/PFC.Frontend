@@ -174,6 +174,9 @@ export const ATIVIDADES_SEED: Atividade[] = [
       'Enviar o tema do PFC com justificativa, objetivo geral e três objetivos específicos.',
     prazo: '2026-08-20T23:59:00',
     publicadaEm: '2026-08-01T09:00:00',
+    campos: [
+      { id: 'a-1-c1', rotulo: 'Arquivo da entrega', tipo: 'ARQUIVO', obrigatorio: true },
+    ],
   },
   {
     id: 'a-2',
@@ -182,6 +185,9 @@ export const ATIVIDADES_SEED: Atividade[] = [
       'Levantamento de no mínimo 15 referências, com fichamento das 5 principais.',
     prazo: '2026-09-05T23:59:00',
     publicadaEm: '2026-08-10T09:00:00',
+    campos: [
+      { id: 'a-2-c1', rotulo: 'Arquivo da entrega', tipo: 'ARQUIVO', obrigatorio: true },
+    ],
   },
   {
     id: 'a-3',
@@ -190,6 +196,9 @@ export const ATIVIDADES_SEED: Atividade[] = [
       'Diagramas de casos de uso, classes e componentes da solução proposta.',
     prazo: '2026-10-15T23:59:00',
     publicadaEm: '2026-08-20T09:00:00',
+    campos: [
+      { id: 'a-3-c1', rotulo: 'Arquivo da entrega', tipo: 'ARQUIVO', obrigatorio: true },
+    ],
   },
   {
     id: 'a-4',
@@ -198,6 +207,9 @@ export const ATIVIDADES_SEED: Atividade[] = [
       'Slides da defesa e versão final do documento, prontos para a banca.',
     prazo: '2026-11-28T20:00:00',
     publicadaEm: '2026-08-20T09:00:00',
+    campos: [
+      { id: 'a-4-c1', rotulo: 'Arquivo da entrega', tipo: 'ARQUIVO', obrigatorio: true },
+    ],
   },
 ];
 

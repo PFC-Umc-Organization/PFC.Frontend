@@ -1,13 +1,32 @@
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, combineLatest, delay, map, of } from 'rxjs';
+import {
+  BehaviorSubject,
+  Observable,
+  catchError,
+  combineLatest,
+  delay,
+  forkJoin,
+  map,
+  of,
+  switchMap,
+  tap,
+} from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import {
   Atividade,
+  Entrega,
   ItemTimeline,
   LinhaStatusProjeto,
   Projeto,
+  RespostasEntrega,
 } from '../models';
+import { AtividadeService } from './atividade.service';
+import { erroHttp } from './http-erro';
 import { MemoriaStore } from './memoria.store';
+import { ProjetoService } from './projeto.service';
+import { arquivoDaEntrega, statusDaEntrega } from './status-entrega';
 
 export interface MatrizStatus {
   atividades: Atividade[];
@@ -30,19 +49,14 @@ export abstract class EntregaService {
   abstract matrizDosProjetos(
     projetos: Pick<Projeto, 'id' | 'nome'>[],
   ): Observable<MatrizStatus>;
-  abstract marcarEntregue(
-    atividadeId: string,
-    projetoId: string,
-  ): Observable<void>;
-  abstract desfazerEntrega(
-    atividadeId: string,
-    projetoId: string,
-  ): Observable<void>;
+  /**
+   * Entrega (ou reenvia) o formulário do grupo. `respostas` é indexado pelo
+   * id do campo; em campo de arquivo vai o nome do arquivo escolhido.
+   */
   abstract entregar(
     atividadeId: string,
     projetoId: string,
-    arquivo: File,
-    observacao?: string,
+    respostas: RespostasEntrega,
   ): Observable<void>;
 }
 
@@ -128,32 +142,126 @@ export class EntregaMockService extends EntregaService {
     );
   }
 
-  override marcarEntregue(
+  override entregar(
     atividadeId: string,
     projetoId: string,
+    respostas: RespostasEntrega,
   ): Observable<void> {
-    this.store.definirEntrega(atividadeId, projetoId, new Date().toISOString());
-    return of(undefined).pipe(delay(200));
+    const atividade = this.store.atividadesAtuais.find(
+      (a) => a.id === atividadeId,
+    );
+    this.store.definirEntrega(atividadeId, projetoId, new Date().toISOString(), {
+      arquivoNome: atividade && arquivoDaEntrega(atividade, respostas),
+      respostas,
+    });
+    return of(undefined).pipe(delay(300));
+  }
+}
+
+@Injectable()
+export class EntregaHttpService extends EntregaService {
+  private readonly http = inject(HttpClient);
+  private readonly atividades = inject(AtividadeService);
+  private readonly projetos = inject(ProjetoService);
+  private readonly recarregar$ = new BehaviorSubject<void>(undefined);
+
+  private entregasDoProjeto(projetoId: string): Observable<Entrega[]> {
+    return this.recarregar$.pipe(
+      switchMap(() =>
+        this.http
+          .get<Entrega[]>(
+            `${environment.apiBaseUrl}/projetos/${projetoId}/entregas`,
+          )
+          .pipe(catchError(() => of([] as Entrega[]))),
+      ),
+    );
   }
 
-  override desfazerEntrega(
-    atividadeId: string,
+  private entregasDaAtividade(atividadeId: string): Observable<Entrega[]> {
+    return this.http
+      .get<Entrega[]>(
+        `${environment.apiBaseUrl}/atividades/${atividadeId}/entregas`,
+      )
+      .pipe(catchError(() => of([] as Entrega[])));
+  }
+
+  override timelineDoProjeto(
     projetoId: string,
-  ): Observable<void> {
-    this.store.definirEntrega(atividadeId, projetoId, null);
-    return of(undefined).pipe(delay(200));
+    projetoNome = '',
+  ): Observable<ItemTimeline[]> {
+    return combineLatest([
+      this.atividades.listar(),
+      this.entregasDoProjeto(projetoId),
+    ]).pipe(
+      map(([atividades, entregas]) =>
+        atividades.map<ItemTimeline>((atividade) => {
+          const entrega = entregas.find((e) => e.atividadeId === atividade.id);
+          return {
+            atividadeId: atividade.id,
+            titulo: atividade.titulo,
+            projetoNome,
+            prazo: atividade.prazo,
+            status: statusDaEntrega(atividade.prazo, entrega?.entregueEm),
+            arquivoNome: arquivoDaEntrega(atividade, entrega?.respostas),
+          };
+        }),
+      ),
+    );
+  }
+
+  override timelineDoAluno(rgm: string): Observable<ItemTimeline[]> {
+    return this.projetos
+      .doAluno(rgm)
+      .pipe(
+        switchMap((p) =>
+          p ? this.timelineDoProjeto(p.id, p.nome) : of([] as ItemTimeline[]),
+        ),
+      );
+  }
+
+  override matrizDosProjetos(
+    projetos: Pick<Projeto, 'id' | 'nome'>[],
+  ): Observable<MatrizStatus> {
+    return this.recarregar$.pipe(
+      switchMap(() => this.atividades.listar()),
+      switchMap((atividades) =>
+        (atividades.length === 0
+          ? of([] as Entrega[][])
+          : forkJoin(atividades.map((a) => this.entregasDaAtividade(a.id)))
+        ).pipe(
+          map((porAtividade) => ({
+            atividades,
+            linhas: projetos.map<LinhaStatusProjeto>((projeto) => ({
+              projeto: { id: projeto.id, nome: projeto.nome },
+              celulas: atividades.map((atividade, i) => ({
+                atividadeId: atividade.id,
+                status: statusDaEntrega(
+                  atividade.prazo,
+                  porAtividade[i].find((e) => e.projetoId === projeto.id)
+                    ?.entregueEm,
+                ),
+              })),
+            })),
+          })),
+        ),
+      ),
+    );
   }
 
   override entregar(
     atividadeId: string,
     projetoId: string,
-    arquivo: File,
-    observacao?: string,
+    respostas: RespostasEntrega,
   ): Observable<void> {
-    this.store.definirEntrega(atividadeId, projetoId, new Date().toISOString(), {
-      arquivoNome: arquivo.name,
-      observacao,
-    });
-    return of(undefined).pipe(delay(300));
+    return this.http
+      .put(
+        `${environment.apiBaseUrl}/projetos/${projetoId}/entregas/${atividadeId}`,
+        { respostas },
+      )
+      .pipe(
+        tap(() => this.recarregar$.next()),
+        map(() => undefined),
+        catchError(erroHttp),
+      );
   }
 }

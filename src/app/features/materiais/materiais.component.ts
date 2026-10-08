@@ -5,6 +5,8 @@ import { ActivatedRoute } from '@angular/router';
 import { of, switchMap } from 'rxjs';
 
 import {
+  Atividade,
+  CampoEntrega,
   ItemTimeline,
   Material,
   ROTULO_TIPO_MATERIAL,
@@ -16,6 +18,7 @@ import {
 import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
+import { AtividadeService } from '../../core/services/atividade.service';
 import { EntregaService } from '../../core/services/entrega.service';
 import { MaterialService } from '../../core/services/material.service';
 import { ProjetoService } from '../../core/services/projeto.service';
@@ -154,8 +157,8 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
           <p class="eyebrow">Entrega de atividades</p>
           <h1 class="page-title mt-2">Entregáveis</h1>
           <p class="lead mt-2">
-            Escolha uma atividade cadastrada pelo professor, anexe o arquivo e
-            envie a entrega do seu grupo antes do prazo.
+            Escolha uma atividade cadastrada pelo professor, preencha os campos do
+            formulário e envie a entrega do seu grupo antes do prazo.
           </p>
         </header>
 
@@ -186,50 +189,81 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
                   </select>
                 </div>
 
-                <div class="field">
-                  <label class="field__label" for="arquivo">Arquivo</label>
-                  <div class="upload">
-                    <label for="arquivo" class="btn btn--outline">
-                      Escolher arquivo
+                @for (campo of camposDaAtividade(); track campo.id) {
+                  <div
+                    class="field"
+                    [class.form-grid__full]="campo.tipo === 'TEXTO_LONGO'"
+                  >
+                    <label class="field__label" [attr.for]="'campo-' + campo.id">
+                      {{ campo.rotulo }}
+                      @if (!campo.obrigatorio) {
+                        <span class="campo-opcional">(opcional)</span>
+                      }
                     </label>
-                    <span class="upload__nome">
-                      {{ arquivo()?.name || 'Nenhum arquivo selecionado' }}
-                    </span>
-                  </div>
-                  <input
-                    id="arquivo"
-                    #campoArquivo
-                    type="file"
-                    class="upload__input"
-                    (change)="aoSelecionarArquivo($event)"
-                  />
-                </div>
 
-                <div class="field form-grid__full">
-                  <label class="field__label" for="observacao">
-                    Observação (opcional)
-                  </label>
-                  <textarea
-                    id="observacao"
-                    class="control control--textarea"
-                    placeholder="Algum comentário para o professor."
-                    [value]="observacao()"
-                    (input)="aoDigitarObservacao($event)"
-                  ></textarea>
-                </div>
+                    @switch (campo.tipo) {
+                      @case ('ARQUIVO') {
+                        <div class="upload">
+                          <label [attr.for]="'campo-' + campo.id" class="btn btn--outline">
+                            Escolher arquivo
+                          </label>
+                          <span class="upload__nome">
+                            {{ respostas()[campo.id] || 'Nenhum arquivo selecionado' }}
+                          </span>
+                        </div>
+                        <input
+                          [id]="'campo-' + campo.id"
+                          type="file"
+                          class="upload__input"
+                          (change)="aoSelecionarArquivo(campo.id, $event)"
+                        />
+                      }
+                      @case ('TEXTO_LONGO') {
+                        <textarea
+                          [id]="'campo-' + campo.id"
+                          class="control control--textarea"
+                          [value]="respostas()[campo.id] ?? ''"
+                          (input)="aoDigitar(campo.id, $event)"
+                        ></textarea>
+                      }
+                      @case ('LINK') {
+                        <input
+                          [id]="'campo-' + campo.id"
+                          class="control"
+                          type="url"
+                          placeholder="https://"
+                          [value]="respostas()[campo.id] ?? ''"
+                          (input)="aoDigitar(campo.id, $event)"
+                        />
+                      }
+                      @default {
+                        <input
+                          [id]="'campo-' + campo.id"
+                          class="control"
+                          type="text"
+                          [value]="respostas()[campo.id] ?? ''"
+                          (input)="aoDigitar(campo.id, $event)"
+                        />
+                      }
+                    }
+                  </div>
+                }
 
                 <div class="form-grid__full">
                   <button
                     type="button"
                     class="btn btn--primary"
                     [disabled]="!podeEnviar()"
-                    (click)="enviarEntrega(campoArquivo)"
+                    (click)="enviarEntrega()"
                   >
                     <app-icone nome="mais" class="btn__icon" />
                     Enviar entrega
                   </button>
                   @if (mensagem()) {
                     <p class="confirmacao">{{ mensagem() }}</p>
+                  }
+                  @if (erroEntrega()) {
+                    <p class="confirmacao confirmacao--erro">{{ erroEntrega() }}</p>
                   }
                 </div>
               </div>
@@ -253,6 +287,15 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
       display: grid;
       gap: 1rem;
       grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    }
+
+    .campo-opcional {
+      font-weight: 400;
+      color: var(--muted-foreground);
+    }
+
+    .confirmacao--erro {
+      color: var(--destructive);
     }
 
     .material {
@@ -368,6 +411,7 @@ export class MateriaisComponent {
   private readonly cursoService = inject(CursoService);
   private readonly projetoService = inject(ProjetoService);
   private readonly entregaService = inject(EntregaService);
+  private readonly atividadeService = inject(AtividadeService);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
 
@@ -419,14 +463,33 @@ export class MateriaisComponent {
   );
 
   readonly atividadeSelecionada = signal('');
-  readonly arquivo = signal<File | null>(null);
-  readonly observacao = signal('');
+  /** Resposta de cada campo, por id (campo de arquivo guarda o nome). */
+  readonly respostas = signal<Record<string, string | undefined>>({});
   readonly enviando = signal(false);
   readonly mensagem = signal('');
+  readonly erroEntrega = signal('');
 
-  readonly podeEnviar = computed(
-    () => !!this.atividadeSelecionada() && !!this.arquivo() && !this.enviando(),
+  private readonly atividades = toSignal(this.atividadeService.listar(), {
+    initialValue: [] as Atividade[],
+  });
+
+  /** Campos do formulário da atividade escolhida. */
+  readonly camposDaAtividade = computed<CampoEntrega[]>(
+    () =>
+      this.atividades().find((a) => a.id === this.atividadeSelecionada())
+        ?.campos ?? [],
   );
+
+  readonly podeEnviar = computed(() => {
+    const campos = this.camposDaAtividade();
+    const respostas = this.respostas();
+    return (
+      !!this.atividadeSelecionada() &&
+      campos.length > 0 &&
+      campos.every((c) => !c.obrigatorio || !!respostas[c.id]?.trim()) &&
+      !this.enviando()
+    );
+  });
 
   rotulo = rotuloCurso;
 
@@ -490,41 +553,55 @@ export class MateriaisComponent {
 
   aoTrocarAtividade(evento: Event): void {
     this.atividadeSelecionada.set((evento.target as HTMLSelectElement).value);
+    this.respostas.set({});
     this.mensagem.set('');
+    this.erroEntrega.set('');
   }
 
-  aoDigitarObservacao(evento: Event): void {
-    this.observacao.set((evento.target as HTMLTextAreaElement).value);
+  aoDigitar(campoId: string, evento: Event): void {
+    const valor = (evento.target as HTMLInputElement | HTMLTextAreaElement).value;
+    this.respostas.update((r) => ({ ...r, [campoId]: valor }));
   }
 
-  aoSelecionarArquivo(evento: Event): void {
+  /** Por enquanto só o nome do arquivo segue na entrega (sem upload). */
+  aoSelecionarArquivo(campoId: string, evento: Event): void {
     const input = evento.target as HTMLInputElement;
-    this.arquivo.set(input.files?.[0] ?? null);
+    this.respostas.update((r) => ({
+      ...r,
+      [campoId]: input.files?.[0]?.name ?? '',
+    }));
   }
 
-  enviarEntrega(campoArquivo: HTMLInputElement): void {
+  enviarEntrega(): void {
     const atividadeId = this.atividadeSelecionada();
-    const arquivo = this.arquivo();
     const projetoId = this.projetoAlvoId();
 
-    if (!atividadeId || !arquivo || !projetoId) {
+    if (!atividadeId || !projetoId || !this.podeEnviar()) {
       return;
     }
 
     this.enviando.set(true);
+    this.erroEntrega.set('');
+
+    const respostas = Object.fromEntries(
+      Object.entries(this.respostas()).filter(
+        (par): par is [string, string] => !!par[1],
+      ),
+    );
 
     this.entregaService
-      .entregar(atividadeId, projetoId, arquivo, this.observacao().trim() || undefined)
+      .entregar(atividadeId, projetoId, respostas)
       .subscribe({
         next: () => {
           this.enviando.set(false);
           this.mensagem.set('Entrega enviada com sucesso.');
           this.atividadeSelecionada.set('');
-          this.arquivo.set(null);
-          this.observacao.set('');
-          campoArquivo.value = '';
+          this.respostas.set({});
         },
-        error: () => this.enviando.set(false),
+        error: (e: Error) => {
+          this.enviando.set(false);
+          this.erroEntrega.set(e.message);
+        },
       });
   }
 }
