@@ -22,6 +22,14 @@ export interface NovoProjeto {
   integrantes: string[];
 }
 
+/** O aluno cria o projeto do próprio grupo: ele entra sozinho como integrante. */
+export interface NovoProjetoDoAluno {
+  nome: string;
+  descricao: string;
+  /** RGMs dos colegas (o criador não precisa se incluir). */
+  integrantes: string[];
+}
+
 export interface AtualizacaoProjeto {
   nome?: string;
   descricao?: string;

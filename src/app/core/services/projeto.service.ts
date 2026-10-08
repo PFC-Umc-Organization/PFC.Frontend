@@ -16,11 +16,14 @@ import { environment } from '../../../environments/environment';
 import {
   AtualizacaoProjeto,
   NovoProjeto,
+  NovoProjetoDoAluno,
   Projeto,
   ProjetoDetalhe,
   Usuario,
+  rgmDoUsuario,
   rotuloCurso,
 } from '../models';
+import { AuthService } from './auth.service';
 import { CursoService } from './curso.service';
 import { erroHttp } from './http-erro';
 import { MemoriaStore } from './memoria.store';
@@ -32,6 +35,8 @@ export abstract class ProjetoService {
   abstract detalhe(projetoId: string): Observable<ProjetoDetalhe | null>;
   abstract doAluno(rgm: string): Observable<Projeto | null>;
   abstract criar(novo: NovoProjeto): Observable<Projeto>;
+  /** O aluno logado cria o projeto do próprio grupo (na turma dele). */
+  abstract criarDoAluno(novo: NovoProjetoDoAluno): Observable<Projeto>;
   abstract adicionarIntegrante(projetoId: string, rgm: string): Observable<void>;
   abstract removerIntegrante(projetoId: string, rgm: string): Observable<void>;
   abstract atualizar(
@@ -49,6 +54,7 @@ export abstract class ProjetoService {
 @Injectable()
 export class ProjetoMockService extends ProjetoService {
   private readonly store = inject(MemoriaStore);
+  private readonly auth = inject(AuthService);
 
   override listar(programaId?: string): Observable<Projeto[]> {
     return this.store.projetos.pipe(
@@ -116,6 +122,23 @@ export class ProjetoMockService extends ProjetoService {
 
     this.store.adicionarProjeto(projeto);
     return of(projeto).pipe(delay(400));
+  }
+
+  override criarDoAluno(novo: NovoProjetoDoAluno): Observable<Projeto> {
+    const rgm = rgmDoUsuario(this.auth.usuario());
+    const programa = this.store.programasAtuais[0];
+    if (!rgm || !programa) {
+      return throwError(() => new Error('Sua turma ainda não tem PFC iniciado.'));
+    }
+    if (this.store.projetoDoAluno(rgm)) {
+      return throwError(() => new Error('Você já faz parte de um projeto.'));
+    }
+    return this.criar({
+      nome: novo.nome,
+      descricao: novo.descricao,
+      programaId: programa.id,
+      integrantes: [rgm, ...novo.integrantes.filter((r) => r !== rgm)],
+    });
   }
 
   override adicionarIntegrante(projetoId: string, rgm: string): Observable<void> {
@@ -247,6 +270,12 @@ export class ProjetoHttpService extends ProjetoService {
           integrantes: novo.integrantes,
         },
       )
+      .pipe(catchError(erroHttp));
+  }
+
+  override criarDoAluno(novo: NovoProjetoDoAluno): Observable<Projeto> {
+    return this.http
+      .post<Projeto>(`${environment.apiBaseUrl}/meu-pfc`, novo)
       .pipe(catchError(erroHttp));
   }
 
