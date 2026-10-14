@@ -26,8 +26,24 @@ export interface NovoProjeto {
 export interface NovoProjetoDoAluno {
   nome: string;
   descricao: string;
-  /** RGMs dos colegas (o criador não precisa se incluir). */
+  /** RGMs dos colegas, que recebem convite (o criador não precisa se incluir). */
   integrantes: string[];
+}
+
+/**
+ * Convite pendente pra um aluno entrar no grupo — espelha `projeto.Convite`
+ * do backend. Só existe enquanto ninguém respondeu: aceitou, recusou ou foi
+ * cancelado, some.
+ */
+export interface Convite {
+  projetoId: string;
+  projetoNome: string;
+  /** RGM de quem foi convidado. */
+  rgm: string;
+  /** Nome de quem convidou. */
+  convidadoPor: string;
+  /** Data/hora ISO (UTC). */
+  criadoEm: string;
 }
 
 export interface AtualizacaoProjeto {

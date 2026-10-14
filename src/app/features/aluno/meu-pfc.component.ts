@@ -1,10 +1,13 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BehaviorSubject, combineLatest, of, switchMap } from 'rxjs';
+import { BehaviorSubject, catchError, combineLatest, of, switchMap } from 'rxjs';
 
-import { Projeto, ProjetoDetalhe, rgmDoUsuario } from '../../core/models';
+import { Convite, Projeto, ProjetoDetalhe, rgmDoUsuario } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
+import { ConfirmacaoService } from '../../core/services/confirmacao.service';
+import { ConviteService } from '../../core/services/convite.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 
@@ -12,7 +15,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 @Component({
   selector: 'app-meu-pfc',
   standalone: true,
-  imports: [IconeComponent, ReactiveFormsModule],
+  imports: [DatePipe, IconeComponent, ReactiveFormsModule],
   template: `
     <div class="page">
       <header>
@@ -65,15 +68,125 @@ import { IconeComponent } from '../../shared/components/icone.component';
             }
           </ul>
         </section>
+
+        <section class="card card--flush">
+          <div class="card__head">
+            <app-icone nome="email" class="card__head-icone" />
+            <h2 class="section-title">Convites pendentes</h2>
+          </div>
+          <div class="card__body convites">
+            @if (pendentes().length) {
+              <ul class="convites__lista">
+                @for (c of pendentes(); track c.rgm) {
+                  <li class="convite">
+                    <span class="convite__texto">
+                      <span class="cell-strong">RGM {{ c.rgm }}</span>
+                      <span class="muted text-sm">
+                        convidado em {{ c.criadoEm | date: 'dd/MM/yyyy' }}
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      class="btn btn--outline btn--sm"
+                      [disabled]="ocupado()"
+                      (click)="cancelar(c)"
+                    >
+                      <app-icone nome="lixeira" class="btn__icon" />
+                      Cancelar
+                    </button>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted text-sm">
+                Nenhum convite esperando resposta. Os colegas entram no grupo
+                quando aceitam o convite na tela deles.
+              </p>
+            }
+
+            <form class="convidar" [formGroup]="conviteForm" (ngSubmit)="convidar()">
+              <div class="field convidar__campo">
+                <label class="field__label" for="convite-rgm">
+                  Convidar colega (RGM)
+                </label>
+                <input
+                  id="convite-rgm"
+                  type="text"
+                  inputmode="numeric"
+                  class="control"
+                  placeholder="Ex.: 12345678"
+                  formControlName="rgm"
+                />
+              </div>
+              <button type="submit" class="btn btn--primary" [disabled]="ocupado()">
+                <app-icone nome="mais" class="btn__icon" />
+                {{ convidando() ? 'Convidando…' : 'Convidar' }}
+              </button>
+            </form>
+            @if (erroGrupo()) {
+              <p class="erro-criar" role="alert">{{ erroGrupo() }}</p>
+            }
+          </div>
+        </section>
       } @else {
+        @if (meusConvites().length) {
+          <section class="card card--flush">
+            <div class="card__head">
+              <app-icone nome="email" class="card__head-icone" />
+              <h2 class="section-title">Convites recebidos</h2>
+            </div>
+            <div class="card__body convites">
+              <p class="muted text-sm">
+                Aceitar coloca você no grupo. Você só pode participar de um
+                PFC, então os outros convites somem.
+              </p>
+              <ul class="convites__lista">
+                @for (c of meusConvites(); track c.projetoId) {
+                  <li class="convite">
+                    <span class="convite__texto">
+                      <span class="cell-strong">{{ c.projetoNome }}</span>
+                      <span class="muted text-sm">
+                        convidado por {{ c.convidadoPor || 'um colega' }} em
+                        {{ c.criadoEm | date: 'dd/MM/yyyy' }}
+                      </span>
+                    </span>
+                    <span class="convite__acoes">
+                      <button
+                        type="button"
+                        class="btn btn--outline btn--sm"
+                        [disabled]="ocupado()"
+                        (click)="recusar(c)"
+                      >
+                        Recusar
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn--primary btn--sm"
+                        [disabled]="ocupado()"
+                        (click)="aceitar(c)"
+                      >
+                        <app-icone nome="check" class="btn__icon" />
+                        {{ aceitandoId() === c.projetoId ? 'Entrando…' : 'Aceitar' }}
+                      </button>
+                    </span>
+                  </li>
+                }
+              </ul>
+              @if (erroConvite()) {
+                <p class="erro-criar" role="alert">{{ erroConvite() }}</p>
+              }
+            </div>
+          </section>
+        }
+
         <section class="card">
           <div class="card__body">
             <h2 class="section-title">Criar o PFC do meu grupo</h2>
             <p class="lead mt-2">
               Você ainda não faz parte de um PFC. Dê um nome ao projeto e
-              informe o RGM dos colegas — você entra no grupo automaticamente.
-              Todos precisam estar pré-autorizados na sua turma e sem outro
-              projeto.
+              informe o RGM dos colegas: você entra no grupo na hora e cada
+              colega recebe um convite para aceitar. Todos precisam estar
+              pré-autorizados na sua turma e sem outro projeto.
             </p>
 
             <form
@@ -98,7 +211,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 
               <div class="field">
                 <label class="field__label" for="pfc-colegas">
-                  RGM dos colegas (separados por vírgula)
+                  RGM dos colegas a convidar (separados por vírgula)
                 </label>
                 <input
                   id="pfc-colegas"
@@ -167,17 +280,64 @@ import { IconeComponent } from '../../shared/components/icone.component';
       color: var(--bronze);
       margin-top: 0.125rem;
     }
+
+    .convites {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .convites__lista {
+      display: grid;
+      gap: 0.75rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .convite {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .convite__texto {
+      display: grid;
+      gap: 0.125rem;
+      min-width: 0;
+    }
+
+    .convite__acoes {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .convidar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.75rem;
+    }
+
+    .convidar__campo {
+      flex: 1 1 14rem;
+      min-width: 0;
+    }
   `,
 })
 export class MeuPfcComponent {
   private readonly auth = inject(AuthService);
   private readonly projetoService = inject(ProjetoService);
+  private readonly conviteService = inject(ConviteService);
+  private readonly confirmacao = inject(ConfirmacaoService);
 
   /** `integrantes` guarda RGM, não `Usuario.id` — a busca é pelo RGM do aluno. */
   private readonly meuRgm = computed(() => rgmDoUsuario(this.auth.usuario()));
 
   private readonly fb = inject(FormBuilder);
   private readonly recarregar$ = new BehaviorSubject<void>(undefined);
+  private readonly recarregarConvites$ = new BehaviorSubject<void>(undefined);
 
   private readonly meuProjetoBase = toSignal(
     combineLatest([toObservable(this.meuRgm), this.recarregar$]).pipe(
@@ -236,4 +396,145 @@ export class MeuPfcComponent {
     ),
     { initialValue: null as ProjetoDetalhe | null },
   );
+
+  // ── Convites (atividade 8) ──────────────────────────────────────────────
+
+  /**
+   * Enquanto uma resposta/convite está a caminho, todos os botões de convite
+   * ficam travados: evita duplo clique e aceitar dois grupos ao mesmo tempo.
+   */
+  readonly aceitandoId = signal<string | null>(null);
+  readonly respondendo = signal(false);
+  readonly convidando = signal(false);
+  readonly ocupado = computed(
+    () => this.respondendo() || this.convidando() || this.aceitandoId() !== null,
+  );
+  readonly erroConvite = signal('');
+  readonly erroGrupo = signal('');
+
+  /** Convites que o aluno logado recebeu (só aparecem enquanto ele não tem grupo). */
+  readonly meusConvites = toSignal(
+    combineLatest([toObservable(this.meuRgm), this.recarregarConvites$]).pipe(
+      switchMap(([rgm]) =>
+        rgm
+          ? this.conviteService.meusConvites().pipe(catchError(() => of([] as Convite[])))
+          : of([] as Convite[]),
+      ),
+    ),
+    { initialValue: [] as Convite[] },
+  );
+
+  /** Convites que o grupo mandou e ninguém respondeu ainda. */
+  readonly pendentes = toSignal(
+    combineLatest([
+      toObservable(computed(() => this.meuProjetoBase()?.id ?? '')),
+      this.recarregarConvites$,
+    ]).pipe(
+      switchMap(([id]) =>
+        id
+          ? this.conviteService.doGrupo(id).pipe(catchError(() => of([] as Convite[])))
+          : of([] as Convite[]),
+      ),
+    ),
+    { initialValue: [] as Convite[] },
+  );
+
+  readonly conviteForm = this.fb.nonNullable.group({
+    rgm: ['', Validators.required],
+  });
+
+  aceitar(c: Convite): void {
+    this.erroConvite.set('');
+    this.aceitandoId.set(c.projetoId);
+    this.conviteService.aceitar(c.projetoId).subscribe({
+      next: () => {
+        this.aceitandoId.set(null);
+        this.recarregar$.next();
+        this.recarregarConvites$.next();
+      },
+      error: (e: Error) => {
+        this.aceitandoId.set(null);
+        this.erroConvite.set(e.message);
+        this.recarregarConvites$.next();
+      },
+    });
+  }
+
+  async recusar(c: Convite): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Recusar convite',
+      mensagem: `Recusar o convite para o grupo "${c.projetoNome}"? Para entrar depois, alguém do grupo precisa convidar você de novo.`,
+      textoConfirmar: 'Recusar',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
+
+    this.erroConvite.set('');
+    this.respondendo.set(true);
+    this.conviteService.recusar(c.projetoId).subscribe({
+      next: () => {
+        this.respondendo.set(false);
+        this.recarregarConvites$.next();
+      },
+      error: (e: Error) => {
+        this.respondendo.set(false);
+        this.erroConvite.set(e.message);
+      },
+    });
+  }
+
+  convidar(): void {
+    const projetoId = this.meuProjetoBase()?.id;
+    const rgm = this.conviteForm.controls.rgm.value.trim();
+    this.erroGrupo.set('');
+    if (!projetoId || !rgm) {
+      this.erroGrupo.set('Informe o RGM do colega.');
+      return;
+    }
+
+    this.convidando.set(true);
+    this.conviteService.convidar(projetoId, rgm).subscribe({
+      next: () => {
+        this.convidando.set(false);
+        this.conviteForm.reset();
+        this.recarregarConvites$.next();
+      },
+      error: (e: Error) => {
+        this.convidando.set(false);
+        this.erroGrupo.set(e.message);
+      },
+    });
+  }
+
+  async cancelar(c: Convite): Promise<void> {
+    const projetoId = this.meuProjetoBase()?.id;
+    if (!projetoId) {
+      return;
+    }
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Cancelar convite',
+      mensagem: `Cancelar o convite do RGM ${c.rgm}? Ele deixa de aparecer na tela dessa pessoa.`,
+      textoConfirmar: 'Cancelar convite',
+      textoCancelar: 'Voltar',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
+
+    this.erroGrupo.set('');
+    this.respondendo.set(true);
+    this.conviteService.cancelar(projetoId, c.rgm).subscribe({
+      next: () => {
+        this.respondendo.set(false);
+        this.recarregarConvites$.next();
+      },
+      error: (e: Error) => {
+        this.respondendo.set(false);
+        this.erroGrupo.set(e.message);
+      },
+    });
+  }
 }

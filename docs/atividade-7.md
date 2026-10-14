@@ -7,7 +7,7 @@ Regras (validadas no backend):
 - Só ALUNO usa a rota; o RGM precisa estar pré-autorizado e vinculado a uma turma que já tenha programa de PFC.
 - Um aluno participa de um único projeto (vale para o criador e para os colegas).
 - Colegas precisam estar pré-autorizados **na mesma turma**.
-- Limite de 10 integrantes. Integrantes entram direto; o convite por e-mail é a atividade 8.
+- Limite de 10 integrantes. ~~Integrantes entram direto~~: desde a atividade 8, os colegas recebem um convite e só entram ao aceitar (ver `atividade-8.md`).
 
 ## Arquivos
 - Backend: `internal/projeto/aluno.go` (`POST /meu-pfc`) e `aluno_test.go`; `programa.IDDoCurso`; rota em `main.go`; tabela no README.

@@ -8,6 +8,10 @@ import {
   AtividadeHttpService,
   AtividadeService,
 } from './core/services/atividade.service';
+import {
+  ConviteHttpService,
+  ConviteService,
+} from './core/services/convite.service';
 import { CursoHttpService, CursoService } from './core/services/curso.service';
 import {
   EntregaHttpService,
@@ -42,7 +46,7 @@ import {
  * Este é o único ponto do app que sabe QUAL implementação dos services está
  * em uso.
  *
- * `Usuario` (login/cadastro), `Curso`, `Programa`, `Projeto`, `Matricula`, `Referencia`,
+ * `Usuario` (login/cadastro), `Curso`, `Programa`, `Projeto`, `Convite`, `Matricula`, `Referencia`,
  * `Atividade` e `Entrega` já falam com o backend real (ver README, seção "Endpoints
  * que o front espera"). Pra demonstrar sem backend, troque por
  * `*MockService`.
@@ -57,6 +61,7 @@ export const appConfig: ApplicationConfig = {
     { provide: CursoService, useClass: CursoHttpService },
     { provide: ProgramaService, useClass: ProgramaHttpService },
     { provide: ProjetoService, useClass: ProjetoHttpService },
+    { provide: ConviteService, useClass: ConviteHttpService },
     { provide: AtividadeService, useClass: AtividadeHttpService },
     { provide: EntregaService, useClass: EntregaHttpService },
     { provide: MaterialService, useClass: MaterialMockService },
