@@ -1,4 +1,10 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  computed,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import {
@@ -12,6 +18,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 
 @Component({
   selector: 'app-entregavel-card',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [IconeComponent, PrazoPipe, RouterLink],
   template: `

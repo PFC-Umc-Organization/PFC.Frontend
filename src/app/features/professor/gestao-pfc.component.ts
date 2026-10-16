@@ -1,4 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
@@ -42,6 +48,7 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
 
 @Component({
   selector: 'app-gestao-pfc',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [ReactiveFormsModule, IconeComponent, PrazoPipe],
   template: `
@@ -396,6 +403,13 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
             </p>
           }
 
+          @if (erroNovaAtividade()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erroNovaAtividade() }}</span>
+            </p>
+          }
+
           <form
             class="form-grid form-grid--2 mt-6"
             [formGroup]="novaAtividadeForm"
@@ -533,6 +547,13 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
           <app-icone nome="prancheta" class="card__head-icone" />
           <h2 class="section-title">Cronograma de atividades</h2>
         </div>
+
+        @if (erroRemocaoAtividade()) {
+          <p class="alerta" role="alert">
+            <app-icone nome="alerta" />
+            <span>{{ erroRemocaoAtividade() }}</span>
+          </p>
+        }
 
         <div class="table-scroll">
           <table class="data-table">
@@ -751,11 +772,6 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
     </div>
   `,
   styles: `
-    .card__head-icone {
-      --icone-size: 1.125rem;
-      color: var(--primary);
-    }
-
     .pfcs__head {
       display: flex;
       flex-wrap: wrap;
@@ -850,16 +866,7 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
     }
 
     .ok {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
       margin-top: 1rem;
-      padding: 0.75rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--success);
-      background: color-mix(in oklch, var(--success) 8%, transparent);
-      border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
     }
 
     .integrantes-lista {
@@ -882,30 +889,7 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
     }
 
     .alerta {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
       margin: 1rem 1.25rem 0;
-      padding: 0.75rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--destructive);
-      background: color-mix(in oklch, var(--destructive) 6%, transparent);
-      border: 1px solid
-        color-mix(in oklch, var(--destructive) 30%, transparent);
-    }
-
-    .acao-remover {
-      display: inline-flex;
-      padding: 0.375rem;
-      color: var(--muted-foreground);
-      border: 1px solid transparent;
-    }
-
-    .acao-remover:hover {
-      color: var(--destructive);
-      border-color: color-mix(in oklch, var(--destructive) 30%, transparent);
-      background: color-mix(in oklch, var(--destructive) 6%, transparent);
     }
   `,
 })
@@ -1178,6 +1162,8 @@ export class GestaoPfcComponent {
 
   readonly salvandoAtividade = signal(false);
   readonly sucessoAtividade = signal(false);
+  readonly erroNovaAtividade = signal('');
+  readonly erroRemocaoAtividade = signal('');
 
   readonly novaAtividadeForm = this.fb.nonNullable.group({
     titulo: ['', [Validators.required, Validators.minLength(3)]],
@@ -1214,6 +1200,7 @@ export class GestaoPfcComponent {
 
   publicarAtividade(): void {
     this.sucessoAtividade.set(false);
+    this.erroNovaAtividade.set('');
 
     if (this.novaAtividadeForm.invalid) {
       this.novaAtividadeForm.markAllAsTouched();
@@ -1234,7 +1221,10 @@ export class GestaoPfcComponent {
         this.novaAtividadeForm.reset();
         this.camposNovaAtividade.set([{ ...CAMPO_ENTREGA_PADRAO }]);
       },
-      error: () => this.salvandoAtividade.set(false),
+      error: (e: Error) => {
+        this.salvandoAtividade.set(false);
+        this.erroNovaAtividade.set(e.message);
+      },
     });
   }
 
@@ -1248,7 +1238,10 @@ export class GestaoPfcComponent {
     if (!confirmado) {
       return;
     }
-    this.atividadeService.remover(atividadeId).subscribe();
+    this.erroRemocaoAtividade.set('');
+    this.atividadeService.remover(atividadeId).subscribe({
+      error: (e: Error) => this.erroRemocaoAtividade.set(e.message),
+    });
   }
 
   iniciarEdicaoAtividade(atividade: Atividade): void {

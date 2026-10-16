@@ -1,9 +1,13 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideZonelessChangeDetection,
+} from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 
 import { rotas } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { deduplicarInterceptor } from './core/interceptors/deduplicar.interceptor';
 import {
   AtividadeHttpService,
   AtividadeService,
@@ -54,8 +58,14 @@ import {
  */
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Sem zone.js: a tela só é verificada quando um signal lido por ela muda
+    // (ou num evento do template). Todo componente é OnPush e todo estado de
+    // tela é signal — ver README, "Detecção de mudanças".
+    provideZonelessChangeDetection(),
     provideRouter(rotas, withComponentInputBinding()),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(
+      withInterceptors([deduplicarInterceptor, authInterceptor]),
+    ),
 
     { provide: UsuarioService, useClass: UsuarioHttpService },
     { provide: CursoService, useClass: CursoHttpService },

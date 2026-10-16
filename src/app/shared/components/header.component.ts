@@ -1,5 +1,18 @@
-import { Component, computed, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+} from '@angular/router';
+import { filter } from 'rxjs';
 
 import { ehEquipeAcademica } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -15,6 +28,8 @@ interface ItemNav {
   selector: 'app-header',
   standalone: true,
   imports: [RouterLink, RouterLinkActive, IconeComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { '(document:keydown.escape)': 'menuAberto.set(false)' },
   template: `
     <header class="topbar">
       <div class="shell topbar__inner">
@@ -28,13 +43,29 @@ interface ItemNav {
           </span>
         </a>
 
-        <div class="topbar__acoes">
+        <button
+          type="button"
+          class="menu-toggle"
+          aria-controls="menu-principal"
+          [attr.aria-expanded]="menuAberto()"
+          [attr.aria-label]="menuAberto() ? 'Fechar menu' : 'Abrir menu'"
+          (click)="menuAberto.set(!menuAberto())"
+        >
+          <app-icone [nome]="menuAberto() ? 'fechar' : 'menu'" />
+        </button>
+
+        <div
+          id="menu-principal"
+          class="topbar__acoes"
+          [class.topbar__acoes--aberto]="menuAberto()"
+        >
           <nav class="nav" aria-label="Navegação principal">
             @for (item of itensNav(); track item.rota) {
               <a
                 class="nav__item"
                 [routerLink]="item.rota"
                 routerLinkActive="nav__item--ativo"
+                ariaCurrentWhenActive="page"
                 [routerLinkActiveOptions]="{ exact: item.rota === '/' }"
               >
                 <app-icone [nome]="item.icone" />
@@ -125,25 +156,46 @@ interface ItemNav {
     }
 
     /* ---------------------------- ações ---------------------------- */
+    /* Abaixo de 1100px a navegação completa não cabe numa linha: vira um
+       menu que abre sob o cabeçalho, em vez de quebrar em várias linhas. */
+    .menu-toggle {
+      display: inline-grid;
+      place-items: center;
+      width: 2.75rem;
+      height: 2.75rem;
+      --icone-size: 1.375rem;
+      color: var(--primary-foreground);
+      border: 1px solid
+        color-mix(in oklch, var(--primary-foreground) 25%, transparent);
+    }
+
+    .menu-toggle:hover {
+      background: color-mix(in oklch, var(--primary-foreground) 8%, transparent);
+    }
+
     .topbar__acoes {
+      display: none;
+      flex-basis: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+      padding-bottom: 0.5rem;
+    }
+
+    .topbar__acoes--aberto {
       display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
     }
 
     .nav {
-      display: flex;
-      align-items: center;
+      display: grid;
       gap: 0.25rem;
-      flex-wrap: wrap;
     }
 
     .nav__item {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      height: 2.25rem;
+      height: 2.75rem;
       padding-inline: 0.75rem;
       font-size: 0.875rem;
       font-weight: 600;
@@ -172,28 +224,23 @@ interface ItemNav {
     .sessao {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 0.75rem;
-      padding-left: 1rem;
-      border-left: 1px solid
+      padding: 0.75rem 0.75rem 0;
+      border-top: 1px solid
         color-mix(in oklch, var(--primary-foreground) 20%, transparent);
     }
 
     .sessao__nome {
       font-size: 0.875rem;
       font-weight: 600;
-      display: none;
-    }
-
-    @media (min-width: 900px) {
-      .sessao__nome {
-        display: block;
-      }
     }
 
     .sessao__sair {
       display: inline-flex;
       align-items: center;
       gap: 0.375rem;
+      min-height: 2.75rem;
       font-size: 0.875rem;
       font-weight: 600;
       color: color-mix(in oklch, var(--primary-foreground) 80%, transparent);
@@ -203,13 +250,39 @@ interface ItemNav {
       color: var(--primary-foreground);
     }
 
-    .sessao__sair-texto {
-      display: none;
-    }
+    @media (min-width: 1100px) {
+      .menu-toggle {
+        display: none;
+      }
 
-    @media (min-width: 640px) {
-      .sessao__sair-texto {
-        display: inline;
+      .topbar__acoes,
+      .topbar__acoes--aberto {
+        display: flex;
+        flex-basis: auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 1rem;
+        padding-bottom: 0;
+      }
+
+      .nav {
+        display: flex;
+        align-items: center;
+      }
+
+      .nav__item {
+        height: 2.25rem;
+      }
+
+      .sessao {
+        padding: 0 0 0 1rem;
+        border-top: 0;
+        border-left: 1px solid
+          color-mix(in oklch, var(--primary-foreground) 20%, transparent);
+      }
+
+      .sessao__sair {
+        min-height: 0;
       }
     }
   `,
@@ -217,6 +290,18 @@ interface ItemNav {
 export class HeaderComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+
+  /** Menu do celular; fecha ao navegar e com Esc. */
+  readonly menuAberto = signal(false);
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((e) => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.menuAberto.set(false));
+  }
 
   private readonly navAluno: ItemNav[] = [
     { rotulo: 'Início', rota: '/', icone: 'painel' },

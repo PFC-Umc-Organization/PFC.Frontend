@@ -168,6 +168,32 @@ protótipo, não esquecimento.
 Ícones são SVG inline em `shared/components/icone.component.ts`; não há
 dependência de biblioteca de ícones.
 
+Peças de interface repetidas moram no `styles.scss`, não em cada componente:
+`.alerta` (erro), `.ok` (sucesso), `.acao-remover`, `.card__head-icone`,
+`.form`/`.troca` (telas de autenticação). No componente fica só o que é dele
+— em geral a margem em volta.
+
+Responsivo: abaixo de 1100px a navegação vira um menu (botão no cabeçalho).
+Tabela larga rola dentro do próprio `.table-scroll`, nunca a página — o
+`.page` usa `grid-template-columns: minmax(0, 1fr)` e o `.table-scroll` é
+`position: relative` justamente pra isso.
+
+## Detecção de mudanças
+
+O app roda **sem zone.js** (`provideZonelessChangeDetection()` em
+`app.config.ts`) e todo componente é `ChangeDetectionStrategy.OnPush`. A tela
+é verificada quando um signal lido pelo template muda, ou num evento do
+próprio template (clique, digitação). Na prática:
+
+- estado de tela é sempre `signal`/`computed`/`toSignal` — campo comum
+  alterado dentro de um `subscribe` **não aparece na tela**;
+- `form.reset()`/`setValue()` dentro de callback funciona porque vem junto
+  de um `signal.set(...)` (o `salvando`, o `erro`) no mesmo callback.
+
+GETs idênticos em voo ao mesmo tempo viram uma requisição só
+(`core/interceptors/deduplicar.interceptor.ts`). Não é cache: acabou a
+requisição, a próxima vai ao servidor.
+
 ## Diferenças em relação ao protótipo
 
 - **Login redesenhado**: o protótipo usava um painel lateral de 390px com

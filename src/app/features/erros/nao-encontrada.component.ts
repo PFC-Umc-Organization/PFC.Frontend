@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { IconeComponent } from '../../shared/components/icone.component';
 
 @Component({
   selector: 'app-nao-encontrada',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [RouterLink, IconeComponent],
   template: `

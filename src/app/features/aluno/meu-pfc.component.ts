@@ -1,5 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BehaviorSubject, catchError, combineLatest, of, switchMap } from 'rxjs';
@@ -14,6 +20,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 
 @Component({
   selector: 'app-meu-pfc',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [DatePipe, IconeComponent, ReactiveFormsModule],
   template: `
@@ -248,11 +255,6 @@ import { IconeComponent } from '../../shared/components/icone.component';
     </div>
   `,
   styles: `
-    .card__head-icone {
-      --icone-size: 1.125rem;
-      color: var(--primary);
-    }
-
     .integrantes__lista {
       display: grid;
       gap: 0.75rem;

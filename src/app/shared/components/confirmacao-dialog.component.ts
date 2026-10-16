@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { IconeComponent } from './icone.component';
@@ -10,6 +10,7 @@ import { IconeComponent } from './icone.component';
  */
 @Component({
   selector: 'app-confirmacao-dialog',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [IconeComponent],
   template: `

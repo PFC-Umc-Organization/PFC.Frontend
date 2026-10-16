@@ -1,4 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import {
   FormBuilder,
   ReactiveFormsModule,
@@ -13,6 +18,7 @@ import { AuthCardComponent } from './auth-card.component';
 
 @Component({
   selector: 'app-login',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
     ReactiveFormsModule,
@@ -102,24 +108,6 @@ import { AuthCardComponent } from './auth-card.component';
       display: grid;
       gap: 1.25rem;
       margin-top: 1.75rem;
-    }
-
-    .alerta {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      padding: 0.75rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--destructive);
-      background: color-mix(in oklch, var(--destructive) 6%, transparent);
-      border: 1px solid
-        color-mix(in oklch, var(--destructive) 30%, transparent);
-    }
-
-    .troca {
-      font-size: 0.875rem;
-      color: var(--muted-foreground);
     }
   `,
 })

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 
 /**
  * Friso grego (greek key / meandro) — a faixa ornamental que fecha o hero.
@@ -6,6 +6,7 @@ import { Component } from '@angular/core';
  */
 @Component({
   selector: 'app-friso',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   template: `
     <svg viewBox="0 0 160 24" preserveAspectRatio="none" aria-hidden="true">

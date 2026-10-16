@@ -1,8 +1,14 @@
-import { Component, Input, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  signal,
+} from '@angular/core';
 import { IconeComponent } from '../../shared/components/icone.component';
 
 @Component({
   selector: 'app-auth-card',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [IconeComponent],
   template: `

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 import { ItemTimeline, ROTULO_LEGENDA } from '../../core/models';
 import { EntregavelCardComponent } from './entregavel-card.component';
@@ -6,6 +6,7 @@ import { EntregavelCardComponent } from './entregavel-card.component';
 
 @Component({
   selector: 'app-timeline',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [EntregavelCardComponent],
   template: `

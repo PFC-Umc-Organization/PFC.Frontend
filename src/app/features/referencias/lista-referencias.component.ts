@@ -1,4 +1,10 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 
 import { Referencia } from '../../core/models';
 import { IconeComponent } from '../../shared/components/icone.component';
@@ -11,6 +17,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
  */
 @Component({
   selector: 'app-lista-referencias',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [IconeComponent, PrazoPipe],
   template: `
@@ -86,11 +93,6 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
     .cabecalho {
       flex-wrap: wrap;
       gap: 0.75rem;
-    }
-
-    .card__head-icone {
-      --icone-size: 1.125rem;
-      color: var(--primary);
     }
 
     .lista {

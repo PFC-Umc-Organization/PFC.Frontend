@@ -168,6 +168,10 @@ h4 {
 .page {
   padding-block: 2rem;
   display: grid;
+  /* minmax(0, 1fr): sem isso a coluna do grid cresce até caber a tabela
+     mais larga (min-width das .data-table) e a página inteira passa a rolar
+     de lado no celular, em vez de só a tabela dentro do .table-scroll. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 2.5rem;
 }
 
@@ -211,6 +215,11 @@ h4 {
 
 .card__body {
   padding: 1.25rem;
+}
+
+.card__head-icone {
+  --icone-size: 1.125rem;
+  color: var(--primary);
 }
 
 /* -------------------------------------------------------------------------
@@ -460,6 +469,56 @@ select.control {
   color: var(--primary-foreground);
 }
 
+/* Formulário das telas de autenticação (entrar, criar conta, confirmar). */
+.form {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.75rem;
+}
+
+.troca {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+/* Mensagem de erro (.alerta) e de sucesso (.ok) — o espaçamento em volta
+   fica com cada tela. */
+.alerta,
+.ok {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.alerta {
+  color: var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 6%, transparent);
+  border: 1px solid color-mix(in oklch, var(--destructive) 30%, transparent);
+}
+
+.ok {
+  color: var(--success);
+  background: color-mix(in oklch, var(--success) 8%, transparent);
+  border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
+}
+
+/* Botão de ícone que remove/apaga uma linha. */
+.acao-remover {
+  display: inline-flex;
+  padding: 0.375rem;
+  color: var(--muted-foreground);
+  border: 1px solid transparent;
+}
+
+.acao-remover:hover {
+  color: var(--destructive);
+  border-color: color-mix(in oklch, var(--destructive) 30%, transparent);
+  background: color-mix(in oklch, var(--destructive) 6%, transparent);
+}
+
 /* -------------------------------------------------------------------------
    9. Badges e indicadores de status
    ------------------------------------------------------------------------- */
@@ -536,6 +595,10 @@ select.control {
    10. Tabelas
    ------------------------------------------------------------------------- */
 .table-scroll {
+  /* position: relative prende aqui dentro os .sr-only (absolutos) do
+     cabeçalho da tabela — sem isso eles escapavam da rolagem e alargavam a
+     página inteira no celular. */
+  position: relative;
   overflow-x: auto;
 }
 
@@ -683,4 +746,15 @@ select.control {
 
 .mt-6 {
   margin-top: 1.5rem;
+}
+
+/* Quem pede menos movimento no sistema não recebe transições. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }

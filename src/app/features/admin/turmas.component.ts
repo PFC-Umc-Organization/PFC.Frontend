@@ -1,4 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subject, startWith, switchMap } from 'rxjs';
@@ -15,6 +20,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
  */
 @Component({
   selector: 'app-turmas',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [ReactiveFormsModule, IconeComponent],
   template: `
@@ -211,40 +217,12 @@ import { IconeComponent } from '../../shared/components/icone.component';
     </div>
   `,
   styles: `
-    .card__head-icone {
-      --icone-size: 1.125rem;
-      color: var(--primary);
-    }
-
     .alerta {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
       margin-top: 1rem;
-      padding: 0.75rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--destructive);
-      background: color-mix(in oklch, var(--destructive) 6%, transparent);
-      border: 1px solid
-        color-mix(in oklch, var(--destructive) 30%, transparent);
     }
 
     .pfc-edicao {
       padding: 0.5rem 0;
-    }
-
-    .acao-remover {
-      display: inline-flex;
-      padding: 0.375rem;
-      color: var(--muted-foreground);
-      border: 1px solid transparent;
-    }
-
-    .acao-remover:hover {
-      color: var(--destructive);
-      border-color: color-mix(in oklch, var(--destructive) 30%, transparent);
-      background: color-mix(in oklch, var(--destructive) 6%, transparent);
     }
   `,
 })

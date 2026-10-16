@@ -1,4 +1,10 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  computed,
+  signal,
+} from '@angular/core';
 
 import {
   ROTULO_STATUS_ENTREGA_CURTO,
@@ -9,6 +15,7 @@ import {
 /** Selo de status de entrega usado nas tabelas do professor. */
 @Component({
   selector: 'app-status-badge',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   template: `<span class="badge" [class]="'badge--' + tom()">{{
     rotulo()

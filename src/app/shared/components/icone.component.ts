@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
 export type NomeIcone =
   | 'capelo'
@@ -17,7 +17,9 @@ export type NomeIcone =
   | 'lixeira'
   | 'alerta'
   | 'templo'
-  | 'editar';
+  | 'editar'
+  | 'menu'
+  | 'fechar';
 
 /**
  * Ícones desenhados inline (traçado no estilo Lucide, como no protótipo).
@@ -26,6 +28,7 @@ export type NomeIcone =
  */
 @Component({
   selector: 'app-icone',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   template: `
     <svg
@@ -140,6 +143,12 @@ export type NomeIcone =
             d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .622.622l4.353-1.321a2 2 0 0 0 .83-.497z"
           />
           <path d="m15 5 4 4" />
+        }
+        @case ('menu') {
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        }
+        @case ('fechar') {
+          <path d="M18 6 6 18M6 6l12 12" />
         }
       }
     </svg>

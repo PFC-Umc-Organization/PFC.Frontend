@@ -1,5 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, combineLatest, map, of, switchMap, tap } from 'rxjs';
 
@@ -28,14 +34,22 @@ import { TimelineComponent } from '../aluno/timeline.component';
 
 @Component({
   selector: 'app-inicio',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [TimelineComponent, StatusBadgeComponent, IconeComponent, DatePipe],
   template: `
     <div class="page">
       @if (visaoProfessor()) {
         <!-- ------------------------ visão professor ------------------------ -->
-        <div class="filtros">
-          <div class="field">
+        <header class="page-header">
+          <div>
+            <p class="eyebrow">Acompanhamento</p>
+            <h1 class="page-title mt-2">Painel do PFC</h1>
+            <p class="lead mt-2">
+              Entregas de cada grupo da turma, atividade por atividade.
+            </p>
+          </div>
+          <div class="field filtros">
             <label class="field__label" for="curso">Turma</label>
             <select
               id="curso"
@@ -48,7 +62,7 @@ import { TimelineComponent } from '../aluno/timeline.component';
               }
             </select>
           </div>
-        </div>
+        </header>
 
         <section class="card card--flush">
           <div class="card__head">
@@ -188,12 +202,8 @@ import { TimelineComponent } from '../aluno/timeline.component';
   `,
   styles: `
     .filtros {
+      width: 100%;
       max-width: 20rem;
-    }
-
-    .card__head-icone {
-      --icone-size: 1.125rem;
-      color: var(--primary);
     }
 
     .celula {
@@ -249,15 +259,7 @@ import { TimelineComponent } from '../aluno/timeline.component';
     }
 
     .alerta {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
       margin: 0 1.25rem 1rem;
-      padding: 0.75rem;
-      font-size: 0.875rem;
-      color: var(--destructive);
-      background: color-mix(in oklch, var(--destructive) 6%, transparent);
-      border: 1px solid color-mix(in oklch, var(--destructive) 30%, transparent);
     }
   `,
 })

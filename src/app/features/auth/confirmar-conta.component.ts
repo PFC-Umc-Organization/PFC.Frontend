@@ -1,4 +1,9 @@
-import { Component, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
@@ -14,6 +19,7 @@ import { AuthCardComponent } from './auth-card.component';
  */
 @Component({
   selector: 'app-confirmar-conta',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, AuthCardComponent, IconeComponent],
   template: `
@@ -119,36 +125,8 @@ import { AuthCardComponent } from './auth-card.component';
       font-variant-numeric: tabular-nums;
     }
 
-    .alerta,
-    .ok {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      padding: 0.75rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .alerta {
-      color: var(--destructive);
-      background: color-mix(in oklch, var(--destructive) 6%, transparent);
-      border: 1px solid
-        color-mix(in oklch, var(--destructive) 30%, transparent);
-    }
-
-    .ok {
-      color: var(--success);
-      background: color-mix(in oklch, var(--success) 8%, transparent);
-      border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
-    }
-
     .ok--solto {
       margin-top: 1.75rem;
-    }
-
-    .troca {
-      font-size: 0.875rem;
-      color: var(--muted-foreground);
     }
 
     .acoes {
