@@ -618,7 +618,7 @@ export class UsuariosComponent {
     { id: 'conta', rotulo: 'Cadastrar orientador ou admin' },
     { id: 'preautorizar', rotulo: 'Pré-autorizar alunos' },
     { id: 'matriculas', rotulo: 'RGMs pré-autorizados' },
-    { id: 'pessoas', rotulo: 'Pessoas cadastradas' },
+    { id: 'pessoas', rotulo: 'Usuários' },
   ];
   readonly secao = signal<SecaoUsuarios>('conta');
 

@@ -46,6 +46,8 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
   ATRASADA: 'destructive',
 };
 
+type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
+
 @Component({
   selector: 'app-gestao-pfc',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,222 +58,675 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
       <header>
         <p class="eyebrow">Planejamento acadêmico</p>
         <h1 class="page-title mt-2">Gestão de PFC</h1>
-        <p class="lead mt-2">
-          Crie e acompanhe os PFCs de cada turma, monte os grupos por RGM e
-          defina o orientador responsável.
-        </p>
       </header>
 
-      <!-- --------------------------- PFCs por turma --------------------------- -->
-      <section class="card card--flush">
-        <div class="card__head pfcs__head">
-          <div class="row">
-            <app-icone nome="templo" class="card__head-icone" />
-            <h2 class="section-title">PFCs cadastrados</h2>
-          </div>
-
-          <div class="field pfcs__filtro">
-            <label class="sr-only" for="turma-pfc">Turma</label>
-            <select
-              id="turma-pfc"
-              class="control"
-              [value]="turmaSelecionada()"
-              (change)="trocarTurma($event)"
-            >
-              @for (c of cursos(); track c.id) {
-                <option [value]="c.id">{{ rotuloCurso(c) }}</option>
-              }
-            </select>
-          </div>
-        </div>
-
-        @if (erroPfc()) {
-          <p class="alerta" role="alert">
-            <app-icone nome="alerta" />
-            <span>{{ erroPfc() }}</span>
-          </p>
-        }
-
-        @if (!programaAtual()) {
-          <!-- ------------------- turma sem PFC iniciado ------------------- -->
-          <div class="pfcs__vazio">
-            <p class="lead text-sm">
-              Nenhum PFC iniciado para esta turma ainda.
-            </p>
-            <button
-              type="button"
-              class="btn btn--primary btn--sm"
-              [disabled]="iniciandoPrograma()"
-              (click)="iniciarPrograma()"
-            >
-              <app-icone nome="mais" class="btn__icon" />
-              {{
-                iniciandoPrograma() ? 'Iniciando…' : 'Iniciar PFC nesta turma'
-              }}
-            </button>
-          </div>
-        } @else {
-          <!-- ---------------------------- novo PFC ---------------------------- -->
-          <form
-            class="form-grid form-grid--2 novo-pfc"
-            [formGroup]="novoForm"
-            (ngSubmit)="criarPfc()"
+      <!-- ------------------------- menu de seções ------------------------- -->
+      <div class="segmented segmented--grid secoes" role="group" aria-label="Seção da tela">
+        @for (s of secoes; track s.id) {
+          <button
+            type="button"
+            class="segmented__item"
+            [attr.aria-pressed]="secao() === s.id"
+            (click)="secao.set(s.id)"
           >
-            <div class="field">
-              <label class="field__label" for="novo-nome">
-                Nome do novo PFC
-              </label>
-              <input
-                id="novo-nome"
-                type="text"
-                class="control"
-                placeholder="Ex.: Athena"
-                formControlName="nome"
-                [class.control--invalid]="invalidoNovo()"
-              />
-              @if (invalidoNovo()) {
-                <span class="field__error">Informe o nome do PFC.</span>
-              }
-            </div>
+            {{ s.rotulo }}
+          </button>
+        }
+      </div>
 
-            <div class="field">
-              <label class="field__label" for="novo-descricao">
-                Descrição
-              </label>
-              <input
-                id="novo-descricao"
-                type="text"
-                class="control"
-                formControlName="descricao"
-              />
+      <!-- ----------------------- criar programa de PFC ----------------------- -->
+      @if (secao() === 'programa') {
+        <section class="card card--flush">
+          <div class="card__head pfcs__head">
+            <div class="row">
+              <app-icone nome="templo" class="card__head-icone" />
+              <h2 class="section-title">Criar programa de PFC</h2>
             </div>
+            <div class="field pfcs__filtro">
+              <label class="sr-only" for="turma-pfc">Turma</label>
+              <select
+                id="turma-pfc"
+                class="control"
+                [value]="turmaSelecionada()"
+                (change)="trocarTurma($event)"
+              >
+                @for (c of cursos(); track c.id) {
+                  <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                }
+              </select>
+            </div>
+          </div>
 
-            <div class="form-grid__full">
+          @if (erroPfc()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erroPfc() }}</span>
+            </p>
+          }
+
+          @if (!programaAtual()) {
+            <div class="pfcs__vazio">
+              <p class="lead text-sm">
+                Esta turma ainda não tem programa de PFC. Enquanto ele não
+                for criado, os alunos não conseguem criar o PFC do grupo.
+              </p>
               <button
-                type="submit"
+                type="button"
                 class="btn btn--primary btn--sm"
-                [disabled]="criando()"
+                [disabled]="iniciandoPrograma()"
+                (click)="iniciarPrograma()"
               >
                 <app-icone nome="mais" class="btn__icon" />
-                {{ criando() ? 'Criando…' : 'Criar PFC' }}
+                {{ iniciandoPrograma() ? 'Criando…' : 'Criar programa de PFC' }}
               </button>
             </div>
-          </form>
+          } @else {
+            <div class="pfcs__vazio">
+              <p class="ok" role="status">
+                <app-icone nome="check" />
+                Programa de PFC criado para esta turma. Os alunos já podem
+                criar os PFCs dos grupos.
+              </p>
+            </div>
+          }
+        </section>
+      }
+
+      <!-- ------------------------ PFCs dos alunos ------------------------ -->
+      @if (secao() === 'pfcs') {
+        <section class="card card--flush">
+          <div class="card__head pfcs__head">
+            <div class="row">
+              <app-icone nome="templo" class="card__head-icone" />
+              <h2 class="section-title">PFCs criados pelos alunos</h2>
+            </div>
+            <div class="field pfcs__filtro">
+              <label class="sr-only" for="turma-pfc">Turma</label>
+              <select
+                id="turma-pfc"
+                class="control"
+                [value]="turmaSelecionada()"
+                (change)="trocarTurma($event)"
+              >
+                @for (c of cursos(); track c.id) {
+                  <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (erroPfc()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erroPfc() }}</span>
+            </p>
+          }
+
+          @if (!programaAtual()) {
+            <p class="pfcs__aviso">
+              Esta turma ainda não tem programa de PFC. Crie o programa em
+              "Criar programa de PFC" para os alunos poderem criar os PFCs.
+            </p>
+          } @else {
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">PFC</th>
+                    <th scope="col">Integrantes</th>
+                    <th scope="col">Orientador</th>
+                    <th scope="col"><span class="sr-only">Ações</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of pfcs(); track p.id) {
+                    @if (editandoId() === p.id) {
+                      <tr>
+                        <td colspan="4">
+                          <form
+                            class="form-grid form-grid--2 pfc-edicao"
+                            [formGroup]="editForm"
+                            (ngSubmit)="salvarEdicao(p.id)"
+                          >
+                            <div class="field">
+                              <label class="field__label" for="edit-nome">
+                                Nome
+                              </label>
+                              <input
+                                id="edit-nome"
+                                type="text"
+                                class="control"
+                                formControlName="nome"
+                                [class.control--invalid]="invalidoEdicao()"
+                              />
+                              @if (invalidoEdicao()) {
+                                <span class="field__error">
+                                  Informe o nome do PFC.
+                                </span>
+                              }
+                            </div>
+                            <div class="field">
+                              <label class="field__label" for="edit-descricao">
+                                Descrição
+                              </label>
+                              <input
+                                id="edit-descricao"
+                                type="text"
+                                class="control"
+                                formControlName="descricao"
+                              />
+                            </div>
+
+                            <div class="field form-grid__full">
+                              <label class="field__label">
+                                Integrantes (por RGM)
+                              </label>
+
+                              @if (erroIntegrante()) {
+                                <span class="field__error">
+                                  {{ erroIntegrante() }}
+                                </span>
+                              }
+
+                              <ul class="integrantes-lista">
+                                @for (rgm of p.integrantes; track rgm) {
+                                  <li class="integrantes-lista__item">
+                                    <span>{{ nomePorRgm(rgm) }}</span>
+                                    <button
+                                      type="button"
+                                      class="acao-remover"
+                                      (click)="removerIntegrante(p.id, rgm)"
+                                      [attr.aria-label]="
+                                        'Remover integrante ' + rgm
+                                      "
+                                    >
+                                      <app-icone nome="lixeira" />
+                                    </button>
+                                  </li>
+                                } @empty {
+                                  <li class="muted text-sm">
+                                    Nenhum integrante ainda.
+                                  </li>
+                                }
+                              </ul>
+
+                              <div class="row mt-2">
+                                <input
+                                  type="text"
+                                  inputmode="numeric"
+                                  maxlength="11"
+                                  class="control"
+                                  placeholder="RGM do aluno (11 dígitos)"
+                                  [value]="rgmParaAdicionar()"
+                                  (input)="aoDigitarRgm($event)"
+                                />
+                                <button
+                                  type="button"
+                                  class="btn btn--outline btn--sm"
+                                  (click)="adicionarIntegrante(p.id)"
+                                >
+                                  <app-icone nome="mais" class="btn__icon" />
+                                  Adicionar
+                                </button>
+                              </div>
+                            </div>
+
+                            <div class="form-grid__full row">
+                              <button
+                                type="submit"
+                                class="btn btn--primary btn--sm"
+                              >
+                                Salvar
+                              </button>
+                              <button
+                                type="button"
+                                class="btn btn--outline btn--sm"
+                                (click)="cancelarEdicao()"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    } @else {
+                      <tr>
+                        <td class="cell-strong">{{ p.nome }}</td>
+                        <td>{{ nomesIntegrantes(p) }}</td>
+                        <td>
+                          @if (souAdmin()) {
+                            @if (editandoOrientadorId() === p.id) {
+                              <div class="row">
+                                <select
+                                  class="control pfcs__orientador"
+                                  [value]="p.orientadorId ?? ''"
+                                  (change)="definirOrientador(p.id, $event)"
+                                >
+                                  <option value="">Sem orientador</option>
+                                  @for (prof of professores(); track prof.id) {
+                                    <option [value]="prof.id">
+                                      {{ prof.nome }}
+                                    </option>
+                                  }
+                                </select>
+                                <button
+                                  type="button"
+                                  class="btn btn--outline btn--sm"
+                                  (click)="editandoOrientadorId.set(null)"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            } @else {
+                              <div class="row">
+                                <span>
+                                  {{
+                                    p.orientadorId
+                                      ? nomeUsuario(p.orientadorId)
+                                      : 'Sem orientador'
+                                  }}
+                                </span>
+                                <button
+                                  type="button"
+                                  class="acao-remover"
+                                  (click)="editandoOrientadorId.set(p.id)"
+                                  [attr.aria-label]="
+                                    (p.orientadorId ? 'Editar' : 'Adicionar') +
+                                    ' orientador de ' +
+                                    p.nome
+                                  "
+                                >
+                                  <app-icone
+                                    [nome]="p.orientadorId ? 'editar' : 'mais'"
+                                  />
+                                </button>
+                                @if (p.orientadorId) {
+                                  <button
+                                    type="button"
+                                    class="acao-remover"
+                                    (click)="removerOrientador(p.id)"
+                                    [attr.aria-label]="
+                                      'Remover orientador de ' + p.nome
+                                    "
+                                  >
+                                    <app-icone nome="lixeira" />
+                                  </button>
+                                }
+                              </div>
+                            }
+                          } @else {
+                            {{
+                              p.orientadorId
+                                ? nomeUsuario(p.orientadorId)
+                                : 'Sem orientador'
+                            }}
+                          }
+                        </td>
+                        <td>
+                          <div class="row">
+                            <button
+                              type="button"
+                              class="acao-remover"
+                              (click)="iniciarEdicao(p)"
+                              [attr.aria-label]="'Editar PFC ' + p.nome"
+                            >
+                              <app-icone nome="editar" />
+                            </button>
+                            <button
+                              type="button"
+                              class="acao-remover"
+                              (click)="excluirPfc(p.id, p.nome)"
+                              [attr.aria-label]="'Excluir PFC ' + p.nome"
+                            >
+                              <app-icone nome="lixeira" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  } @empty {
+                    <tr>
+                      <td class="table-empty" colspan="4">
+                        Nenhum PFC criado pelos alunos desta turma ainda.
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      }
+
+      @if (secao() === 'atividades') {
+        <!-- ------------------------- nova atividade ------------------------- -->
+        <section class="card">
+          <div class="card__body">
+            <h2 class="section-title">Nova atividade</h2>
+            <p class="lead text-sm mt-1">
+              Informe os dados da próxima entrega.
+            </p>
+
+            @if (sucessoAtividade()) {
+              <p class="ok" role="status">
+                <app-icone nome="check" />
+                Atividade publicada. Ela já aparece na timeline de todos os
+                projetos.
+              </p>
+            }
+
+            @if (erroNovaAtividade()) {
+              <p class="alerta" role="alert">
+                <app-icone nome="alerta" />
+                <span>{{ erroNovaAtividade() }}</span>
+              </p>
+            }
+
+            <form
+              class="form-grid form-grid--2 mt-6"
+              [formGroup]="novaAtividadeForm"
+              (ngSubmit)="publicarAtividade()"
+            >
+              <div class="field">
+                <label class="field__label" for="atividade-titulo">
+                  Título da atividade
+                </label>
+                <input
+                  id="atividade-titulo"
+                  type="text"
+                  class="control"
+                  placeholder="Ex.: Revisão Bibliográfica"
+                  formControlName="titulo"
+                  [class.control--invalid]="invalidoAtividade('titulo')"
+                />
+                @if (invalidoAtividade('titulo')) {
+                  <span class="field__error">Informe o título.</span>
+                }
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="atividade-prazo">
+                  Data e hora limite
+                </label>
+                <input
+                  id="atividade-prazo"
+                  type="datetime-local"
+                  class="control"
+                  formControlName="prazo"
+                  [class.control--invalid]="invalidoAtividade('prazo')"
+                />
+                @if (invalidoAtividade('prazo')) {
+                  <span class="field__error">Defina o prazo de entrega.</span>
+                }
+              </div>
+
+              <div class="field form-grid__full">
+                <label class="field__label" for="atividade-descricao">
+                  Descrição / Instruções
+                </label>
+                <textarea
+                  id="atividade-descricao"
+                  class="control control--textarea"
+                  placeholder="O que o aluno precisa entregar, formato do arquivo, critérios de avaliação…"
+                  formControlName="descricao"
+                ></textarea>
+              </div>
+
+              <div class="form-grid__full campos">
+                <p class="field__label">Campos de entrega</p>
+                <p class="campos__aviso">
+                  O que o grupo precisa preencher ao entregar. Pelo menos um campo.
+                </p>
+                <ul class="campos__lista">
+                  @for (c of camposNovaAtividade(); track $index) {
+                    <li class="campos__item">
+                      <span class="cell-strong">{{ c.rotulo }}</span>
+                      <span class="campos__meta">
+                        {{ rotuloTipoCampo(c.tipo) }}
+                        · {{ c.obrigatorio ? 'obrigatório' : 'opcional' }}
+                      </span>
+                      <button
+                        type="button"
+                        class="acao-remover"
+                        [disabled]="camposNovaAtividade().length <= 1"
+                        (click)="removerCampoNovaAtividade($index)"
+                        [attr.aria-label]="'Remover campo ' + c.rotulo"
+                      >
+                        <app-icone nome="lixeira" />
+                      </button>
+                    </li>
+                  }
+                </ul>
+                <div class="campos__novo">
+                  <input
+                    class="control"
+                    type="text"
+                    placeholder="Nome do campo (ex: Link do repositório)"
+                    aria-label="Nome do novo campo"
+                    [value]="rascunhoRotulo()"
+                    (input)="rascunhoRotulo.set($any($event.target).value)"
+                    (keydown.enter)="
+                      $event.preventDefault(); adicionarCampoNovaAtividade()
+                    "
+                  />
+                  <select
+                    class="control"
+                    aria-label="Tipo do novo campo"
+                    [value]="rascunhoTipo()"
+                    (change)="rascunhoTipo.set($any($event.target).value)"
+                  >
+                    @for (t of tiposCampo; track t) {
+                      <option [value]="t">{{ rotuloTipoCampo(t) }}</option>
+                    }
+                  </select>
+                  <label class="campos__check">
+                    <input
+                      type="checkbox"
+                      [checked]="rascunhoObrigatorio()"
+                      (change)="rascunhoObrigatorio.set($any($event.target).checked)"
+                    />
+                    Obrigatório
+                  </label>
+                  <button
+                    type="button"
+                    class="btn btn--outline btn--sm"
+                    [disabled]="!rascunhoRotulo().trim()"
+                    (click)="adicionarCampoNovaAtividade()"
+                  >
+                    <app-icone nome="mais" class="btn__icon" />
+                    Adicionar campo
+                  </button>
+                </div>
+              </div>
+
+              <div class="form-grid__full">
+                <button
+                  type="submit"
+                  class="btn btn--primary"
+                  [disabled]="salvandoAtividade()"
+                >
+                  <app-icone nome="mais" class="btn__icon" />
+                  {{ salvandoAtividade() ? 'Publicando…' : 'Publicar atividade' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <!-- -------------------- cronograma de atividades -------------------- -->
+        <section class="card card--flush">
+          <div class="card__head">
+            <app-icone nome="prancheta" class="card__head-icone" />
+            <h2 class="section-title">Cronograma de atividades</h2>
+          </div>
+
+          @if (erroRemocaoAtividade()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erroRemocaoAtividade() }}</span>
+            </p>
+          }
 
           <div class="table-scroll">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th scope="col">PFC</th>
-                  <th scope="col">Integrantes</th>
-                  <th scope="col">Orientador</th>
+                  <th scope="col">Atividade</th>
+                  <th scope="col">Data e hora limite</th>
+                  <th scope="col">Projetos que entregaram</th>
+                  <th scope="col">Status</th>
                   <th scope="col"><span class="sr-only">Ações</span></th>
                 </tr>
               </thead>
               <tbody>
-                @for (p of pfcs(); track p.id) {
-                  @if (editandoId() === p.id) {
+                @for (r of resumosAtividades(); track r.atividade.id) {
+                  @if (editandoAtividadeId() === r.atividade.id) {
                     <tr>
-                      <td colspan="4">
+                      <td colspan="5">
+                        @if (erroEdicaoAtividade()) {
+                          <p class="alerta" role="alert">
+                            <app-icone nome="alerta" />
+                            <span>{{ erroEdicaoAtividade() }}</span>
+                          </p>
+                        }
+
                         <form
-                          class="form-grid form-grid--2 pfc-edicao"
-                          [formGroup]="editForm"
-                          (ngSubmit)="salvarEdicao(p.id)"
+                          class="form-grid form-grid--2 atividade-edicao"
+                          [formGroup]="editAtividadeForm"
+                          (ngSubmit)="salvarEdicaoAtividade(r.atividade.id)"
                         >
                           <div class="field">
-                            <label class="field__label" for="edit-nome">
-                              Nome
+                            <label class="field__label" for="edit-atividade-titulo">
+                              Título da atividade
                             </label>
                             <input
-                              id="edit-nome"
+                              id="edit-atividade-titulo"
                               type="text"
                               class="control"
-                              formControlName="nome"
-                              [class.control--invalid]="invalidoEdicao()"
+                              formControlName="titulo"
+                              [class.control--invalid]="invalidoEdicaoAtividade('titulo')"
                             />
-                            @if (invalidoEdicao()) {
+                            @if (invalidoEdicaoAtividade('titulo')) {
                               <span class="field__error">
-                                Informe o nome do PFC.
+                                Informe o título.
                               </span>
                             }
                           </div>
+
                           <div class="field">
-                            <label class="field__label" for="edit-descricao">
-                              Descrição
+                            <label class="field__label" for="edit-atividade-prazo">
+                              Data e hora limite
                             </label>
                             <input
-                              id="edit-descricao"
-                              type="text"
+                              id="edit-atividade-prazo"
+                              type="datetime-local"
                               class="control"
-                              formControlName="descricao"
+                              formControlName="prazo"
+                              [class.control--invalid]="invalidoEdicaoAtividade('prazo')"
                             />
+                            @if (invalidoEdicaoAtividade('prazo')) {
+                              <span class="field__error">
+                                Defina o prazo de entrega.
+                              </span>
+                            }
                           </div>
 
                           <div class="field form-grid__full">
-                            <label class="field__label">
-                              Integrantes (por RGM)
+                            <label class="field__label" for="edit-atividade-descricao">
+                              Descrição / Instruções
                             </label>
+                            <textarea
+                              id="edit-atividade-descricao"
+                              class="control control--textarea"
+                              formControlName="descricao"
+                            ></textarea>
+                          </div>
 
-                            @if (erroIntegrante()) {
-                              <span class="field__error">
-                                {{ erroIntegrante() }}
-                              </span>
-                            }
-
-                            <ul class="integrantes-lista">
-                              @for (rgm of p.integrantes; track rgm) {
-                                <li class="integrantes-lista__item">
-                                  <span>{{ nomePorRgm(rgm) }}</span>
+                          <div class="form-grid__full campos">
+                            <p class="field__label">Campos de entrega</p>
+                            <ul class="campos__lista">
+                              @for (c of r.atividade.campos; track c.id) {
+                                <li class="campos__item">
+                                  <span class="cell-strong">{{ c.rotulo }}</span>
+                                  <span class="campos__meta">
+                                    {{ rotuloTipoCampo(c.tipo) }}
+                                    · {{ c.obrigatorio ? 'obrigatório' : 'opcional' }}
+                                  </span>
                                   <button
                                     type="button"
                                     class="acao-remover"
-                                    (click)="removerIntegrante(p.id, rgm)"
-                                    [attr.aria-label]="
-                                      'Remover integrante ' + rgm
-                                    "
+                                    [disabled]="r.atividade.campos.length <= 1"
+                                    (click)="removerCampo(r.atividade.id, c.id)"
+                                    [attr.aria-label]="'Remover campo ' + c.rotulo"
                                   >
                                     <app-icone nome="lixeira" />
                                   </button>
                                 </li>
-                              } @empty {
-                                <li class="muted text-sm">
-                                  Nenhum integrante ainda.
-                                </li>
                               }
                             </ul>
-
-                            <div class="row mt-2">
+                            @if (r.atividade.campos.length <= 1) {
+                              <p class="campos__aviso">
+                                A atividade precisa de ao menos um campo de entrega.
+                              </p>
+                            }
+                            @if (erroCampo()) {
+                              <p class="campos__aviso campos__aviso--erro">
+                                {{ erroCampo() }}
+                              </p>
+                            }
+                            <div class="campos__novo">
                               <input
-                                type="text"
-                                inputmode="numeric"
-                                maxlength="11"
                                 class="control"
-                                placeholder="RGM do aluno (11 dígitos)"
-                                [value]="rgmParaAdicionar()"
-                                (input)="aoDigitarRgm($event)"
+                                type="text"
+                                placeholder="Nome do campo (ex: Link do repositório)"
+                                aria-label="Nome do novo campo"
+                                [value]="novoCampoRotulo()"
+                                (input)="novoCampoRotulo.set($any($event.target).value)"
+                                (keydown.enter)="
+                                  $event.preventDefault(); adicionarCampo(r.atividade.id)
+                                "
                               />
+                              <select
+                                class="control"
+                                aria-label="Tipo do novo campo"
+                                [value]="novoCampoTipo()"
+                                (change)="
+                                  novoCampoTipo.set($any($event.target).value)
+                                "
+                              >
+                                @for (t of tiposCampo; track t) {
+                                  <option [value]="t">{{ rotuloTipoCampo(t) }}</option>
+                                }
+                              </select>
+                              <label class="campos__check">
+                                <input
+                                  type="checkbox"
+                                  [checked]="novoCampoObrigatorio()"
+                                  (change)="
+                                    novoCampoObrigatorio.set($any($event.target).checked)
+                                  "
+                                />
+                                Obrigatório
+                              </label>
                               <button
                                 type="button"
                                 class="btn btn--outline btn--sm"
-                                (click)="adicionarIntegrante(p.id)"
+                                (click)="adicionarCampo(r.atividade.id)"
                               >
                                 <app-icone nome="mais" class="btn__icon" />
-                                Adicionar
+                                Adicionar campo
                               </button>
                             </div>
                           </div>
 
                           <div class="form-grid__full row">
-                            <button
-                              type="submit"
-                              class="btn btn--primary btn--sm"
-                            >
+                            <button type="submit" class="btn btn--primary btn--sm">
                               Salvar
                             </button>
                             <button
                               type="button"
                               class="btn btn--outline btn--sm"
-                              (click)="cancelarEdicao()"
+                              (click)="cancelarEdicaoAtividade()"
                             >
                               Cancelar
                             </button>
@@ -281,92 +736,33 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
                     </tr>
                   } @else {
                     <tr>
-                      <td class="cell-strong">{{ p.nome }}</td>
-                      <td>{{ nomesIntegrantes(p) }}</td>
+                      <td class="cell-strong">{{ r.atividade.titulo }}</td>
+                      <td>{{ r.atividade.prazo | prazo }}</td>
+                      <td>{{ r.projetosEntregues }}/{{ r.totalProjetos }}</td>
                       <td>
-                        @if (souAdmin()) {
-                          @if (editandoOrientadorId() === p.id) {
-                            <div class="row">
-                              <select
-                                class="control pfcs__orientador"
-                                [value]="p.orientadorId ?? ''"
-                                (change)="definirOrientador(p.id, $event)"
-                              >
-                                <option value="">Sem orientador</option>
-                                @for (prof of professores(); track prof.id) {
-                                  <option [value]="prof.id">
-                                    {{ prof.nome }}
-                                  </option>
-                                }
-                              </select>
-                              <button
-                                type="button"
-                                class="btn btn--outline btn--sm"
-                                (click)="editandoOrientadorId.set(null)"
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                          } @else {
-                            <div class="row">
-                              <span>
-                                {{
-                                  p.orientadorId
-                                    ? nomeUsuario(p.orientadorId)
-                                    : 'Sem orientador'
-                                }}
-                              </span>
-                              <button
-                                type="button"
-                                class="acao-remover"
-                                (click)="editandoOrientadorId.set(p.id)"
-                                [attr.aria-label]="
-                                  (p.orientadorId ? 'Editar' : 'Adicionar') +
-                                  ' orientador de ' +
-                                  p.nome
-                                "
-                              >
-                                <app-icone
-                                  [nome]="p.orientadorId ? 'editar' : 'mais'"
-                                />
-                              </button>
-                              @if (p.orientadorId) {
-                                <button
-                                  type="button"
-                                  class="acao-remover"
-                                  (click)="removerOrientador(p.id)"
-                                  [attr.aria-label]="
-                                    'Remover orientador de ' + p.nome
-                                  "
-                                >
-                                  <app-icone nome="lixeira" />
-                                </button>
-                              }
-                            </div>
-                          }
-                        } @else {
-                          {{
-                            p.orientadorId
-                              ? nomeUsuario(p.orientadorId)
-                              : 'Sem orientador'
-                          }}
-                        }
+                        <span class="badge" [class]="'badge--' + tomAtividade(r.status)">
+                          {{ rotuloStatusAtividade(r.status) }}
+                        </span>
                       </td>
                       <td>
                         <div class="row">
                           <button
                             type="button"
                             class="acao-remover"
-                            (click)="iniciarEdicao(p)"
-                            [attr.aria-label]="'Editar PFC ' + p.nome"
+                            (click)="iniciarEdicaoAtividade(r.atividade)"
+                            [attr.aria-label]="
+                              'Editar atividade ' + r.atividade.titulo
+                            "
                           >
                             <app-icone nome="editar" />
                           </button>
                           <button
                             type="button"
                             class="acao-remover"
-                            (click)="excluirPfc(p.id, p.nome)"
-                            [attr.aria-label]="'Excluir PFC ' + p.nome"
+                            (click)="removerAtividade(r.atividade.id, r.atividade.titulo)"
+                            [attr.aria-label]="
+                              'Remover atividade ' + r.atividade.titulo
+                            "
                           >
                             <app-icone nome="lixeira" />
                           </button>
@@ -376,399 +772,16 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
                   }
                 } @empty {
                   <tr>
-                    <td class="table-empty" colspan="4">
-                      Nenhum PFC cadastrado nesta turma ainda.
+                    <td class="table-empty" colspan="5">
+                      Nenhuma atividade cadastrada ainda.
                     </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-        }
-      </section>
-
-      <!-- ------------------------- nova atividade ------------------------- -->
-      <section class="card">
-        <div class="card__body">
-          <h2 class="section-title">Nova atividade</h2>
-          <p class="lead text-sm mt-1">
-            Informe os dados da próxima entrega.
-          </p>
-
-          @if (sucessoAtividade()) {
-            <p class="ok" role="status">
-              <app-icone nome="check" />
-              Atividade publicada. Ela já aparece na timeline de todos os
-              projetos.
-            </p>
-          }
-
-          @if (erroNovaAtividade()) {
-            <p class="alerta" role="alert">
-              <app-icone nome="alerta" />
-              <span>{{ erroNovaAtividade() }}</span>
-            </p>
-          }
-
-          <form
-            class="form-grid form-grid--2 mt-6"
-            [formGroup]="novaAtividadeForm"
-            (ngSubmit)="publicarAtividade()"
-          >
-            <div class="field">
-              <label class="field__label" for="atividade-titulo">
-                Título da atividade
-              </label>
-              <input
-                id="atividade-titulo"
-                type="text"
-                class="control"
-                placeholder="Ex.: Revisão Bibliográfica"
-                formControlName="titulo"
-                [class.control--invalid]="invalidoAtividade('titulo')"
-              />
-              @if (invalidoAtividade('titulo')) {
-                <span class="field__error">Informe o título.</span>
-              }
-            </div>
-
-            <div class="field">
-              <label class="field__label" for="atividade-prazo">
-                Data e hora limite
-              </label>
-              <input
-                id="atividade-prazo"
-                type="datetime-local"
-                class="control"
-                formControlName="prazo"
-                [class.control--invalid]="invalidoAtividade('prazo')"
-              />
-              @if (invalidoAtividade('prazo')) {
-                <span class="field__error">Defina o prazo de entrega.</span>
-              }
-            </div>
-
-            <div class="field form-grid__full">
-              <label class="field__label" for="atividade-descricao">
-                Descrição / Instruções
-              </label>
-              <textarea
-                id="atividade-descricao"
-                class="control control--textarea"
-                placeholder="O que o aluno precisa entregar, formato do arquivo, critérios de avaliação…"
-                formControlName="descricao"
-              ></textarea>
-            </div>
-
-            <div class="form-grid__full campos">
-              <p class="field__label">Campos de entrega</p>
-              <p class="campos__aviso">
-                O que o grupo precisa preencher ao entregar. Pelo menos um campo.
-              </p>
-              <ul class="campos__lista">
-                @for (c of camposNovaAtividade(); track $index) {
-                  <li class="campos__item">
-                    <span class="cell-strong">{{ c.rotulo }}</span>
-                    <span class="campos__meta">
-                      {{ rotuloTipoCampo(c.tipo) }}
-                      · {{ c.obrigatorio ? 'obrigatório' : 'opcional' }}
-                    </span>
-                    <button
-                      type="button"
-                      class="acao-remover"
-                      [disabled]="camposNovaAtividade().length <= 1"
-                      (click)="removerCampoNovaAtividade($index)"
-                      [attr.aria-label]="'Remover campo ' + c.rotulo"
-                    >
-                      <app-icone nome="lixeira" />
-                    </button>
-                  </li>
-                }
-              </ul>
-              <div class="campos__novo">
-                <input
-                  class="control"
-                  type="text"
-                  placeholder="Nome do campo (ex: Link do repositório)"
-                  aria-label="Nome do novo campo"
-                  [value]="rascunhoRotulo()"
-                  (input)="rascunhoRotulo.set($any($event.target).value)"
-                  (keydown.enter)="
-                    $event.preventDefault(); adicionarCampoNovaAtividade()
-                  "
-                />
-                <select
-                  class="control"
-                  aria-label="Tipo do novo campo"
-                  [value]="rascunhoTipo()"
-                  (change)="rascunhoTipo.set($any($event.target).value)"
-                >
-                  @for (t of tiposCampo; track t) {
-                    <option [value]="t">{{ rotuloTipoCampo(t) }}</option>
-                  }
-                </select>
-                <label class="campos__check">
-                  <input
-                    type="checkbox"
-                    [checked]="rascunhoObrigatorio()"
-                    (change)="rascunhoObrigatorio.set($any($event.target).checked)"
-                  />
-                  Obrigatório
-                </label>
-                <button
-                  type="button"
-                  class="btn btn--outline btn--sm"
-                  [disabled]="!rascunhoRotulo().trim()"
-                  (click)="adicionarCampoNovaAtividade()"
-                >
-                  <app-icone nome="mais" class="btn__icon" />
-                  Adicionar campo
-                </button>
-              </div>
-            </div>
-
-            <div class="form-grid__full">
-              <button
-                type="submit"
-                class="btn btn--primary"
-                [disabled]="salvandoAtividade()"
-              >
-                <app-icone nome="mais" class="btn__icon" />
-                {{ salvandoAtividade() ? 'Publicando…' : 'Publicar atividade' }}
-              </button>
-            </div>
-          </form>
-        </div>
-      </section>
-
-      <!-- -------------------- cronograma de atividades -------------------- -->
-      <section class="card card--flush">
-        <div class="card__head">
-          <app-icone nome="prancheta" class="card__head-icone" />
-          <h2 class="section-title">Cronograma de atividades</h2>
-        </div>
-
-        @if (erroRemocaoAtividade()) {
-          <p class="alerta" role="alert">
-            <app-icone nome="alerta" />
-            <span>{{ erroRemocaoAtividade() }}</span>
-          </p>
-        }
-
-        <div class="table-scroll">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Atividade</th>
-                <th scope="col">Data e hora limite</th>
-                <th scope="col">Projetos que entregaram</th>
-                <th scope="col">Status</th>
-                <th scope="col"><span class="sr-only">Ações</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (r of resumosAtividades(); track r.atividade.id) {
-                @if (editandoAtividadeId() === r.atividade.id) {
-                  <tr>
-                    <td colspan="5">
-                      @if (erroEdicaoAtividade()) {
-                        <p class="alerta" role="alert">
-                          <app-icone nome="alerta" />
-                          <span>{{ erroEdicaoAtividade() }}</span>
-                        </p>
-                      }
-
-                      <form
-                        class="form-grid form-grid--2 atividade-edicao"
-                        [formGroup]="editAtividadeForm"
-                        (ngSubmit)="salvarEdicaoAtividade(r.atividade.id)"
-                      >
-                        <div class="field">
-                          <label class="field__label" for="edit-atividade-titulo">
-                            Título da atividade
-                          </label>
-                          <input
-                            id="edit-atividade-titulo"
-                            type="text"
-                            class="control"
-                            formControlName="titulo"
-                            [class.control--invalid]="invalidoEdicaoAtividade('titulo')"
-                          />
-                          @if (invalidoEdicaoAtividade('titulo')) {
-                            <span class="field__error">
-                              Informe o título.
-                            </span>
-                          }
-                        </div>
-
-                        <div class="field">
-                          <label class="field__label" for="edit-atividade-prazo">
-                            Data e hora limite
-                          </label>
-                          <input
-                            id="edit-atividade-prazo"
-                            type="datetime-local"
-                            class="control"
-                            formControlName="prazo"
-                            [class.control--invalid]="invalidoEdicaoAtividade('prazo')"
-                          />
-                          @if (invalidoEdicaoAtividade('prazo')) {
-                            <span class="field__error">
-                              Defina o prazo de entrega.
-                            </span>
-                          }
-                        </div>
-
-                        <div class="field form-grid__full">
-                          <label class="field__label" for="edit-atividade-descricao">
-                            Descrição / Instruções
-                          </label>
-                          <textarea
-                            id="edit-atividade-descricao"
-                            class="control control--textarea"
-                            formControlName="descricao"
-                          ></textarea>
-                        </div>
-
-                        <div class="form-grid__full campos">
-                          <p class="field__label">Campos de entrega</p>
-                          <ul class="campos__lista">
-                            @for (c of r.atividade.campos; track c.id) {
-                              <li class="campos__item">
-                                <span class="cell-strong">{{ c.rotulo }}</span>
-                                <span class="campos__meta">
-                                  {{ rotuloTipoCampo(c.tipo) }}
-                                  · {{ c.obrigatorio ? 'obrigatório' : 'opcional' }}
-                                </span>
-                                <button
-                                  type="button"
-                                  class="acao-remover"
-                                  [disabled]="r.atividade.campos.length <= 1"
-                                  (click)="removerCampo(r.atividade.id, c.id)"
-                                  [attr.aria-label]="'Remover campo ' + c.rotulo"
-                                >
-                                  <app-icone nome="lixeira" />
-                                </button>
-                              </li>
-                            }
-                          </ul>
-                          @if (r.atividade.campos.length <= 1) {
-                            <p class="campos__aviso">
-                              A atividade precisa de ao menos um campo de entrega.
-                            </p>
-                          }
-                          @if (erroCampo()) {
-                            <p class="campos__aviso campos__aviso--erro">
-                              {{ erroCampo() }}
-                            </p>
-                          }
-                          <div class="campos__novo">
-                            <input
-                              class="control"
-                              type="text"
-                              placeholder="Nome do campo (ex: Link do repositório)"
-                              aria-label="Nome do novo campo"
-                              [value]="novoCampoRotulo()"
-                              (input)="novoCampoRotulo.set($any($event.target).value)"
-                              (keydown.enter)="
-                                $event.preventDefault(); adicionarCampo(r.atividade.id)
-                              "
-                            />
-                            <select
-                              class="control"
-                              aria-label="Tipo do novo campo"
-                              [value]="novoCampoTipo()"
-                              (change)="
-                                novoCampoTipo.set($any($event.target).value)
-                              "
-                            >
-                              @for (t of tiposCampo; track t) {
-                                <option [value]="t">{{ rotuloTipoCampo(t) }}</option>
-                              }
-                            </select>
-                            <label class="campos__check">
-                              <input
-                                type="checkbox"
-                                [checked]="novoCampoObrigatorio()"
-                                (change)="
-                                  novoCampoObrigatorio.set($any($event.target).checked)
-                                "
-                              />
-                              Obrigatório
-                            </label>
-                            <button
-                              type="button"
-                              class="btn btn--outline btn--sm"
-                              (click)="adicionarCampo(r.atividade.id)"
-                            >
-                              <app-icone nome="mais" class="btn__icon" />
-                              Adicionar campo
-                            </button>
-                          </div>
-                        </div>
-
-                        <div class="form-grid__full row">
-                          <button type="submit" class="btn btn--primary btn--sm">
-                            Salvar
-                          </button>
-                          <button
-                            type="button"
-                            class="btn btn--outline btn--sm"
-                            (click)="cancelarEdicaoAtividade()"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </form>
-                    </td>
-                  </tr>
-                } @else {
-                  <tr>
-                    <td class="cell-strong">{{ r.atividade.titulo }}</td>
-                    <td>{{ r.atividade.prazo | prazo }}</td>
-                    <td>{{ r.projetosEntregues }}/{{ r.totalProjetos }}</td>
-                    <td>
-                      <span class="badge" [class]="'badge--' + tomAtividade(r.status)">
-                        {{ rotuloStatusAtividade(r.status) }}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="row">
-                        <button
-                          type="button"
-                          class="acao-remover"
-                          (click)="iniciarEdicaoAtividade(r.atividade)"
-                          [attr.aria-label]="
-                            'Editar atividade ' + r.atividade.titulo
-                          "
-                        >
-                          <app-icone nome="editar" />
-                        </button>
-                        <button
-                          type="button"
-                          class="acao-remover"
-                          (click)="removerAtividade(r.atividade.id, r.atividade.titulo)"
-                          [attr.aria-label]="
-                            'Remover atividade ' + r.atividade.titulo
-                          "
-                        >
-                          <app-icone nome="lixeira" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              } @empty {
-                <tr>
-                  <td class="table-empty" colspan="5">
-                    Nenhuma atividade cadastrada ainda.
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
+        </section>
+      }
     </div>
   `,
   styles: `
@@ -798,9 +811,20 @@ const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
       padding: 1.25rem;
     }
 
-    .novo-pfc {
+    .pfcs__aviso {
       padding: 1.25rem;
-      border-bottom: 1px solid var(--border);
+      font-size: 0.875rem;
+      color: var(--muted-foreground);
+    }
+
+    .secoes {
+      grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+
+    @media (min-width: 700px) {
+      .secoes {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
     }
 
     .pfc-edicao {
@@ -909,6 +933,14 @@ export class GestaoPfcComponent {
     () => this.auth.perfil() === 'ADMIN',
   );
 
+  /** A tela mostra uma seção por vez; a escolha vem do menu no topo. */
+  readonly secoes: { id: SecaoGestao; rotulo: string }[] = [
+    { id: 'programa', rotulo: 'Criar programa de PFC' },
+    { id: 'pfcs', rotulo: 'PFCs dos alunos' },
+    { id: 'atividades', rotulo: 'Atividades' },
+  ];
+  readonly secao = signal<SecaoGestao>('programa');
+
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
   readonly turmaSelecionada = signal('c-eng-noite');
 
@@ -955,12 +987,6 @@ export class GestaoPfcComponent {
 
   readonly iniciandoPrograma = signal(false);
 
-  readonly novoForm = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.minLength(3)]],
-    descricao: [''],
-  });
-  readonly criando = signal(false);
-
   readonly editandoId = signal<string | null>(null);
   readonly editandoOrientadorId = signal<string | null>(null);
 
@@ -1001,43 +1027,6 @@ export class GestaoPfcComponent {
         },
         error: (e: Error) => {
           this.iniciandoPrograma.set(false);
-          this.erroPfc.set(e.message);
-        },
-      });
-  }
-
-  invalidoNovo(): boolean {
-    const c = this.novoForm.controls.nome;
-    return c.invalid && c.touched;
-  }
-
-  criarPfc(): void {
-    this.erroPfc.set('');
-
-    if (this.novoForm.invalid) {
-      this.novoForm.markAllAsTouched();
-      return;
-    }
-
-    const programa = this.programaAtual();
-
-    if (!programa) {
-      return;
-    }
-
-    this.criando.set(true);
-    const { nome, descricao } = this.novoForm.getRawValue();
-
-    this.projetoService
-      .criar({ nome, descricao, programaId: programa.id, integrantes: [] })
-      .subscribe({
-        next: () => {
-          this.criando.set(false);
-          this.novoForm.reset();
-          this.recarregarPfcs$.next();
-        },
-        error: (e: Error) => {
-          this.criando.set(false);
           this.erroPfc.set(e.message);
         },
       });
