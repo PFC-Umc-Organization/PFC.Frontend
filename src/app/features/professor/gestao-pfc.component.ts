@@ -130,6 +130,42 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
             </div>
           }
         </section>
+
+        <section class="card card--flush">
+          <div class="card__head">
+            <app-icone nome="prancheta" class="card__head-icone" />
+            <h2 class="section-title">
+              Programas criados ({{ programasCriados().length }})
+            </h2>
+          </div>
+
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Turma</th>
+                  <th scope="col">Período</th>
+                  <th scope="col">PFCs criados pelos alunos</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of programasCriados(); track p.id) {
+                  <tr>
+                    <td class="cell-strong">{{ p.turma }}</td>
+                    <td>{{ p.periodo }}</td>
+                    <td>{{ p.pfcs }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="table-empty" colspan="3">
+                      Nenhum programa de PFC criado ainda.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
       }
 
       <!-- ------------------------ PFCs dos alunos ------------------------ -->
@@ -972,6 +1008,36 @@ export class GestaoPfcComponent {
       ),
     ),
     { initialValue: [] as Projeto[] },
+  );
+
+  /** Todos os PFCs de todos os programas, só para contar por programa. */
+  private readonly todosPfcs = toSignal(
+    this.recarregarPfcs$.pipe(
+      startWith(undefined),
+      switchMap(() =>
+        this.projetoService.listar().pipe(catchError(() => of([] as Projeto[]))),
+      ),
+    ),
+    { initialValue: [] as Projeto[] },
+  );
+
+  /** Cada programa já criado, com a turma dele e quantos PFCs os alunos criaram. */
+  readonly programasCriados = computed(() =>
+    this.programas()
+      .map((p) => {
+        const turma = this.cursos().find((c) => c.id === p.cursoId);
+        return {
+          id: p.id,
+          turma: turma ? rotuloCurso(turma) : '—',
+          periodo: turma?.periodo ?? '—',
+          pfcs: this.todosPfcs().filter((x) => x.programaId === p.id).length,
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.turma.localeCompare(b.turma, 'pt-BR') ||
+          a.periodo.localeCompare(b.periodo),
+      ),
   );
 
   private readonly todosUsuarios = toSignal(
