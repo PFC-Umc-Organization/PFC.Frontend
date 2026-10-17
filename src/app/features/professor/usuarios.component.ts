@@ -45,7 +45,6 @@ type SecaoUsuarios = 'conta' | 'preautorizar' | 'matriculas' | 'pessoas';
         <p class="eyebrow">Administração</p>
         <h1 class="page-title mt-2">Gerenciamento de Usuários</h1>
         <p class="lead mt-2">
-          Acompanhe perfis, funções e acessos da comunidade Athena.
         </p>
       </header>
 
@@ -375,7 +374,7 @@ type SecaoUsuarios = 'conta' | 'preautorizar' | 'matriculas' | 'pessoas';
         <section class="card card--flush">
           <div class="card__head">
             <app-icone nome="usuarios" class="card__head-icone" />
-            <h2 class="section-title">Pessoas cadastradas</h2>
+            <h2 class="section-title">Usuários</h2>
           </div>
 
           @if (erroUsuarios()) {
