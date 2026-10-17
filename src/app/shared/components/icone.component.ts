@@ -19,7 +19,9 @@ export type NomeIcone =
   | 'templo'
   | 'editar'
   | 'menu'
-  | 'fechar';
+  | 'fechar'
+  | 'olho'
+  | 'olho-fechado';
 
 /**
  * Ícones desenhados inline (traçado no estilo Lucide, como no protótipo).
@@ -87,6 +89,22 @@ export type NomeIcone =
         @case ('cadeado') {
           <rect width="18" height="11" x="3" y="11" rx="2" />
           <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        }
+        @case ('olho') {
+          <path
+            d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+          />
+          <circle cx="12" cy="12" r="3" />
+        }
+        @case ('olho-fechado') {
+          <path
+            d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"
+          />
+          <path d="M14.084 14.158a3 3 0 0 1-4.242-4.242" />
+          <path
+            d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"
+          />
+          <path d="m2 2 20 20" />
         }
         @case ('sair') {
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />

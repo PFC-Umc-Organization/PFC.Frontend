@@ -69,17 +69,26 @@ import { AuthCardComponent } from './auth-card.component';
 
         <div class="field">
           <label class="field__label" for="senha">Senha</label>
-          <div class="control-wrap">
+          <div class="control-wrap senha-wrap">
             <app-icone nome="cadeado" class="control-wrap__icon" />
             <input
               id="senha"
-              type="password"
+              [type]="mostrarSenha() ? 'text' : 'password'"
               class="control"
               placeholder="••••••••"
               autocomplete="current-password"
               formControlName="senha"
               [class.control--invalid]="invalido('senha')"
             />
+            <button
+              type="button"
+              class="senha-wrap__botao"
+              [attr.aria-label]="mostrarSenha() ? 'Ocultar senha' : 'Mostrar senha'"
+              [attr.aria-pressed]="mostrarSenha()"
+              (click)="mostrarSenha.set(!mostrarSenha())"
+            >
+              <app-icone [nome]="mostrarSenha() ? 'olho-fechado' : 'olho'" />
+            </button>
           </div>
           @if (invalido('senha')) {
             <span class="field__error">Informe sua senha.</span>
@@ -117,6 +126,7 @@ export class LoginComponent {
   private readonly router = inject(Router);
 
   readonly carregando = signal(false);
+  readonly mostrarSenha = signal(false);
   readonly erro = signal('');
   /** Login recusado porque a conta ainda espera o código do e-mail (403). */
   readonly naoConfirmada = signal(false);

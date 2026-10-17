@@ -74,15 +74,26 @@ import { AuthCardComponent } from './auth-card.component';
 
         <div class="field">
           <label class="field__label" for="senha">Senha</label>
-          <input
-            id="senha"
-            type="password"
-            class="control"
-            placeholder="Crie uma senha segura"
-            autocomplete="new-password"
-            formControlName="senha"
-            [class.control--invalid]="invalido('senha')"
-          />
+          <div class="senha-wrap">
+            <input
+              id="senha"
+              [type]="mostrarSenha() ? 'text' : 'password'"
+              class="control"
+              placeholder="Crie uma senha segura"
+              autocomplete="new-password"
+              formControlName="senha"
+              [class.control--invalid]="invalido('senha')"
+            />
+            <button
+              type="button"
+              class="senha-wrap__botao"
+              [attr.aria-label]="mostrarSenha() ? 'Ocultar senha' : 'Mostrar senha'"
+              [attr.aria-pressed]="mostrarSenha()"
+              (click)="mostrarSenha.set(!mostrarSenha())"
+            >
+              <app-icone [nome]="mostrarSenha() ? 'olho-fechado' : 'olho'" />
+            </button>
+          </div>
           <span class="field__hint">
             Ao menos 8 caracteres, com letra maiúscula, letra minúscula,
             número e símbolo.
@@ -123,6 +134,7 @@ export class CadastroComponent {
   private readonly router = inject(Router);
 
   readonly carregando = signal(false);
+  readonly mostrarSenha = signal(false);
   readonly erro = signal('');
 
   /**

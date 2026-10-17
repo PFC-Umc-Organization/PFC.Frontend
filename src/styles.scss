@@ -422,6 +422,32 @@ select.control {
   pointer-events: none;
 }
 
+/* Campo de senha com o botão de mostrar/ocultar à direita. */
+.senha-wrap {
+  position: relative;
+}
+
+.senha-wrap .control {
+  padding-right: 2.75rem;
+}
+
+.senha-wrap__botao {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  color: var(--muted-foreground);
+  --icone-size: 1.125rem;
+}
+
+.senha-wrap__botao:hover,
+.senha-wrap__botao:focus-visible {
+  color: var(--primary);
+}
+
 .form-grid {
   display: grid;
   gap: 1rem;
