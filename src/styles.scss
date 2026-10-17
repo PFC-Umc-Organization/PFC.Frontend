@@ -431,6 +431,13 @@ select.control {
   padding-right: 2.75rem;
 }
 
+/* O Edge desenha o próprio botão de mostrar senha em campo de senha com
+   foco; sem isso apareceriam dois olhos. */
+.senha-wrap .control::-ms-reveal,
+.senha-wrap .control::-ms-clear {
+  display: none;
+}
+
 .senha-wrap__botao {
   position: absolute;
   top: 0;
