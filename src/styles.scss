@@ -546,7 +546,12 @@ select.control {
   border: 1px solid transparent;
 }
 
-.acao-remover:hover {
+.acao-remover:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.acao-remover:hover:not(:disabled) {
   color: var(--destructive);
   border-color: color-mix(in oklch, var(--destructive) 30%, transparent);
   background: color-mix(in oklch, var(--destructive) 6%, transparent);

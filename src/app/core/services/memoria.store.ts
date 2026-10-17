@@ -201,6 +201,14 @@ export class MemoriaStore {
     this.programas$.next([...this.programasAtuais, programa]);
   }
 
+  atualizarPrograma(programaId: string, cursoId: string): void {
+    this.programas$.next(
+      this.programasAtuais.map((p) =>
+        p.id === programaId ? { ...p, cursoId } : p,
+      ),
+    );
+  }
+
   removerPrograma(programaId: string): void {
     this.programas$.next(
       this.programasAtuais.filter((p) => p.id !== programaId),

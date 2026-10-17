@@ -139,6 +139,13 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
             </h2>
           </div>
 
+          @if (erroProgramas()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erroProgramas() }}</span>
+            </p>
+          }
+
           <div class="table-scroll">
             <table class="data-table">
               <thead>
@@ -146,18 +153,93 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                   <th scope="col">Turma</th>
                   <th scope="col">Período</th>
                   <th scope="col">PFCs criados pelos alunos</th>
+                  <th scope="col"><span class="sr-only">Ações</span></th>
                 </tr>
               </thead>
               <tbody>
                 @for (p of programasCriados(); track p.id) {
-                  <tr>
-                    <td class="cell-strong">{{ p.turma }}</td>
-                    <td>{{ p.periodo }}</td>
-                    <td>{{ p.pfcs }}</td>
-                  </tr>
+                  @if (editandoProgramaId() === p.id) {
+                    <tr>
+                      <td colspan="4">
+                        <div class="programa-edicao">
+                          <div class="field">
+                            <label class="field__label" for="programa-turma">
+                              Turma do programa
+                            </label>
+                            <select
+                              id="programa-turma"
+                              class="control"
+                              [value]="turmaNovaDoPrograma()"
+                              (change)="turmaNovaDoPrograma.set($any($event.target).value)"
+                            >
+                              @for (c of cursos(); track c.id) {
+                                <option [value]="c.id">
+                                  {{ rotuloCurso(c) }} - {{ c.periodo }}
+                                </option>
+                              }
+                            </select>
+                          </div>
+                          <div class="row">
+                            <button
+                              type="button"
+                              class="btn btn--primary btn--sm"
+                              (click)="salvarEdicaoPrograma(p.id)"
+                            >
+                              Salvar
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn--outline btn--sm"
+                              (click)="editandoProgramaId.set(null)"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  } @else {
+                    <tr>
+                      <td class="cell-strong">{{ p.turma }}</td>
+                      <td>{{ p.periodo }}</td>
+                      <td>{{ p.pfcs }}</td>
+                      <td>
+                        <div class="row">
+                          <button
+                            type="button"
+                            class="acao-remover"
+                            [disabled]="p.pfcs > 0"
+                            [attr.title]="
+                              p.pfcs > 0
+                                ? 'Não dá para trocar a turma de um programa que já tem PFCs'
+                                : null
+                            "
+                            (click)="iniciarEdicaoPrograma(p.id, p.cursoId)"
+                            [attr.aria-label]="'Editar programa de ' + p.turma"
+                          >
+                            <app-icone nome="editar" />
+                          </button>
+                          <button
+                            type="button"
+                            class="acao-remover"
+                            [disabled]="p.pfcs > 0"
+                            [attr.title]="
+                              p.pfcs > 0
+                                ? 'Não dá para excluir um programa que já tem PFCs'
+                                : null
+                            "
+                            (click)="excluirPrograma(p.id, p.turma)"
+                            [attr.aria-label]="'Excluir programa de ' + p.turma"
+                          >
+                            <app-icone nome="lixeira" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
                 } @empty {
                   <tr>
-                    <td class="table-empty" colspan="3">
+                    <td class="table-empty" colspan="4">
                       Nenhum programa de PFC criado ainda.
                     </td>
                   </tr>
@@ -847,6 +929,19 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
       padding: 1.25rem;
     }
 
+    .programa-edicao {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 0.5rem 0;
+    }
+
+    .programa-edicao .field {
+      flex: 1 1 18rem;
+    }
+
     .pfcs__aviso {
       padding: 1.25rem;
       font-size: 0.875rem;
@@ -1028,6 +1123,7 @@ export class GestaoPfcComponent {
         const turma = this.cursos().find((c) => c.id === p.cursoId);
         return {
           id: p.id,
+          cursoId: p.cursoId,
           turma: turma ? rotuloCurso(turma) : '—',
           periodo: turma?.periodo ?? '—',
           pfcs: this.todosPfcs().filter((x) => x.programaId === p.id).length,
@@ -1039,6 +1135,47 @@ export class GestaoPfcComponent {
           a.periodo.localeCompare(b.periodo),
       ),
   );
+
+  readonly editandoProgramaId = signal<string | null>(null);
+  readonly turmaNovaDoPrograma = signal('');
+  readonly erroProgramas = signal('');
+
+  iniciarEdicaoPrograma(programaId: string, cursoId: string): void {
+    this.erroProgramas.set('');
+    this.turmaNovaDoPrograma.set(cursoId);
+    this.editandoProgramaId.set(programaId);
+  }
+
+  salvarEdicaoPrograma(programaId: string): void {
+    this.erroProgramas.set('');
+    this.programaService
+      .atualizar(programaId, this.turmaNovaDoPrograma())
+      .subscribe({
+        next: () => {
+          this.editandoProgramaId.set(null);
+          this.recarregarProgramas$.next();
+        },
+        error: (e: Error) => this.erroProgramas.set(e.message),
+      });
+  }
+
+  async excluirPrograma(programaId: string, turma: string): Promise<void> {
+    const confirmado = await this.confirmacao.confirmar({
+      titulo: 'Excluir programa de PFC',
+      mensagem: `Excluir o programa de PFC de "${turma}"? Os alunos dessa turma deixam de poder criar PFC até o programa ser criado de novo.`,
+      textoConfirmar: 'Excluir',
+      perigo: true,
+    });
+    if (!confirmado) {
+      return;
+    }
+
+    this.erroProgramas.set('');
+    this.programaService.deletar(programaId).subscribe({
+      next: () => this.recarregarProgramas$.next(),
+      error: (e: Error) => this.erroProgramas.set(e.message),
+    });
+  }
 
   private readonly todosUsuarios = toSignal(
     this.usuarioService.listar().pipe(catchError(() => of([] as Usuario[]))),
