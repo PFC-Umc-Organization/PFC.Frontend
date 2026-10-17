@@ -29,7 +29,6 @@ import { AuthCardComponent } from './auth-card.component';
   template: `
     <app-auth-card
       titulo="Entrar"
-      subtitulo="Use seu e-mail institucional para acessar a plataforma."
     >
       <form class="form" [formGroup]="form" (ngSubmit)="entrar()">
         @if (erro()) {

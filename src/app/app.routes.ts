@@ -82,7 +82,7 @@ export const rotas: Routes = [
       },
       {
         path: 'usuarios',
-        canActivate: [perfilGuard(['ORIENTADOR', 'ADMIN'])],
+        canActivate: [perfilGuard(['ADMIN'])],
         title: 'Usuários — Athena',
         loadComponent: () =>
           import('./features/professor/usuarios.component').then(

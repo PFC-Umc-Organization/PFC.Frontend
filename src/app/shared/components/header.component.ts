@@ -14,7 +14,6 @@ import {
 } from '@angular/router';
 import { filter } from 'rxjs';
 
-import { ehEquipeAcademica } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { IconeComponent, NomeIcone } from './icone.component';
 
@@ -310,21 +309,32 @@ export class HeaderComponent {
     { rotulo: 'Referências', rota: '/referencias', icone: 'busca' },
   ];
 
-  private readonly navProfessor: ItemNav[] = [
+  private readonly navOrientador: ItemNav[] = [
+    { rotulo: 'Início', rota: '/', icone: 'painel' },
+    { rotulo: 'Gestão de PFC', rota: '/gestao', icone: 'templo' },
+    { rotulo: 'Materiais', rota: '/materiais', icone: 'livro' },
+    { rotulo: 'Referências', rota: '/referencias', icone: 'busca' },
+  ];
+
+  /** Só o coordenador gerencia usuários e turmas. */
+  private readonly navAdmin: ItemNav[] = [
     { rotulo: 'Início', rota: '/', icone: 'painel' },
     { rotulo: 'Gestão de PFC', rota: '/gestao', icone: 'templo' },
     { rotulo: 'Usuários', rota: '/usuarios', icone: 'usuarios' },
     { rotulo: 'Materiais', rota: '/materiais', icone: 'livro' },
     { rotulo: 'Referências', rota: '/referencias', icone: 'busca' },
+    { rotulo: 'Turmas', rota: '/turmas', icone: 'calendario' },
   ];
 
   readonly itensNav = computed(() => {
-    if (!ehEquipeAcademica(this.auth.perfil())) {
-      return this.navAluno;
+    switch (this.auth.perfil()) {
+      case 'ADMIN':
+        return this.navAdmin;
+      case 'ORIENTADOR':
+        return this.navOrientador;
+      default:
+        return this.navAluno;
     }
-    return this.auth.perfil() === 'ADMIN'
-      ? [...this.navProfessor, { rotulo: 'Turmas', rota: '/turmas', icone: 'calendario' } as ItemNav]
-      : this.navProfessor;
   });
 
   sair(): void {

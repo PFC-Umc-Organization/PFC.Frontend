@@ -26,12 +26,13 @@ import {
   Usuario,
   rotuloCurso,
 } from '../../core/models';
-import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
 import { MatriculaService } from '../../core/services/matricula.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { IconeComponent } from '../../shared/components/icone.component';
+
+type SecaoUsuarios = 'conta' | 'preautorizar' | 'matriculas' | 'pessoas';
 
 @Component({
   selector: 'app-usuarios',
@@ -48,8 +49,22 @@ import { IconeComponent } from '../../shared/components/icone.component';
         </p>
       </header>
 
+      <!-- ------------------------- menu de seções ------------------------- -->
+      <div class="segmented segmented--grid secoes" role="group" aria-label="Seção da tela">
+        @for (s of secoes; track s.id) {
+          <button
+            type="button"
+            class="segmented__item"
+            [attr.aria-pressed]="secao() === s.id"
+            (click)="secao.set(s.id)"
+          >
+            {{ s.rotulo }}
+          </button>
+        }
+      </div>
+
       <!-- ------------------- cadastrar orientador/admin ------------------- -->
-      @if (souAdmin()) {
+      @if (secao() === 'conta') {
         <section class="card">
           <div class="card__body">
             <h2 class="section-title">Cadastrar orientador ou admin</h2>
@@ -137,409 +152,425 @@ import { IconeComponent } from '../../shared/components/icone.component';
         </section>
       }
 
-      <!-- ------------------- pré-autorizar por RGM ------------------- -->
-      <section class="card">
-        <div class="card__body">
-          <h2 class="section-title">Pré-autorizar alunos por RGM</h2>
-          <p class="lead text-sm mt-1">
-            O aluno cria a própria conta em "Criar conta" — o RGM aqui só
-            libera o cadastro dele. Nome e e-mail são preenchidos pelo
-            próprio aluno na hora.
-          </p>
-
-          @if (resultadoProvisionamento(); as resultado) {
-            <p class="ok" role="status">
-              <app-icone nome="check" />
-              {{ resultado.processados }} RGM(s) pré-autorizado(s)
-              @if (resultado.falhas.length > 0) {
-                — {{ resultado.falhas.length }} falharam
-              }
-              .
+      @if (secao() === 'preautorizar') {
+        <!-- ------------------- pré-autorizar por RGM ------------------- -->
+        <section class="card">
+          <div class="card__body">
+            <h2 class="section-title">Pré-autorizar alunos por RGM</h2>
+            <p class="lead text-sm mt-1">
+              O aluno cria a própria conta em "Criar conta" — o RGM aqui só
+              libera o cadastro dele. Nome e e-mail são preenchidos pelo
+              próprio aluno na hora.
             </p>
-          }
 
-          @if (erroProvisionamento()) {
-            <p class="alerta" role="alert">
-              <app-icone nome="alerta" />
-              <span>{{ erroProvisionamento() }}</span>
-            </p>
-          }
-
-          @if (cursos().length === 0) {
-            <p class="alerta" role="alert">
-              <app-icone nome="alerta" />
-              <span>
-                Nenhuma turma cadastrada ainda — cadastre uma turma antes de
-                pré-autorizar RGMs.
-                <a routerLink="/turmas">Ir para Turmas</a>
-              </span>
-            </p>
-          } @else {
-          <form
-            class="form-grid mt-6"
-            [formGroup]="provisionamentoForm"
-            (ngSubmit)="provisionar()"
-          >
-            <div class="field">
-              <label class="field__label" for="provisionamento-turma">
-                Turma
-              </label>
-              <select
-                id="provisionamento-turma"
-                class="control"
-                formControlName="turmaId"
-                [class.control--invalid]="invalidoProvisionamento('turmaId')"
-              >
-                <option value="" disabled>Selecione a turma</option>
-                @for (c of cursos(); track c.id) {
-                  <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+            @if (resultadoProvisionamento(); as resultado) {
+              <p class="ok" role="status">
+                <app-icone nome="check" />
+                {{ resultado.processados }} RGM(s) pré-autorizado(s)
+                @if (resultado.falhas.length > 0) {
+                  — {{ resultado.falhas.length }} falharam
                 }
-              </select>
-              @if (invalidoProvisionamento('turmaId')) {
-                <span class="field__error">Selecione a turma.</span>
-              }
-            </div>
+                .
+              </p>
+            }
 
-            <div class="field">
-              <label class="field__label" for="rgms">RGMs</label>
-              <textarea
-                id="rgms"
-                class="control control--textarea"
-                placeholder="Um RGM por linha — ex.: 20260009"
-                formControlName="rgms"
-                [class.control--invalid]="invalidoProvisionamento('rgms')"
-              ></textarea>
-              <span class="field__hint">
-                Aceita vários RGMs de uma vez — separados por linha ou
-                vírgula. Todos entram pré-autorizados na turma selecionada.
-              </span>
-              @if (invalidoProvisionamento('rgms')) {
-                <span class="field__error">
-                  Informe ao menos um RGM válido (só números).
+            @if (erroProvisionamento()) {
+              <p class="alerta" role="alert">
+                <app-icone nome="alerta" />
+                <span>{{ erroProvisionamento() }}</span>
+              </p>
+            }
+
+            @if (cursos().length === 0) {
+              <p class="alerta" role="alert">
+                <app-icone nome="alerta" />
+                <span>
+                  Nenhuma turma cadastrada ainda — cadastre uma turma antes de
+                  pré-autorizar RGMs.
+                  <a routerLink="/turmas">Ir para Turmas</a>
                 </span>
-              }
-            </div>
+              </p>
+            } @else {
+            <form
+              class="form-grid mt-6"
+              [formGroup]="provisionamentoForm"
+              (ngSubmit)="provisionar()"
+            >
+              <div class="field">
+                <label class="field__label" for="provisionamento-turma">
+                  Turma
+                </label>
+                <select
+                  id="provisionamento-turma"
+                  class="control"
+                  formControlName="turmaId"
+                  [class.control--invalid]="invalidoProvisionamento('turmaId')"
+                >
+                  <option value="" disabled>Selecione a turma</option>
+                  @for (c of cursos(); track c.id) {
+                    <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                  }
+                </select>
+                @if (invalidoProvisionamento('turmaId')) {
+                  <span class="field__error">Selecione a turma.</span>
+                }
+              </div>
 
-            <div>
-              <button
-                type="submit"
-                class="btn btn--primary"
-                [disabled]="provisionando()"
-              >
-                <app-icone nome="mais" class="btn__icon" />
-                {{ provisionando() ? 'Enviando…' : 'Pré-autorizar' }}
-              </button>
-            </div>
-          </form>
-          }
-        </div>
-      </section>
+              <div class="field">
+                <label class="field__label" for="rgms">RGMs</label>
+                <textarea
+                  id="rgms"
+                  class="control control--textarea"
+                  placeholder="Um RGM por linha — ex.: 20260009"
+                  formControlName="rgms"
+                  [class.control--invalid]="invalidoProvisionamento('rgms')"
+                ></textarea>
+                <span class="field__hint">
+                  Aceita vários RGMs de uma vez — separados por linha ou
+                  vírgula. Todos entram pré-autorizados na turma selecionada.
+                </span>
+                @if (invalidoProvisionamento('rgms')) {
+                  <span class="field__error">
+                    Informe ao menos um RGM válido (só números).
+                  </span>
+                }
+              </div>
 
-      <!-- ------------------- RGMs pré-autorizados ------------------- -->
-      <section class="card card--flush">
-        <div class="card__head">
-          <app-icone nome="prancheta" class="card__head-icone" />
-          <h2 class="section-title">RGMs pré-autorizados</h2>
-        </div>
+              <div>
+                <button
+                  type="submit"
+                  class="btn btn--primary"
+                  [disabled]="provisionando()"
+                >
+                  <app-icone nome="mais" class="btn__icon" />
+                  {{ provisionando() ? 'Enviando…' : 'Pré-autorizar' }}
+                </button>
+              </div>
+            </form>
+            }
+          </div>
+        </section>
+      }
 
-        <div class="table-scroll">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">RGM</th>
-                <th scope="col">Turma</th>
-                <th scope="col">Situação</th>
-                <th scope="col"><span class="sr-only">Ações</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (m of matriculas(); track m.rgm) {
+      @if (secao() === 'matriculas') {
+        <!-- ------------------- RGMs pré-autorizados ------------------- -->
+        <section class="card card--flush">
+          <div class="card__head">
+            <app-icone nome="prancheta" class="card__head-icone" />
+            <h2 class="section-title">RGMs pré-autorizados</h2>
+          </div>
+
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <td class="cell-strong">{{ m.rgm }}</td>
-                  <td>{{ rotuloTurmaDoId(m.turmaId) }}</td>
-                  <td>
-                    @if (contaDoRgm(m.rgm); as conta) {
-                      @if (conta.confirmado === false) {
-                        <span
-                          class="badge badge--muted"
-                          title="A conta existe, mas o e-mail ainda não foi confirmado"
-                        >
-                          Conta não confirmada
-                        </span>
+                  <th scope="col">RGM</th>
+                  <th scope="col">Turma</th>
+                  <th scope="col">Situação</th>
+                  <th scope="col"><span class="sr-only">Ações</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of matriculas(); track m.rgm) {
+                  <tr>
+                    <td class="cell-strong">{{ m.rgm }}</td>
+                    <td>{{ rotuloTurmaDoId(m.turmaId) }}</td>
+                    <td>
+                      @if (contaDoRgm(m.rgm); as conta) {
+                        @if (conta.confirmado === false) {
+                          <span
+                            class="badge badge--muted"
+                            title="A conta existe, mas o e-mail ainda não foi confirmado"
+                          >
+                            Conta não confirmada
+                          </span>
+                        } @else {
+                          <span class="badge badge--primary">
+                            Conta criada{{ conta.nome ? ' — ' + conta.nome : '' }}
+                          </span>
+                        }
                       } @else {
-                        <span class="badge badge--primary">
-                          Conta criada{{ conta.nome ? ' — ' + conta.nome : '' }}
+                        <span class="badge badge--muted">
+                          Aguardando cadastro
                         </span>
                       }
-                    } @else {
-                      <span class="badge badge--muted">
-                        Aguardando cadastro
-                      </span>
-                    }
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      class="acao-remover"
-                      (click)="removerMatricula(m.rgm)"
-                      [attr.aria-label]="
-                        'Remover pré-autorização do RGM ' + m.rgm
-                      "
-                    >
-                      <app-icone nome="lixeira" />
-                    </button>
-                  </td>
-                </tr>
-              } @empty {
-                <tr>
-                  <td class="table-empty" colspan="4">
-                    Nenhum RGM pré-autorizado no momento.
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        class="acao-remover"
+                        (click)="removerMatricula(m.rgm)"
+                        [attr.aria-label]="
+                          'Remover pré-autorização do RGM ' + m.rgm
+                        "
+                      >
+                        <app-icone nome="lixeira" />
+                      </button>
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="table-empty" colspan="4">
+                      Nenhum RGM pré-autorizado no momento.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+
+      @if (secao() === 'pessoas') {
+        <!-- ---------------------------- métricas ---------------------------- -->
+        <div class="stat-grid">
+          <article class="stat">
+            <p class="stat__value">{{ totalAtivos() }}</p>
+            <p class="stat__label">Usuários ativos</p>
+          </article>
+          <article class="stat">
+            <p class="stat__value">{{ totalAlunos() }}</p>
+            <p class="stat__label">Alunos</p>
+          </article>
+          <article class="stat">
+            <p class="stat__value">{{ totalProfessores() }}</p>
+            <p class="stat__label">Professores</p>
+          </article>
         </div>
-      </section>
 
-      <!-- ---------------------------- métricas ---------------------------- -->
-      <div class="stat-grid">
-        <article class="stat">
-          <p class="stat__value">{{ totalAtivos() }}</p>
-          <p class="stat__label">Usuários ativos</p>
-        </article>
-        <article class="stat">
-          <p class="stat__value">{{ totalAlunos() }}</p>
-          <p class="stat__label">Alunos</p>
-        </article>
-        <article class="stat">
-          <p class="stat__value">{{ totalProfessores() }}</p>
-          <p class="stat__label">Professores</p>
-        </article>
-      </div>
+        <!-- ----------------------------- filtros ----------------------------- -->
+        <div class="filtros">
+          <div class="field">
+            <label class="field__label" for="busca">Buscar usuário</label>
+            <div class="control-wrap">
+              <app-icone nome="busca" class="control-wrap__icon" />
+              <input
+                id="busca"
+                type="search"
+                class="control"
+                placeholder="Nome, e-mail ou RGM"
+                [value]="busca()"
+                (input)="aoBuscar($event)"
+              />
+            </div>
+          </div>
 
-      <!-- ----------------------------- filtros ----------------------------- -->
-      <div class="filtros">
-        <div class="field">
-          <label class="field__label" for="busca">Buscar usuário</label>
-          <div class="control-wrap">
-            <app-icone nome="busca" class="control-wrap__icon" />
-            <input
-              id="busca"
-              type="search"
+          <div class="field">
+            <label class="field__label" for="funcao">Filtrar por função</label>
+            <select
+              id="funcao"
               class="control"
-              placeholder="Nome, e-mail ou RGM"
-              [value]="busca()"
-              (input)="aoBuscar($event)"
-            />
+              [value]="perfilFiltro()"
+              (change)="aoFiltrarPerfil($event)"
+            >
+              <option value="TODOS">Todos</option>
+              <option value="ORIENTADOR">Orientador</option>
+              <option value="ADMIN">Admin</option>
+              <option value="ALUNO">Aluno</option>
+            </select>
           </div>
         </div>
 
-        <div class="field">
-          <label class="field__label" for="funcao">Filtrar por função</label>
-          <select
-            id="funcao"
-            class="control"
-            [value]="perfilFiltro()"
-            (change)="aoFiltrarPerfil($event)"
-          >
-            <option value="TODOS">Todos</option>
-            <option value="ORIENTADOR">Orientador</option>
-            <option value="ADMIN">Admin</option>
-            <option value="ALUNO">Aluno</option>
-          </select>
-        </div>
-      </div>
+        <!-- --------------------------- listagem --------------------------- -->
+        <section class="card card--flush">
+          <div class="card__head">
+            <app-icone nome="usuarios" class="card__head-icone" />
+            <h2 class="section-title">Pessoas cadastradas</h2>
+          </div>
 
-      <!-- --------------------------- listagem --------------------------- -->
-      <section class="card card--flush">
-        <div class="card__head">
-          <app-icone nome="usuarios" class="card__head-icone" />
-          <h2 class="section-title">Pessoas cadastradas</h2>
-        </div>
+          @if (erroUsuarios()) {
+            <p class="alerta alerta--lista" role="alert">
+              <app-icone nome="alerta" />
+              <span>{{ erroUsuarios() }}</span>
+            </p>
+          }
 
-        @if (erroUsuarios()) {
-          <p class="alerta alerta--lista" role="alert">
-            <app-icone nome="alerta" />
-            <span>{{ erroUsuarios() }}</span>
-          </p>
-        }
-
-        <div class="table-scroll">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th scope="col">Usuário</th>
-                <th scope="col">RGM</th>
-                <th scope="col">E-mail</th>
-                <th scope="col">Função</th>
-                <th scope="col">Status</th>
-                @if (edicaoDisponivel) {
-                  <th scope="col"><span class="sr-only">Ações</span></th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (u of usuarios(); track u.id) {
-                @if (editando()?.id === u.id) {
-                  <tr>
-                    <td colspan="6">
-                      @if (erroEdicao()) {
-                        <p class="alerta" role="alert">
-                          <app-icone nome="alerta" />
-                          <span>{{ erroEdicao() }}</span>
-                        </p>
-                      }
-
-                      <form
-                        class="form-grid form-grid--2 usuario-edicao"
-                        [formGroup]="editForm"
-                        (ngSubmit)="salvarEdicao(u.id)"
-                      >
-                        <div class="field">
-                          <label class="field__label" for="edit-nome">
-                            Nome completo
-                          </label>
-                          <input
-                            id="edit-nome"
-                            type="text"
-                            class="control"
-                            formControlName="nome"
-                            [class.control--invalid]="invalidoEdicao()"
-                          />
-                          @if (invalidoEdicao()) {
-                            <span class="field__error">
-                              Informe o nome completo.
-                            </span>
-                          }
-                        </div>
-
-                        <div class="field">
-                          <label class="field__label" for="edit-status">
-                            Status
-                          </label>
-                          <select
-                            id="edit-status"
-                            class="control"
-                            formControlName="status"
-                          >
-                            <option value="ATIVO">Ativo</option>
-                            <option value="INATIVO">Inativo</option>
-                          </select>
-                        </div>
-
-                        @if (u.perfil === 'ALUNO') {
-                          <div class="field">
-                            <label class="field__label" for="edit-turma">
-                              Turma
-                            </label>
-                            <select
-                              id="edit-turma"
-                              class="control"
-                              formControlName="cursoId"
-                            >
-                              @for (c of cursos(); track c.id) {
-                                <option [value]="c.id">
-                                  {{ rotuloCurso(c) }}
-                                </option>
-                              }
-                            </select>
-                          </div>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Usuário</th>
+                  <th scope="col">RGM</th>
+                  <th scope="col">E-mail</th>
+                  <th scope="col">Função</th>
+                  <th scope="col">Status</th>
+                  @if (edicaoDisponivel) {
+                    <th scope="col"><span class="sr-only">Ações</span></th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of usuarios(); track u.id) {
+                  @if (editando()?.id === u.id) {
+                    <tr>
+                      <td colspan="6">
+                        @if (erroEdicao()) {
+                          <p class="alerta" role="alert">
+                            <app-icone nome="alerta" />
+                            <span>{{ erroEdicao() }}</span>
+                          </p>
                         }
 
-                        <div class="form-grid__full row">
-                          <button
-                            type="submit"
-                            class="btn btn--primary btn--sm"
-                          >
-                            Salvar
-                          </button>
-                          <button
-                            type="button"
-                            class="btn btn--outline btn--sm"
-                            (click)="cancelarEdicao()"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </form>
-                    </td>
-                  </tr>
-                } @else {
-                  <tr>
-                    <td class="cell-strong">
-                      @if (u.nome) {
-                        {{ u.nome }}
-                      } @else {
-                        <!-- conta criada à mão no console, sem o atributo name -->
-                        <span class="muted">Sem nome cadastrado</span>
-                      }
-                    </td>
-                    <td>{{ u.rgm ?? '—' }}</td>
-                    <td>{{ u.email }}</td>
-                    <td>
-                      <span
-                        class="badge"
-                        [class]="
-                          u.perfil === 'ALUNO' ? 'badge--muted' : 'badge--primary'
-                        "
-                      >
-                        {{ rotuloPerfil(u.perfil) }}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        class="badge"
-                        [class]="
-                          u.status === 'ATIVO'
-                            ? 'badge--success'
-                            : 'badge--destructive'
-                        "
-                      >
-                        {{ u.status === 'ATIVO' ? 'Ativo' : 'Inativo' }}
-                      </span>
-                      @if (u.confirmado === false) {
-                        <span class="badge badge--muted">E-mail não confirmado</span>
-                      }
-                    </td>
-                    @if (edicaoDisponivel) {
-                      <td>
-                        <div class="row">
-                          <button
-                            type="button"
-                            class="acao-remover"
-                            (click)="iniciarEdicao(u)"
-                            [attr.aria-label]="'Editar usuário ' + u.nome"
-                          >
-                            <app-icone nome="editar" />
-                          </button>
-                          <button
-                            type="button"
-                            class="acao-remover"
-                            (click)="excluirUsuario(u.id, u.nome)"
-                            [attr.aria-label]="'Excluir usuário ' + u.nome"
-                          >
-                            <app-icone nome="lixeira" />
-                          </button>
-                        </div>
+                        <form
+                          class="form-grid form-grid--2 usuario-edicao"
+                          [formGroup]="editForm"
+                          (ngSubmit)="salvarEdicao(u.id)"
+                        >
+                          <div class="field">
+                            <label class="field__label" for="edit-nome">
+                              Nome completo
+                            </label>
+                            <input
+                              id="edit-nome"
+                              type="text"
+                              class="control"
+                              formControlName="nome"
+                              [class.control--invalid]="invalidoEdicao()"
+                            />
+                            @if (invalidoEdicao()) {
+                              <span class="field__error">
+                                Informe o nome completo.
+                              </span>
+                            }
+                          </div>
+
+                          <div class="field">
+                            <label class="field__label" for="edit-status">
+                              Status
+                            </label>
+                            <select
+                              id="edit-status"
+                              class="control"
+                              formControlName="status"
+                            >
+                              <option value="ATIVO">Ativo</option>
+                              <option value="INATIVO">Inativo</option>
+                            </select>
+                          </div>
+
+                          @if (u.perfil === 'ALUNO') {
+                            <div class="field">
+                              <label class="field__label" for="edit-turma">
+                                Turma
+                              </label>
+                              <select
+                                id="edit-turma"
+                                class="control"
+                                formControlName="cursoId"
+                              >
+                                @for (c of cursos(); track c.id) {
+                                  <option [value]="c.id">
+                                    {{ rotuloCurso(c) }}
+                                  </option>
+                                }
+                              </select>
+                            </div>
+                          }
+
+                          <div class="form-grid__full row">
+                            <button
+                              type="submit"
+                              class="btn btn--primary btn--sm"
+                            >
+                              Salvar
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn--outline btn--sm"
+                              (click)="cancelarEdicao()"
+                            >
+                              Cancelar
+                            </button>
+                          </div>
+                        </form>
                       </td>
-                    }
+                    </tr>
+                  } @else {
+                    <tr>
+                      <td class="cell-strong">
+                        @if (u.nome) {
+                          {{ u.nome }}
+                        } @else {
+                          <!-- conta criada à mão no console, sem o atributo name -->
+                          <span class="muted">Sem nome cadastrado</span>
+                        }
+                      </td>
+                      <td>{{ u.rgm ?? '—' }}</td>
+                      <td>{{ u.email }}</td>
+                      <td>
+                        <span
+                          class="badge"
+                          [class]="
+                            u.perfil === 'ALUNO' ? 'badge--muted' : 'badge--primary'
+                          "
+                        >
+                          {{ rotuloPerfil(u.perfil) }}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          class="badge"
+                          [class]="
+                            u.status === 'ATIVO'
+                              ? 'badge--success'
+                              : 'badge--destructive'
+                          "
+                        >
+                          {{ u.status === 'ATIVO' ? 'Ativo' : 'Inativo' }}
+                        </span>
+                        @if (u.confirmado === false) {
+                          <span class="badge badge--muted">E-mail não confirmado</span>
+                        }
+                      </td>
+                      @if (edicaoDisponivel) {
+                        <td>
+                          <div class="row">
+                            <button
+                              type="button"
+                              class="acao-remover"
+                              (click)="iniciarEdicao(u)"
+                              [attr.aria-label]="'Editar usuário ' + u.nome"
+                            >
+                              <app-icone nome="editar" />
+                            </button>
+                            <button
+                              type="button"
+                              class="acao-remover"
+                              (click)="excluirUsuario(u.id, u.nome)"
+                              [attr.aria-label]="'Excluir usuário ' + u.nome"
+                            >
+                              <app-icone nome="lixeira" />
+                            </button>
+                          </div>
+                        </td>
+                      }
+                    </tr>
+                  }
+                } @empty {
+                  <tr>
+                    <td class="table-empty" [attr.colspan]="edicaoDisponivel ? 6 : 5">
+                      Nenhum usuário encontrado com esses filtros.
+                    </td>
                   </tr>
                 }
-              } @empty {
-                <tr>
-                  <td class="table-empty" [attr.colspan]="edicaoDisponivel ? 6 : 5">
-                    Nenhum usuário encontrado com esses filtros.
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
     </div>
   `,
   styles: `
+    .secoes {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 900px) {
+      .secoes {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
     .ok {
       margin-top: 1rem;
     }
@@ -579,13 +610,18 @@ export class UsuariosComponent {
   private readonly cursoService = inject(CursoService);
   private readonly matriculaService = inject(MatriculaService);
   private readonly confirmacao = inject(ConfirmacaoService);
-  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
 
   readonly rotuloCurso = rotuloCurso;
 
-  /** Só admin cadastra orientador/admin — orientador não vê esse card. */
-  readonly souAdmin = computed(() => this.auth.perfil() === 'ADMIN');
+  /** A tela mostra uma seção por vez; a escolha vem do menu no topo. */
+  readonly secoes: { id: SecaoUsuarios; rotulo: string }[] = [
+    { id: 'conta', rotulo: 'Cadastrar orientador ou admin' },
+    { id: 'preautorizar', rotulo: 'Pré-autorizar alunos' },
+    { id: 'matriculas', rotulo: 'RGMs pré-autorizados' },
+    { id: 'pessoas', rotulo: 'Pessoas cadastradas' },
+  ];
+  readonly secao = signal<SecaoUsuarios>('conta');
 
   readonly busca = signal('');
   readonly perfilFiltro = signal<Perfil | 'TODOS'>('TODOS');
