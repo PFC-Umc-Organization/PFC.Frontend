@@ -1,4 +1,4 @@
-import { Atividade, Entrega, StatusAtividade, StatusEntrega } from '../models';
+import { Atividade, StatusEntrega } from '../models';
 
 /**
  * Regras de status calculadas no cliente a partir do prazo e do instante da
@@ -15,31 +15,6 @@ export function statusDaEntrega(
     return new Date(entregueEm) > limite ? 'ENTREGUE_COM_ATRASO' : 'ENTREGUE';
   }
   return agora > limite ? 'ATRASADO' : 'PENDENTE';
-}
-
-/** Status da atividade olhando todos os projetos considerados. */
-export function statusDaAtividade(
-  atividade: Atividade,
-  projetoIds: string[],
-  entregas: Pick<Entrega, 'projetoId' | 'entregueEm'>[],
-  agora = new Date(),
-): StatusAtividade {
-  if (projetoIds.length === 0) {
-    return agora > new Date(atividade.prazo) ? 'ATRASADA' : 'EM_ANDAMENTO';
-  }
-
-  const statuses = projetoIds.map((id) =>
-    statusDaEntrega(
-      atividade.prazo,
-      entregas.find((e) => e.projetoId === id)?.entregueEm,
-      agora,
-    ),
-  );
-
-  if (statuses.every((s) => s === 'ENTREGUE' || s === 'ENTREGUE_COM_ATRASO')) {
-    return 'CONCLUIDA';
-  }
-  return statuses.includes('ATRASADO') ? 'ATRASADA' : 'EM_ANDAMENTO';
 }
 
 /** Nome do arquivo entregue: a resposta do primeiro campo ARQUIVO. */

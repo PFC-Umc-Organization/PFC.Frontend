@@ -10,7 +10,6 @@ import {
   Matricula,
   Programa,
   Projeto,
-  StatusAtividade,
   StatusEntrega,
   Usuario,
   rotuloCurso,
@@ -115,12 +114,6 @@ export class MemoriaStore {
 
   projetosDoPrograma(programaId: string): Projeto[] {
     return this.projetosAtuais.filter((p) => p.programaId === programaId);
-  }
-
-  
-  projetosDoCurso(cursoId: string): Projeto[] {
-    const programa = this.programaDoCurso(cursoId);
-    return programa ? this.projetosDoPrograma(programa.id) : [];
   }
 
  
@@ -410,55 +403,9 @@ export class MemoriaStore {
     return agora > prazo ? 'ATRASADO' : 'PENDENTE';
   }
 
-  
-  statusAtividade(
-    atividade: Atividade,
-    cursoId?: string,
-    agora = new Date(),
-  ): StatusAtividade {
-    const projetos = cursoId
-      ? this.projetosDoCurso(cursoId)
-      : this.projetosAtuais;
-
-    if (projetos.length === 0) {
-      return agora > new Date(atividade.prazo) ? 'ATRASADA' : 'EM_ANDAMENTO';
-    }
-
-    const statuses = projetos.map((p) =>
-      this.statusEntrega(atividade, p.id, agora),
-    );
-
-    if (statuses.every((s) => s === 'ENTREGUE' || s === 'ENTREGUE_COM_ATRASO')) {
-      return 'CONCLUIDA';
-    }
-
-    return statuses.some((s) => s === 'ATRASADO') ? 'ATRASADA' : 'EM_ANDAMENTO';
-  }
-
   arquivoEntrega(atividadeId: string, projetoId: string): string | undefined {
     return this.entregasAtuais.find(
       (e) => e.atividadeId === atividadeId && e.projetoId === projetoId,
     )?.arquivoNome;
-  }
-
-  entregasRecebidas(atividadeId: string, cursoId?: string): number {
-    const ids = new Set(
-      (cursoId ? this.projetosDoCurso(cursoId) : this.projetosAtuais).map(
-        (p) => p.id,
-      ),
-    );
-
-    return this.entregasAtuais.filter(
-      (e) =>
-        e.atividadeId === atividadeId &&
-        e.entregueEm !== null &&
-        ids.has(e.projetoId),
-    ).length;
-  }
-
-  totalProjetos(cursoId?: string): number {
-    return cursoId
-      ? this.projetosDoCurso(cursoId).length
-      : this.projetosAtuais.length;
   }
 }

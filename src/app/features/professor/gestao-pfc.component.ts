@@ -24,8 +24,6 @@ import {
   TipoCampoEntrega,
   Programa,
   Projeto,
-  ROTULO_STATUS_ATIVIDADE,
-  StatusAtividade,
   Usuario,
   ehEquipeAcademica,
   rotuloCurso,
@@ -39,12 +37,6 @@ import { ProjetoService } from '../../core/services/projeto.service';
 import { UsuarioService } from '../../core/services/usuario.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
-
-const TOM_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
-  CONCLUIDA: 'success',
-  EM_ANDAMENTO: 'primary',
-  ATRASADA: 'destructive',
-};
 
 type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
 
@@ -691,16 +683,14 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                 <tr>
                   <th scope="col">Atividade</th>
                   <th scope="col">Data e hora limite</th>
-                  <th scope="col">Projetos que entregaram</th>
-                  <th scope="col">Status</th>
                   <th scope="col"><span class="sr-only">Ações</span></th>
                 </tr>
               </thead>
               <tbody>
-                @for (r of resumosAtividades(); track r.atividade.id) {
-                  @if (editandoAtividadeId() === r.atividade.id) {
+                @for (a of atividades(); track a.id) {
+                  @if (editandoAtividadeId() === a.id) {
                     <tr>
-                      <td colspan="5">
+                      <td colspan="3">
                         @if (erroEdicaoAtividade()) {
                           <p class="alerta" role="alert">
                             <app-icone nome="alerta" />
@@ -711,7 +701,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                         <form
                           class="form-grid form-grid--2 atividade-edicao"
                           [formGroup]="editAtividadeForm"
-                          (ngSubmit)="salvarEdicaoAtividade(r.atividade.id)"
+                          (ngSubmit)="salvarEdicaoAtividade(a.id)"
                         >
                           <div class="field">
                             <label class="field__label" for="edit-atividade-titulo">
@@ -763,7 +753,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                           <div class="form-grid__full campos">
                             <p class="field__label">Campos de entrega</p>
                             <ul class="campos__lista">
-                              @for (c of r.atividade.campos; track c.id) {
+                              @for (c of a.campos; track c.id) {
                                 <li class="campos__item">
                                   <span class="cell-strong">{{ c.rotulo }}</span>
                                   <span class="campos__meta">
@@ -773,8 +763,8 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                                   <button
                                     type="button"
                                     class="acao-remover"
-                                    [disabled]="r.atividade.campos.length <= 1"
-                                    (click)="removerCampo(r.atividade.id, c.id)"
+                                    [disabled]="a.campos.length <= 1"
+                                    (click)="removerCampo(a.id, c.id)"
                                     [attr.aria-label]="'Remover campo ' + c.rotulo"
                                   >
                                     <app-icone nome="lixeira" />
@@ -782,7 +772,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                                 </li>
                               }
                             </ul>
-                            @if (r.atividade.campos.length <= 1) {
+                            @if (a.campos.length <= 1) {
                               <p class="campos__aviso">
                                 A atividade precisa de ao menos um campo de entrega.
                               </p>
@@ -801,7 +791,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                                 [value]="novoCampoRotulo()"
                                 (input)="novoCampoRotulo.set($any($event.target).value)"
                                 (keydown.enter)="
-                                  $event.preventDefault(); adicionarCampo(r.atividade.id)
+                                  $event.preventDefault(); adicionarCampo(a.id)
                                 "
                               />
                               <select
@@ -829,7 +819,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                               <button
                                 type="button"
                                 class="btn btn--outline btn--sm"
-                                (click)="adicionarCampo(r.atividade.id)"
+                                (click)="adicionarCampo(a.id)"
                               >
                                 <app-icone nome="mais" class="btn__icon" />
                                 Adicionar campo
@@ -854,22 +844,16 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                     </tr>
                   } @else {
                     <tr>
-                      <td class="cell-strong">{{ r.atividade.titulo }}</td>
-                      <td>{{ r.atividade.prazo | prazo }}</td>
-                      <td>{{ r.projetosEntregues }}/{{ r.totalProjetos }}</td>
-                      <td>
-                        <span class="badge" [class]="'badge--' + tomAtividade(r.status)">
-                          {{ rotuloStatusAtividade(r.status) }}
-                        </span>
-                      </td>
+                      <td class="cell-strong">{{ a.titulo }}</td>
+                      <td>{{ a.prazo | prazo }}</td>
                       <td>
                         <div class="row">
                           <button
                             type="button"
                             class="acao-remover"
-                            (click)="iniciarEdicaoAtividade(r.atividade)"
+                            (click)="iniciarEdicaoAtividade(a)"
                             [attr.aria-label]="
-                              'Editar atividade ' + r.atividade.titulo
+                              'Editar atividade ' + a.titulo
                             "
                           >
                             <app-icone nome="editar" />
@@ -877,9 +861,9 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                           <button
                             type="button"
                             class="acao-remover"
-                            (click)="removerAtividade(r.atividade.id, r.atividade.titulo)"
+                            (click)="removerAtividade(a.id, a.titulo)"
                             [attr.aria-label]="
-                              'Remover atividade ' + r.atividade.titulo
+                              'Remover atividade ' + a.titulo
                             "
                           >
                             <app-icone nome="lixeira" />
@@ -890,7 +874,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                   }
                 } @empty {
                   <tr>
-                    <td class="table-empty" colspan="5">
+                    <td class="table-empty" colspan="3">
                       Nenhuma atividade cadastrada ainda.
                     </td>
                   </tr>
@@ -1348,8 +1332,8 @@ export class GestaoPfcComponent {
 
   /* ------------------------------ atividades ------------------------------ */
 
-  readonly resumosAtividades = toSignal(this.atividadeService.listarResumos(), {
-    initialValue: [],
+  readonly atividades = toSignal(this.atividadeService.listar(), {
+    initialValue: [] as Atividade[],
   });
 
   readonly salvandoAtividade = signal(false);
@@ -1380,14 +1364,6 @@ export class GestaoPfcComponent {
   invalidoEdicaoAtividade(campo: 'titulo' | 'prazo'): boolean {
     const c = this.editAtividadeForm.controls[campo];
     return c.invalid && c.touched;
-  }
-
-  tomAtividade(status: StatusAtividade): string {
-    return TOM_STATUS_ATIVIDADE[status];
-  }
-
-  rotuloStatusAtividade(status: StatusAtividade): string {
-    return ROTULO_STATUS_ATIVIDADE[status];
   }
 
   publicarAtividade(): void {

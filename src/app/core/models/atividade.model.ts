@@ -1,6 +1,3 @@
-export type StatusAtividade = 'CONCLUIDA' | 'EM_ANDAMENTO' | 'ATRASADA';
-
-
 export type TipoCampoEntrega = 'ARQUIVO' | 'TEXTO' | 'TEXTO_LONGO' | 'LINK';
 
 export const ROTULO_TIPO_CAMPO: Record<TipoCampoEntrega, string> = {
@@ -52,17 +49,3 @@ export interface AtualizacaoAtividade {
   prazo?: string;
 }
 
-
-export interface AtividadeResumo {
-  atividade: Atividade;
-  /** Quantos projetos já entregaram esta etapa. */
-  projetosEntregues: number;
-  totalProjetos: number;
-  status: StatusAtividade;
-}
-
-export const ROTULO_STATUS_ATIVIDADE: Record<StatusAtividade, string> = {
-  CONCLUIDA: 'Concluída',
-  EM_ANDAMENTO: 'Em andamento',
-  ATRASADA: 'Atrasada',
-};

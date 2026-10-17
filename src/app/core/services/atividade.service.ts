@@ -4,13 +4,10 @@ import {
   BehaviorSubject,
   Observable,
   catchError,
-  combineLatest,
   delay,
-  forkJoin,
   map,
   of,
   switchMap,
-  take,
   tap,
   throwError,
 } from 'rxjs';
@@ -18,9 +15,6 @@ import {
 import { environment } from '../../../environments/environment';
 import {
   Atividade,
-  Entrega,
-  Projeto,
-  AtividadeResumo,
   AtualizacaoAtividade,
   CAMPO_ENTREGA_PADRAO,
   CampoEntrega,
@@ -29,14 +23,9 @@ import {
 } from '../models';
 import { erroHttp } from './http-erro';
 import { MemoriaStore } from './memoria.store';
-import { ProgramaService } from './programa.service';
-import { ProjetoService } from './projeto.service';
-import { statusDaAtividade } from './status-entrega';
 
 export abstract class AtividadeService {
   abstract listar(): Observable<Atividade[]>;
- 
-  abstract listarResumos(cursoId?: string): Observable<AtividadeResumo[]>;
   abstract criar(nova: NovaAtividade): Observable<Atividade>;
   abstract atualizar(
     atividadeId: string,
@@ -63,23 +52,6 @@ export class AtividadeMockService extends AtividadeService {
     );
   }
 
-  
-  override listarResumos(cursoId?: string): Observable<AtividadeResumo[]> {
-    return combineLatest([
-      this.listar(),
-      this.store.entregas,
-      this.store.projetos,
-    ]).pipe(
-      map(([atividades]) =>
-        atividades.map<AtividadeResumo>((atividade) => ({
-          atividade,
-          projetosEntregues: this.store.entregasRecebidas(atividade.id, cursoId),
-          totalProjetos: this.store.totalProjetos(cursoId),
-          status: this.store.statusAtividade(atividade, cursoId),
-        })),
-      ),
-    );
-  }
 
   override criar(nova: NovaAtividade): Observable<Atividade> {
     const atividade: Atividade = {
@@ -159,8 +131,6 @@ export class AtividadeMockService extends AtividadeService {
 @Injectable()
 export class AtividadeHttpService extends AtividadeService {
   private readonly http = inject(HttpClient);
-  private readonly programas = inject(ProgramaService);
-  private readonly projetos = inject(ProjetoService);
   private readonly url = `${environment.apiBaseUrl}/atividades`;
 
   /** Emite a cada alteração pra que as listas abertas se atualizem. */
@@ -173,55 +143,6 @@ export class AtividadeHttpService extends AtividadeService {
           .get<Atividade[]>(this.url)
           .pipe(catchError(() => of([] as Atividade[]))),
       ),
-    );
-  }
-
-  override listarResumos(cursoId?: string): Observable<AtividadeResumo[]> {
-    return this.recarregar$.pipe(
-      switchMap(() =>
-        forkJoin([this.listar().pipe(take(1)), this.projetosDoCurso(cursoId)]),
-      ),
-      switchMap(([atividades, projetos]) => {
-        const ids = projetos.map((p) => p.id);
-        if (atividades.length === 0) {
-          return of([] as AtividadeResumo[]);
-        }
-        return forkJoin(
-          atividades.map((a) =>
-            this.http.get<Entrega[]>(`${this.url}/${a.id}/entregas`).pipe(
-              catchError(() => of([] as Entrega[])),
-              map((entregas): AtividadeResumo => {
-                const doCurso = entregas.filter(
-                  (e) => ids.includes(e.projetoId) && !!e.entregueEm,
-                );
-                return {
-                  atividade: a,
-                  projetosEntregues: doCurso.length,
-                  totalProjetos: ids.length,
-                  status: statusDaAtividade(a, ids, doCurso),
-                };
-              }),
-            ),
-          ),
-        );
-      }),
-      catchError(() => of([] as AtividadeResumo[])),
-    );
-  }
-
-  /** Projetos do curso (ou de todos, sem filtro) — a base do "x/y entregues". */
-  private projetosDoCurso(cursoId?: string): Observable<Projeto[]> {
-    return this.programas.listar().pipe(
-      switchMap((programas) => {
-        const alvo = cursoId
-          ? programas.filter((p) => p.cursoId === cursoId)
-          : programas;
-        return alvo.length === 0
-          ? of([] as Projeto[][])
-          : forkJoin(alvo.map((p) => this.projetos.listar(p.id)));
-      }),
-      map((listas) => listas.flat()),
-      catchError(() => of([] as Projeto[])),
     );
   }
 

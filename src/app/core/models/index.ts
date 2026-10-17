@@ -1,5 +1,6 @@
 export * from './usuario.model';
 export * from './curso.model';
+export * from './graduacao.model';
 export * from './programa.model';
 export * from './projeto.model';
 export * from './atividade.model';

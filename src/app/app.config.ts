@@ -22,6 +22,10 @@ import {
   EntregaService,
 } from './core/services/entrega.service';
 import {
+  GraduacaoHttpService,
+  GraduacaoService,
+} from './core/services/graduacao.service';
+import {
   MaterialMockService,
   MaterialService,
 } from './core/services/material.service';
@@ -50,7 +54,7 @@ import {
  * Este é o único ponto do app que sabe QUAL implementação dos services está
  * em uso.
  *
- * `Usuario` (login/cadastro), `Curso`, `Programa`, `Projeto`, `Convite`, `Matricula`, `Referencia`,
+ * `Usuario` (login/cadastro), `Curso` (turma), `Graduacao` (curso), `Programa`, `Projeto`, `Convite`, `Matricula`, `Referencia`,
  * `Atividade` e `Entrega` já falam com o backend real (ver README, seção "Endpoints
  * que o front espera"). Pra demonstrar sem backend, troque por
  * `*MockService`.
@@ -69,6 +73,7 @@ export const appConfig: ApplicationConfig = {
 
     { provide: UsuarioService, useClass: UsuarioHttpService },
     { provide: CursoService, useClass: CursoHttpService },
+    { provide: GraduacaoService, useClass: GraduacaoHttpService },
     { provide: ProgramaService, useClass: ProgramaHttpService },
     { provide: ProjetoService, useClass: ProjetoHttpService },
     { provide: ConviteService, useClass: ConviteHttpService },
