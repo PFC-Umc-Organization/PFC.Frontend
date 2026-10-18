@@ -31,7 +31,7 @@ export interface NovoProjetoDoAluno {
 }
 
 /**
- * Convite pendente pra um aluno entrar no grupo — espelha `projeto.Convite`
+ * Convite pendente pra um aluno entrar no grupo — espelha `groups.Invitation`
  * do backend. Só existe enquanto ninguém respondeu: aceitou, recusou ou foi
  * cancelado, some.
  */
@@ -49,4 +49,32 @@ export interface Convite {
 export interface AtualizacaoProjeto {
   nome?: string;
   descricao?: string;
+}
+
+/** Mesmos limites de `internal/groups/domain.go` no backend. */
+export const LIMITES_PROJETO = { nome: 150, descricao: 2000, integrantes: 10 } as const;
+
+/**
+ * Lê os RGMs digitados no "criar PFC" (vírgula, ponto e vírgula, espaço ou
+ * quebra de linha) e confere antes de enviar: só números, sem repetir, sem o
+ * próprio RGM e cabendo no grupo junto com quem cria.
+ */
+export function colegasDoFormulario(
+  texto: string,
+  meuRgm: string,
+): { rgms: string[] } | { erro: string } {
+  const rgms = [...new Set(texto.split(/[\s,;]+/).filter(Boolean))].filter(
+    (r) => r !== meuRgm,
+  );
+  const invalido = rgms.find((r) => !/^\d+$/.test(r));
+  if (invalido) {
+    return { erro: `"${invalido}" não é um RGM válido — use só números.` };
+  }
+  const maxColegas = LIMITES_PROJETO.integrantes - 1;
+  if (rgms.length > maxColegas) {
+    return {
+      erro: `O grupo pode ter até ${LIMITES_PROJETO.integrantes} pessoas contando você — informe no máximo ${maxColegas} colegas.`,
+    };
+  }
+  return { rgms };
 }

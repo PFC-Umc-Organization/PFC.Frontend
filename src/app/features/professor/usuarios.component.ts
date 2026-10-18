@@ -24,7 +24,9 @@ import {
   ResultadoMatricula,
   StatusUsuario,
   Usuario,
-  rotuloCurso,
+  ehDoPeriodo,
+  periodoAtual,
+  rotuloTurma,
 } from '../../core/models';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
@@ -180,12 +182,12 @@ type SecaoUsuarios = 'conta' | 'preautorizar' | 'matriculas' | 'pessoas';
               </p>
             }
 
-            @if (cursos().length === 0) {
+            @if (turmasDoSemestre().length === 0) {
               <p class="alerta" role="alert">
                 <app-icone nome="alerta" />
                 <span>
-                  Nenhuma turma cadastrada ainda — cadastre uma turma antes de
-                  pré-autorizar RGMs.
+                  Nenhuma turma do semestre {{ periodoAtual }} cadastrada —
+                  cadastre a turma deste semestre antes de pré-autorizar RGMs.
                   <a routerLink="/turmas">Ir para Turmas</a>
                 </span>
               </p>
@@ -206,8 +208,8 @@ type SecaoUsuarios = 'conta' | 'preautorizar' | 'matriculas' | 'pessoas';
                   [class.control--invalid]="invalidoProvisionamento('turmaId')"
                 >
                   <option value="" disabled>Selecione a turma</option>
-                  @for (c of cursos(); track c.id) {
-                    <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                  @for (c of turmasDoSemestre(); track c.id) {
+                    <option [value]="c.id">{{ rotuloTurma(c) }}</option>
                   }
                 </select>
                 @if (invalidoProvisionamento('turmaId')) {
@@ -459,7 +461,7 @@ type SecaoUsuarios = 'conta' | 'preautorizar' | 'matriculas' | 'pessoas';
                               >
                                 @for (c of cursos(); track c.id) {
                                   <option [value]="c.id">
-                                    {{ rotuloCurso(c) }}
+                                    {{ rotuloTurma(c) }}
                                   </option>
                                 }
                               </select>
@@ -611,7 +613,8 @@ export class UsuariosComponent {
   private readonly confirmacao = inject(ConfirmacaoService);
   private readonly fb = inject(FormBuilder);
 
-  readonly rotuloCurso = rotuloCurso;
+  readonly rotuloTurma = rotuloTurma;
+  readonly periodoAtual = periodoAtual();
 
   /** A tela mostra uma seção por vez; a escolha vem do menu no topo. */
   readonly secoes: { id: SecaoUsuarios; rotulo: string }[] = [
@@ -626,6 +629,10 @@ export class UsuariosComponent {
   readonly perfilFiltro = signal<Perfil | 'TODOS'>('TODOS');
 
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
+  /** Pré-autorizar só oferece turmas do semestre corrente; as antigas seguem na lista de RGMs. */
+  readonly turmasDoSemestre = computed(() =>
+    this.cursos().filter((c) => ehDoPeriodo(c, this.periodoAtual)),
+  );
 
   /* ------------------------ pré-autorização por RGM ------------------------ */
 
@@ -754,7 +761,7 @@ export class UsuariosComponent {
   /** Rótulo da turma pra exibir na lista de RGMs pré-autorizados. */
   rotuloTurmaDoId(turmaId?: string): string {
     const curso = this.cursos().find((c) => c.id === turmaId);
-    return curso ? this.rotuloCurso(curso) : '—';
+    return curso ? this.rotuloTurma(curso) : '—';
   }
 
   invalidoNovaConta(campo: 'nome' | 'email'): boolean {

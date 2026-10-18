@@ -10,10 +10,18 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { BehaviorSubject, catchError, combineLatest, of, switchMap } from 'rxjs';
 
-import { Convite, Projeto, ProjetoDetalhe, rgmDoUsuario } from '../../core/models';
+import {
+  Convite,
+  LIMITES_PROJETO,
+  Projeto,
+  ProjetoDetalhe,
+  colegasDoFormulario,
+  rgmDoUsuario,
+} from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { ConviteService } from '../../core/services/convite.service';
+import { ProgramaService } from '../../core/services/programa.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 
@@ -186,6 +194,31 @@ import { IconeComponent } from '../../shared/components/icone.component';
           </section>
         }
 
+        @switch (situacao()) {
+          @case ('sem-turma') {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>
+                O seu RGM ainda não está pré-autorizado em nenhuma turma, então
+                ainda não dá para criar o PFC. Fale com a coordenação. Se a
+                coordenação acabou de liberar, saia e entre de novo.
+              </span>
+            </p>
+          }
+          @case ('sem-programa') {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>
+                A sua turma ainda não tem PFC iniciado. Assim que a coordenação
+                criar o programa de PFC da turma, você poderá criar o projeto do
+                seu grupo aqui.
+              </span>
+            </p>
+          }
+          @case ('carregando') {
+            <p class="muted text-sm">Verificando a sua turma…</p>
+          }
+          @default {
         <section class="card">
           <div class="card__body">
             <h2 class="section-title">Criar o PFC do meu grupo</h2>
@@ -212,7 +245,9 @@ import { IconeComponent } from '../../shared/components/icone.component';
                   [class.control--invalid]="nomeInvalido()"
                 />
                 @if (nomeInvalido()) {
-                  <span class="field__error">Informe o nome do projeto.</span>
+                  <span class="field__error">
+                    Informe um nome de 3 a 150 caracteres.
+                  </span>
                 }
               </div>
 
@@ -236,7 +271,13 @@ import { IconeComponent } from '../../shared/components/icone.component';
                   class="control control--textarea"
                   placeholder="Do que se trata o projeto."
                   formControlName="descricao"
+                  [class.control--invalid]="descricaoInvalida()"
                 ></textarea>
+                @if (descricaoInvalida()) {
+                  <span class="field__error">
+                    A descrição pode ter até 2.000 caracteres.
+                  </span>
+                }
               </div>
 
               <div class="form-grid__full">
@@ -251,6 +292,8 @@ import { IconeComponent } from '../../shared/components/icone.component';
             </form>
           </div>
         </section>
+          }
+        }
       }
     </div>
   `,
@@ -331,6 +374,7 @@ import { IconeComponent } from '../../shared/components/icone.component';
 export class MeuPfcComponent {
   private readonly auth = inject(AuthService);
   private readonly projetoService = inject(ProjetoService);
+  private readonly programaService = inject(ProgramaService);
   private readonly conviteService = inject(ConviteService);
   private readonly confirmacao = inject(ConfirmacaoService);
 
@@ -348,9 +392,48 @@ export class MeuPfcComponent {
     { initialValue: null as Projeto | null },
   );
 
+  /**
+   * A turma vem da sessão (gravada no login): se a coordenação pré-autorizar
+   * o aluno depois, a tela só sabe quando ele entra de novo.
+   */
+  private readonly minhaTurmaId = computed(
+    () => this.auth.usuario()?.cursoIds?.[0] ?? '',
+  );
+
+  /** `undefined` enquanto carrega; `null` se falhar (aí o backend decide no envio). */
+  private readonly programas = toSignal(
+    this.programaService.listar().pipe(catchError(() => of(null))),
+    { initialValue: undefined },
+  );
+
+  /** Só oferece o formulário a quem pode criar; os outros casos viram aviso. */
+  readonly situacao = computed<'carregando' | 'sem-turma' | 'sem-programa' | 'pode-criar'>(
+    () => {
+      const turmaId = this.minhaTurmaId();
+      if (!turmaId) {
+        return 'sem-turma';
+      }
+      const programas = this.programas();
+      if (programas === undefined) {
+        return 'carregando';
+      }
+      if (programas === null) {
+        return 'pode-criar';
+      }
+      return programas.some((p) => p.cursoId === turmaId) ? 'pode-criar' : 'sem-programa';
+    },
+  );
+
   readonly form = this.fb.nonNullable.group({
-    nome: ['', [Validators.required, Validators.minLength(3)]],
-    descricao: [''],
+    nome: [
+      '',
+      [
+        Validators.required,
+        Validators.minLength(3),
+        Validators.maxLength(LIMITES_PROJETO.nome),
+      ],
+    ],
+    descricao: ['', [Validators.maxLength(LIMITES_PROJETO.descricao)]],
     colegas: [''],
   });
   readonly criando = signal(false);
@@ -358,6 +441,11 @@ export class MeuPfcComponent {
 
   nomeInvalido(): boolean {
     const c = this.form.controls.nome;
+    return c.invalid && c.touched;
+  }
+
+  descricaoInvalida(): boolean {
+    const c = this.form.controls.descricao;
     return c.invalid && c.touched;
   }
 
@@ -369,16 +457,18 @@ export class MeuPfcComponent {
     }
 
     const { nome, descricao, colegas } = this.form.getRawValue();
+    const lidos = colegasDoFormulario(colegas, this.meuRgm());
+    if ('erro' in lidos) {
+      this.erro.set(lidos.erro);
+      return;
+    }
     this.criando.set(true);
 
     this.projetoService
       .criarDoAluno({
-        nome,
-        descricao,
-        integrantes: colegas
-          .split(/[\s,;]+/)
-          .map((r) => r.trim())
-          .filter(Boolean),
+        nome: nome.trim(),
+        descricao: descricao.trim(),
+        integrantes: lidos.rgms,
       })
       .subscribe({
         next: () => {
