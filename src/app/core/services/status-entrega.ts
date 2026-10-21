@@ -1,9 +1,6 @@
 import { Atividade, StatusEntrega } from '../models';
 
-/**
- * Regras de status calculadas no cliente a partir do prazo e do instante da
- * entrega (mesmas do `MemoriaStore`, que continua servindo o modo mock).
- */
+/** Status calculado no cliente a partir do prazo e do instante da entrega. */
 export function statusDaEntrega(
   prazo: string,
   entregueEm: string | null | undefined,

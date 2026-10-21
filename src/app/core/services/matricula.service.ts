@@ -1,12 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, delay, of } from 'rxjs';
+import { Observable, catchError } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { Matricula, ResultadoMatricula } from '../models';
 import { erroHttp } from './http-erro';
-import { MemoriaStore } from './memoria.store';
-
 
 export abstract class MatriculaService {
   abstract listar(): Observable<Matricula[]>;
@@ -15,28 +13,6 @@ export abstract class MatriculaService {
     turmaId: string,
   ): Observable<ResultadoMatricula>;
   abstract remover(rgms: string[]): Observable<ResultadoMatricula>;
-}
-
-@Injectable()
-export class MatriculaMockService extends MatriculaService {
-  protected readonly store = inject(MemoriaStore);
-
-  override listar(): Observable<Matricula[]> {
-    return this.store.matriculas;
-  }
-
-  override provisionar(
-    rgms: string[],
-    turmaId: string,
-  ): Observable<ResultadoMatricula> {
-    this.store.provisionarMatriculas(rgms, turmaId);
-    return of({ processados: rgms.length, falhas: [] }).pipe(delay(400));
-  }
-
-  override remover(rgms: string[]): Observable<ResultadoMatricula> {
-    this.store.removerMatriculas(rgms);
-    return of({ processados: rgms.length, falhas: [] }).pipe(delay(300));
-  }
 }
 
 @Injectable()

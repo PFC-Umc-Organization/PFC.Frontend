@@ -200,8 +200,8 @@ import { IconeComponent } from '../../shared/components/icone.component';
               <app-icone nome="alerta" />
               <span>
                 O seu RGM ainda não está pré-autorizado em nenhuma turma, então
-                ainda não dá para criar o PFC. Fale com a coordenação. Se a
-                coordenação acabou de liberar, saia e entre de novo.
+                ainda não dá para criar o PFC. Fale com a coordenação. Se ela
+                acabou de liberar, recarregue a página.
               </span>
             </p>
           }

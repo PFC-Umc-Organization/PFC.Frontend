@@ -1,15 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import {
-  Observable,
-  catchError,
-  delay,
-  map,
-  of,
-  shareReplay,
-  tap,
-  throwError,
-} from 'rxjs';
+import { Observable, catchError, map, shareReplay, tap, throwError } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
@@ -20,11 +11,10 @@ import {
   Perfil,
   RespostaAutenticacao,
   RespostaCadastro,
+  RespostaLogin,
   Usuario,
 } from '../models';
-import { SENHA_MOCK } from './dados-mock';
 import { erroHttp } from './http-erro';
-import { MemoriaStore } from './memoria.store';
 
 export interface FiltroUsuario {
   busca?: string;
@@ -45,130 +35,27 @@ export abstract class UsuarioService {
   /** Confirma a conta com o código de 6 dígitos enviado por e-mail. */
   abstract confirmar(email: string, codigo: string): Observable<RespostaCadastro>;
   abstract reenviarCodigo(email: string): Observable<RespostaCadastro>;
-  abstract autenticar(
-    credenciais: Credenciais,
+  abstract autenticar(credenciais: Credenciais): Observable<RespostaLogin>;
+  /** Troca a senha temporária no primeiro acesso (conta criada pela coordenação). */
+  abstract definirNovaSenha(
+    email: string,
+    sessao: string,
+    senha: string,
   ): Observable<RespostaAutenticacao>;
+  /** Manda o código de redefinição; a resposta não diz se a conta existe. */
+  abstract esqueciSenha(email: string): Observable<RespostaCadastro>;
+  abstract redefinirSenha(
+    email: string,
+    codigo: string,
+    senha: string,
+  ): Observable<RespostaCadastro>;
+  /** O usuário logado, lido de novo (turma do aluno atualizada). */
+  abstract eu(): Observable<Usuario>;
   abstract atualizar(
     usuarioId: string,
     dados: AtualizacaoUsuario,
   ): Observable<Usuario>;
   abstract remover(usuarioId: string): Observable<void>;
-}
-
-@Injectable()
-export class UsuarioMockService extends UsuarioService {
-  private readonly store = inject(MemoriaStore);
-
-  override readonly edicaoDisponivel = true;
-
-  override listar(filtro: FiltroUsuario = {}): Observable<Usuario[]> {
-    return this.store.usuarios.pipe(
-      map((usuarios) => aplicarFiltro(usuarios, filtro)),
-    );
-  }
-
-  override criar(novo: NovoUsuario): Observable<RespostaCadastro> {
-    const emailEmUso = this.store.usuariosAtuais.some(
-      (u) => u.email.toLowerCase() === novo.email.trim().toLowerCase(),
-    );
-
-    if (emailEmUso) {
-      return throwError(
-        () => new Error('Já existe uma conta com esse e-mail.'),
-      ).pipe(delay(250));
-    }
-
-    const usuario: Usuario = {
-      id: `u-${crypto.randomUUID()}`,
-      nome: novo.nome.trim(),
-      email: novo.email.trim().toLowerCase(),
-      perfil: 'ALUNO',
-      status: 'ATIVO',
-      cursoIds: this.cursoIdsPadrao('ALUNO'),
-    };
-
-    this.store.adicionarUsuario(usuario);
-    return of({
-      mensagem:
-        'Cadastro recebido — no mock, sua conta já está pronta pra entrar.',
-    }).pipe(delay(400));
-  }
-
-  override criarConta(nova: NovaConta): Observable<RespostaCadastro> {
-    const emailEmUso = this.store.usuariosAtuais.some(
-      (u) => u.email.toLowerCase() === nova.email.trim().toLowerCase(),
-    );
-
-    if (emailEmUso) {
-      return throwError(
-        () => new Error('Já existe uma conta com esse e-mail.'),
-      ).pipe(delay(250));
-    }
-
-    this.store.adicionarUsuario({
-      id: `u-${crypto.randomUUID()}`,
-      nome: nova.nome.trim(),
-      email: nova.email.trim().toLowerCase(),
-      perfil: nova.perfil,
-      status: 'ATIVO',
-      cursoIds: this.cursoIdsPadrao(nova.perfil),
-    });
-    return of({
-      mensagem: 'Conta criada — no mock, já está pronta pra entrar.',
-    }).pipe(delay(400));
-  }
-
-  override confirmar(): Observable<RespostaCadastro> {
-    return of({ mensagem: 'Conta confirmada — você já pode entrar.' }).pipe(
-      delay(300),
-    );
-  }
-
-  override reenviarCodigo(): Observable<RespostaCadastro> {
-    return of({ mensagem: 'Enviamos um código novo.' }).pipe(delay(300));
-  }
-
-  protected cursoIdsPadrao(perfil: Perfil): string[] {
-    return perfil === 'ALUNO'
-      ? ['c-eng-noite']
-      : ['c-eng-noite', 'c-eng-manha', 'c-si-noite', 'c-si-manha'];
-  }
-
-
-  override autenticar(
-    credenciais: Credenciais,
-  ): Observable<RespostaAutenticacao> {
-    const usuario = this.store.usuariosAtuais.find(
-      (u) => u.email.toLowerCase() === credenciais.email.trim().toLowerCase(),
-    );
-
-    if (!usuario || credenciais.senha !== SENHA_MOCK) {
-      return throwError(
-        () => new Error('E-mail ou senha inválidos.'),
-      ).pipe(delay(500));
-    }
-
-    return of({ usuario, token: `mock-token-${usuario.id}` }).pipe(delay(500));
-  }
-
-  override atualizar(
-    usuarioId: string,
-    dados: AtualizacaoUsuario,
-  ): Observable<Usuario> {
-    this.store.atualizarUsuario(usuarioId, dados);
-    const usuario = this.store.usuariosAtuais.find((u) => u.id === usuarioId);
-
-    if (!usuario) {
-      return throwError(() => new Error('Usuário não encontrado.'));
-    }
-
-    return of(usuario).pipe(delay(300));
-  }
-
-  override remover(usuarioId: string): Observable<void> {
-    this.store.removerUsuario(usuarioId);
-    return of(undefined).pipe(delay(300));
-  }
 }
 
 function aplicarFiltro(
@@ -189,10 +76,6 @@ function aplicarFiltro(
   });
 }
 
-/**
- * Contas reais do Cognito, via `GET /usuarios`. Não herda do mock: nada
- * aqui lê os usuários de exemplo do `MemoriaStore`.
- */
 @Injectable()
 export class UsuarioHttpService extends UsuarioService {
   private readonly http = inject(HttpClient);
@@ -222,15 +105,50 @@ export class UsuarioHttpService extends UsuarioService {
     return this.cache$.pipe(map((usuarios) => aplicarFiltro(usuarios, filtro)));
   }
 
-  override autenticar(
-    credenciais: Credenciais,
-  ): Observable<RespostaAutenticacao> {
+  override autenticar(credenciais: Credenciais): Observable<RespostaLogin> {
     this.cache$ = null;
     return this.http
-      .post<RespostaAutenticacao>(
-        `${environment.apiBaseUrl}/auth/login`,
-        credenciais,
-      )
+      .post<RespostaLogin>(`${environment.apiBaseUrl}/auth/login`, credenciais)
+      .pipe(catchError(erroHttp));
+  }
+
+  override definirNovaSenha(
+    email: string,
+    sessao: string,
+    senha: string,
+  ): Observable<RespostaAutenticacao> {
+    return this.http
+      .post<RespostaAutenticacao>(`${environment.apiBaseUrl}/auth/nova-senha`, {
+        email,
+        sessao,
+        senha,
+      })
+      .pipe(catchError(erroHttp));
+  }
+
+  override esqueciSenha(email: string): Observable<RespostaCadastro> {
+    return this.http
+      .post<RespostaCadastro>(`${environment.apiBaseUrl}/auth/esqueci-senha`, { email })
+      .pipe(catchError(erroHttp));
+  }
+
+  override redefinirSenha(
+    email: string,
+    codigo: string,
+    senha: string,
+  ): Observable<RespostaCadastro> {
+    return this.http
+      .post<RespostaCadastro>(`${environment.apiBaseUrl}/auth/redefinir-senha`, {
+        email,
+        codigo,
+        senha,
+      })
+      .pipe(catchError(erroHttp));
+  }
+
+  override eu(): Observable<Usuario> {
+    return this.http
+      .get<Usuario>(`${environment.apiBaseUrl}/me`)
       .pipe(catchError(erroHttp));
   }
 

@@ -1,15 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { BehaviorSubject, Observable, catchError, delay, map, of, throwError } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import {
-  ArtigoEncontrado,
-  Referencia,
-  ReferenciaFormatada,
-  ResultadoBusca,
-} from '../models';
-import { AuthService } from './auth.service';
+import { Referencia, ReferenciaFormatada, ResultadoBusca } from '../models';
 import { erroHttp } from './http-erro';
 
 /**
@@ -132,88 +126,6 @@ function destacar(abnt: string, veiculo: string): string {
 
 function semAcento(texto: string): string {
   return texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-}
-
-@Injectable()
-export class ReferenciaMockService extends ReferenciaService {
-  private readonly auth = inject(AuthService);
-  private readonly referencias$ = new BehaviorSubject<Referencia[]>([]);
-
-  override buscar(termo: string, pagina = 1): Observable<ResultadoBusca> {
-    const palavras = semAcento(termo).split(/\s+/).filter(Boolean);
-    const artigos = ARTIGOS_MOCK.filter((a) => {
-      const alvo = semAcento(`${a.titulo} ${a.veiculo ?? ''}`);
-      return palavras.some((p) => alvo.includes(p));
-    }).map(({ abnt, abntHtml, ...artigo }): ArtigoEncontrado => artigo);
-
-    return of({
-      total: artigos.length,
-      pagina,
-      artigos: pagina === 1 ? artigos : [],
-    }).pipe(delay(500));
-  }
-
-  override porDoi(doi: string): Observable<ReferenciaFormatada> {
-    const artigo = this.encontrar(doi);
-    return artigo
-      ? of(artigo).pipe(delay(400))
-      : throwError(() => new Error('DOI não encontrado'));
-  }
-
-  override listarDoProjeto(projetoId: string): Observable<Referencia[]> {
-    return this.referencias$.pipe(
-      map((todas) =>
-        todas
-          .filter((r) => r.projetoId === projetoId)
-          .sort((a, b) => a.abnt.localeCompare(b.abnt, 'pt-BR')),
-      ),
-    );
-  }
-
-  override adicionar(projetoId: string, doi: string): Observable<Referencia> {
-    const artigo = this.encontrar(doi);
-    if (!artigo?.doi) {
-      return throwError(() => new Error('DOI não encontrado'));
-    }
-
-    const id = artigo.doi.toLowerCase();
-    if (this.referencias$.value.some((r) => r.projetoId === projetoId && r.id === id)) {
-      return throwError(
-        () => new Error('essa referência já está na lista do projeto'),
-      );
-    }
-
-    const referencia: Referencia = {
-      id,
-      projetoId,
-      doi: artigo.doi,
-      titulo: artigo.titulo,
-      ano: artigo.ano,
-      abnt: artigo.abnt,
-      abntHtml: artigo.abntHtml,
-      adicionadaPor: this.auth.usuario()?.nome ?? '',
-      adicionadaEm: new Date().toISOString(),
-    };
-    this.referencias$.next([...this.referencias$.value, referencia]);
-    return of(referencia).pipe(delay(300));
-  }
-
-  override remover(projetoId: string, referenciaId: string): Observable<void> {
-    this.referencias$.next(
-      this.referencias$.value.filter(
-        (r) => !(r.projetoId === projetoId && r.id === referenciaId),
-      ),
-    );
-    return of(undefined).pipe(delay(200));
-  }
-
-  private encontrar(doi: string): ReferenciaFormatada | undefined {
-    const alvo = doi
-      .trim()
-      .toLowerCase()
-      .replace(/^(https?:\/\/(dx\.)?doi\.org\/|doi:\s*)/, '');
-    return ARTIGOS_MOCK.find((a) => a.doi?.toLowerCase() === alvo);
-  }
 }
 
 /* -------------------------------------------------------------------------- */

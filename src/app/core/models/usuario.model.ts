@@ -12,7 +12,7 @@ export interface Usuario {
   rgm?: string;
   /**
    * false = a conta existe no Cognito, mas o e-mail ainda não foi
-   * confirmado (a pessoa ainda não consegue entrar). Ausente no mock.
+   * confirmado (a pessoa ainda não consegue entrar).
    */
   confirmado?: boolean;
 }
@@ -33,6 +33,26 @@ export interface RespostaAutenticacao {
   usuario: Usuario;
   token: string;
 }
+
+/**
+ * Conta criada pela coordenação entra com a senha temporária do e-mail; o
+ * Cognito exige trocá-la antes do primeiro acesso.
+ */
+export interface DesafioNovaSenha {
+  desafio: 'NOVA_SENHA';
+  sessao: string;
+}
+
+export type RespostaLogin = RespostaAutenticacao | DesafioNovaSenha;
+
+export function ehDesafio(r: RespostaLogin): r is DesafioNovaSenha {
+  return 'desafio' in r && r.desafio === 'NOVA_SENHA';
+}
+
+/** Política de senha do User Pool: mín. 8, maiúscula, minúscula, número e símbolo. */
+export const REGRA_SENHA = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+export const DICA_SENHA =
+  'Ao menos 8 caracteres, com letra maiúscula, letra minúscula, número e símbolo.';
 
 
 export interface RespostaCadastro {
@@ -69,10 +89,8 @@ export function ehEquipeAcademica(perfil: Perfil | null): boolean {
 }
 
 /**
- * RGM do aluno. O login real (`POST /auth/login`) ainda não devolve `rgm`,
- * mas o e-mail de aluno é sempre `<rgm>@alunos.umc.br` — garantido pelo Pre
- * Sign-up no Cognito —, então a parte local do e-mail é o RGM. É a mesma
- * regra que o backend usa (`common.RGMDaRequisicao`).
+ * RGM do aluno: o e-mail de aluno é sempre `<rgm>@alunos.umc.br` (garantido
+ * pelo Pre Sign-up no Cognito), a mesma regra do backend (`actor.RGM`).
  */
 export function rgmDoUsuario(usuario: Usuario | null): string {
   if (!usuario) {

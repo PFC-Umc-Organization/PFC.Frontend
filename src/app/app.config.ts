@@ -26,7 +26,7 @@ import {
   GraduacaoService,
 } from './core/services/graduacao.service';
 import {
-  MaterialMockService,
+  MaterialLocalService,
   MaterialService,
 } from './core/services/material.service';
 import {
@@ -51,14 +51,9 @@ import {
 } from './core/services/usuario.service';
 
 /**
- * Este é o único ponto do app que sabe QUAL implementação dos services está
- * em uso.
- *
- * `Usuario` (login/cadastro), `Curso` (turma), `Graduacao` (curso), `Programa`, `Projeto`, `Convite`, `Matricula`, `Referencia`,
- * `Atividade` e `Entrega` já falam com o backend real (ver README, seção "Endpoints
- * que o front espera"). Pra demonstrar sem backend, troque por
- * `*MockService`.
- * Só `Material` continua no mock — o backend ainda não tem esse domínio.
+ * Único ponto do app que escolhe a implementação de cada service. Todos falam
+ * com o backend, menos `Material`, que fica na memória do navegador até o
+ * backend ter esse domínio.
  */
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -79,7 +74,7 @@ export const appConfig: ApplicationConfig = {
     { provide: ConviteService, useClass: ConviteHttpService },
     { provide: AtividadeService, useClass: AtividadeHttpService },
     { provide: EntregaService, useClass: EntregaHttpService },
-    { provide: MaterialService, useClass: MaterialMockService },
+    { provide: MaterialService, useClass: MaterialLocalService },
     { provide: MatriculaService, useClass: MatriculaHttpService },
     { provide: ReferenciaService, useClass: ReferenciaHttpService },
   ],

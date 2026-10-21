@@ -5,7 +5,6 @@ import {
   Observable,
   catchError,
   combineLatest,
-  delay,
   forkJoin,
   map,
   of,
@@ -24,7 +23,6 @@ import {
 } from '../models';
 import { AtividadeService } from './atividade.service';
 import { erroHttp } from './http-erro';
-import { MemoriaStore } from './memoria.store';
 import { ProjetoService } from './projeto.service';
 import { arquivoDaEntrega, statusDaEntrega } from './status-entrega';
 
@@ -65,115 +63,6 @@ export abstract class EntregaService {
 }
 
 @Injectable()
-export class EntregaMockService extends EntregaService {
-  private readonly store = inject(MemoriaStore);
-
- 
-  override timelineDoProjeto(
-    projetoId: string,
-    projetoNome?: string,
-  ): Observable<ItemTimeline[]> {
-    return combineLatest([
-      this.store.atividades,
-      this.store.entregas,
-      this.store.projetos,
-    ]).pipe(
-      map(([atividades]) =>
-        atividades
-          .slice()
-          .sort((a, b) => a.prazo.localeCompare(b.prazo))
-          .map<ItemTimeline>((atividade) => ({
-            atividadeId: atividade.id,
-            titulo: atividade.titulo,
-            projetoNome: projetoNome ?? this.store.nomeProjeto(projetoId),
-            prazo: atividade.prazo,
-            status: this.store.statusEntrega(atividade, projetoId),
-            arquivoNome: this.store.arquivoEntrega(atividade.id, projetoId),
-          })),
-      ),
-    );
-  }
-
-  override timelineDoAluno(rgm: string): Observable<ItemTimeline[]> {
-    return combineLatest([
-      this.store.atividades,
-      this.store.entregas,
-      this.store.projetos,
-      this.store.usuarios,
-    ]).pipe(
-      map(([atividades]) => {
-        const projeto = this.store.projetoDoAluno(rgm);
-
-        if (!projeto) {
-          return [];
-        }
-
-        return atividades
-          .slice()
-          .sort((a, b) => a.prazo.localeCompare(b.prazo))
-          .map<ItemTimeline>((atividade) => ({
-            atividadeId: atividade.id,
-            titulo: atividade.titulo,
-            projetoNome: projeto.nome,
-            prazo: atividade.prazo,
-            status: this.store.statusEntrega(atividade, projeto.id),
-            arquivoNome: this.store.arquivoEntrega(atividade.id, projeto.id),
-          }));
-      }),
-    );
-  }
-
-  override matrizDosProjetos(
-    projetos: Pick<Projeto, 'id' | 'nome'>[],
-  ): Observable<MatrizStatus> {
-    return combineLatest([this.store.atividades, this.store.entregas]).pipe(
-      map(([atividades]) => {
-        const cronograma = atividades
-          .slice()
-          .sort((a, b) => a.prazo.localeCompare(b.prazo));
-
-        const linhas = projetos
-          .map<LinhaStatusProjeto>((projeto) => ({
-            projeto: { id: projeto.id, nome: projeto.nome },
-            celulas: cronograma.map((atividade) => ({
-              atividadeId: atividade.id,
-              status: this.store.statusEntrega(atividade, projeto.id),
-            })),
-          }));
-
-        return { atividades: cronograma, linhas };
-      }),
-    );
-  }
-
-  override entregasDoProjeto(projetoId: string): Observable<Entrega[]> {
-    return this.store.entregas.pipe(
-      map((entregas) => entregas.filter((e) => e.projetoId === projetoId)),
-    );
-  }
-
-  override remover(projetoId: string, atividadeId: string): Observable<void> {
-    this.store.definirEntrega(atividadeId, projetoId, null);
-    return of(undefined).pipe(delay(200));
-  }
-
-  override entregar(
-    atividadeId: string,
-    projetoId: string,
-    respostas: RespostasEntrega,
-  ): Observable<void> {
-    const atividade = this.store.atividadesAtuais.find(
-      (a) => a.id === atividadeId,
-    );
-    this.store.definirEntrega(atividadeId, projetoId, new Date().toISOString(), {
-      arquivoNome: atividade && arquivoDaEntrega(atividade, respostas),
-      respostas,
-    });
-    return of(undefined).pipe(delay(300));
-  }
-}
-
-@Injectable()
 export class EntregaHttpService extends EntregaService {
   private readonly http = inject(HttpClient);
   private readonly atividades = inject(AtividadeService);
@@ -187,7 +76,7 @@ export class EntregaHttpService extends EntregaService {
           .get<Entrega[]>(
             `${environment.apiBaseUrl}/projetos/${projetoId}/entregas`,
           )
-          .pipe(catchError(() => of([] as Entrega[]))),
+          .pipe(catchError(erroHttp)),
       ),
     );
   }
@@ -197,7 +86,7 @@ export class EntregaHttpService extends EntregaService {
       .get<Entrega[]>(
         `${environment.apiBaseUrl}/atividades/${atividadeId}/entregas`,
       )
-      .pipe(catchError(() => of([] as Entrega[])));
+      .pipe(catchError(erroHttp));
   }
 
   override timelineDoProjeto(

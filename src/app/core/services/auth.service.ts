@@ -1,7 +1,14 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, map, tap } from 'rxjs';
+import { Observable, map, tap, throwError } from 'rxjs';
 
-import { Credenciais, NovoUsuario, RespostaCadastro, Usuario } from '../models';
+import {
+  Credenciais,
+  NovoUsuario,
+  RespostaAutenticacao,
+  RespostaCadastro,
+  Usuario,
+  ehDesafio,
+} from '../models';
 import { UsuarioService } from './usuario.service';
 
 const CHAVE_SESSAO = 'athena.sessao';
@@ -44,10 +51,60 @@ export class AuthService {
     () => this._sessao()?.usuario.nome.split(' ').at(0) ?? '',
   );
 
-  entrar(credenciais: Credenciais): Observable<Usuario> {
+  /** Troca de senha pendente do último login (conta criada pela coordenação). */
+  private readonly _desafio = signal<{ email: string; sessao: string } | null>(null);
+  readonly desafioPendente = computed(() => this._desafio() !== null);
+  readonly emailDoDesafio = computed(() => this._desafio()?.email ?? '');
+
+  /** `'nova-senha'` quando a pessoa precisa trocar a senha temporária. */
+  entrar(credenciais: Credenciais): Observable<'entrou' | 'nova-senha'> {
+    this._desafio.set(null);
     return this.usuarios.autenticar(credenciais).pipe(
-      tap(({ usuario, token }) => this.iniciarSessao(usuario, token)),
-      map(({ usuario }) => usuario),
+      map((resposta) => {
+        if (ehDesafio(resposta)) {
+          this._desafio.set({ email: credenciais.email.trim(), sessao: resposta.sessao });
+          return 'nova-senha' as const;
+        }
+        this.iniciarSessao(resposta);
+        return 'entrou' as const;
+      }),
+    );
+  }
+
+  definirNovaSenha(senha: string): Observable<void> {
+    const desafio = this._desafio();
+    if (!desafio) {
+      return throwError(() => new Error('Entre de novo com a senha temporária do e-mail.'));
+    }
+    return this.usuarios.definirNovaSenha(desafio.email, desafio.sessao, senha).pipe(
+      tap((resposta) => {
+        this._desafio.set(null);
+        this.iniciarSessao(resposta);
+      }),
+      map(() => undefined),
+    );
+  }
+
+  esqueciSenha(email: string): Observable<RespostaCadastro> {
+    return this.usuarios.esqueciSenha(email);
+  }
+
+  redefinirSenha(email: string, codigo: string, senha: string): Observable<RespostaCadastro> {
+    return this.usuarios.redefinirSenha(email, codigo, senha);
+  }
+
+  /**
+   * Lê o usuário de novo no backend: o aluno pré-autorizado depois de entrar
+   * passa a ver a turma sem sair e entrar de novo.
+   */
+  atualizarUsuario(): Observable<Usuario> {
+    return this.usuarios.eu().pipe(
+      tap((usuario) => {
+        const sessao = this._sessao();
+        if (sessao) {
+          this.iniciarSessao({ usuario: { ...sessao.usuario, ...usuario }, token: sessao.token });
+        }
+      }),
     );
   }
 
@@ -69,7 +126,7 @@ export class AuthService {
     this.limparSessao();
   }
 
-  private iniciarSessao(usuario: Usuario, token: string): void {
+  private iniciarSessao({ usuario, token }: RespostaAutenticacao): void {
     this._sessao.set({ usuario, token });
     this.persistirSessao(usuario, token);
   }

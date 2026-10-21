@@ -32,6 +32,25 @@ export const rotas: Routes = [
       ),
   },
 
+  {
+    path: 'esqueci-senha',
+    canActivate: [visitanteGuard],
+    title: 'Redefinir senha — Athena',
+    loadComponent: () =>
+      import('./features/auth/esqueci-senha.component').then(
+        (m) => m.EsqueciSenhaComponent,
+      ),
+  },
+  {
+    path: 'nova-senha',
+    canActivate: [visitanteGuard],
+    title: 'Defina sua senha — Athena',
+    loadComponent: () =>
+      import('./features/auth/nova-senha.component').then(
+        (m) => m.NovaSenhaComponent,
+      ),
+  },
+
   /* ------------------------- área interna ------------------------- */
   {
     path: '',

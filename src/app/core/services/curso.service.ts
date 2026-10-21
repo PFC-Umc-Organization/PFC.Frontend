@@ -1,11 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, delay, map, of } from 'rxjs';
+import { Observable, catchError, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { AtualizarCurso, Curso, NovoCurso } from '../models';
 import { erroHttp } from './http-erro';
-import { MemoriaStore } from './memoria.store';
 
 /** Contrato consumido pelos componentes. Trocar a implementação = trocar o provider. */
 export abstract class CursoService {
@@ -14,31 +13,6 @@ export abstract class CursoService {
   abstract atualizar(cursoId: string, dados: AtualizarCurso): Observable<void>;
   /** Backend recusa (409) se a turma ainda tiver Programa vinculado. */
   abstract remover(cursoId: string): Observable<void>;
-}
-
-@Injectable()
-export class CursoMockService extends CursoService {
-  private readonly store = inject(MemoriaStore);
-
-  override listar(): Observable<Curso[]> {
-    return this.store.cursos;
-  }
-
-  override criar(novo: NovoCurso): Observable<Curso> {
-    const curso: Curso = { id: `c-${crypto.randomUUID()}`, ...novo };
-    this.store.adicionarCurso(curso);
-    return of(curso).pipe(delay(300));
-  }
-
-  override atualizar(cursoId: string, dados: AtualizarCurso): Observable<void> {
-    this.store.atualizarCurso(cursoId, dados);
-    return of(undefined).pipe(delay(300));
-  }
-
-  override remover(cursoId: string): Observable<void> {
-    this.store.removerCurso(cursoId);
-    return of(undefined).pipe(delay(300));
-  }
 }
 
 /** Fala com o backend real — ver `internal/curso` no PFC.Backend. */

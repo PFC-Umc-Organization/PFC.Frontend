@@ -23,6 +23,9 @@ type SecaoTurmas = 'cursos' | 'turmas';
  * HttpClient é um Observable frio — dispara uma vez e acaba — por isso os
  * `Subject` como gatilho manual de recarga.
  */
+/** O formato que o backend aceita: ano e semestre, com ponto, barra ou hífen. */
+const PERIODO = /^\s*\d{4}\s*[./-]\s*[12]\s*$/;
+
 @Component({
   selector: 'app-turmas',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -254,11 +257,13 @@ type SecaoTurmas = 'cursos' | 'turmas';
                     type="text"
                     class="control"
                     placeholder="Ex.: 2026.2"
+                    inputmode="decimal"
                     formControlName="periodo"
                     [class.control--invalid]="invalidoNovo('periodo')"
                   />
+                  <span class="field__hint">Ano e semestre: 2026.1 ou 2026.2.</span>
                   @if (invalidoNovo('periodo')) {
-                    <span class="field__error">Informe o período.</span>
+                    <span class="field__error">Use ano e semestre, como 2026.2.</span>
                   }
                 </div>
 
@@ -342,9 +347,13 @@ type SecaoTurmas = 'cursos' | 'turmas';
                               id="edit-periodo"
                               type="text"
                               class="control"
+                              placeholder="Ex.: 2026.2"
                               formControlName="periodo"
                               [class.control--invalid]="invalidoEdicao('periodo')"
                             />
+                            @if (invalidoEdicao('periodo')) {
+                              <span class="field__error">Use ano e semestre, como 2026.2.</span>
+                            }
                           </div>
                           <div class="form-grid__full row">
                             <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
@@ -600,13 +609,13 @@ export class TurmasComponent {
   readonly novoForm = this.fb.nonNullable.group({
     nome: ['', [Validators.required]],
     turno: ['MANHA' as Turno, [Validators.required]],
-    periodo: ['', [Validators.required]],
+    periodo: ['', [Validators.required, Validators.pattern(PERIODO)]],
   });
 
   readonly editForm = this.fb.nonNullable.group({
     nome: ['', [Validators.required]],
     turno: ['MANHA' as Turno, [Validators.required]],
-    periodo: ['', [Validators.required]],
+    periodo: ['', [Validators.required, Validators.pattern(PERIODO)]],
   });
 
   rotuloTurno(turno: Turno): string {

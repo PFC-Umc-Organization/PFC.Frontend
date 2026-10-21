@@ -9,12 +9,13 @@ import {
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { of, switchMap } from 'rxjs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Observable, catchError, of, switchMap } from 'rxjs';
 
 import {
   Atividade,
   CampoEntrega,
+  Projeto,
   Entrega,
   ItemTimeline,
   Material,
@@ -40,7 +41,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
   selector: 'app-materiais',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [
+  imports: [RouterLink, 
     ReactiveFormsModule,
     IconeComponent,
     PrazoPipe,
@@ -59,6 +60,16 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
             sem curso valem para todos.
           </p>
         </header>
+
+        @if (!materiaisPersistentes) {
+          <p class="alerta" role="status">
+            <app-icone nome="alerta" />
+            <span>
+              Prévia: os materiais ainda não são salvos no servidor. O que for
+              publicado aqui some ao recarregar a página e os alunos não veem.
+            </span>
+          </p>
+        }
 
         <section class="card">
           <div class="card__body">
@@ -178,13 +189,26 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
           </p>
         </header>
 
+        @if (erroCarga()) {
+          <p class="alerta" role="alert">
+            <app-icone nome="alerta" />
+            <span>Não foi possível carregar as entregas: {{ erroCarga() }}</span>
+          </p>
+        }
+
         <section class="card">
           <div class="card__body">
             <h2 class="section-title">Enviar entrega</h2>
 
-            @if (disponiveis().length === 0) {
+            @if (!projetoDoAluno()) {
               <p class="vazio mt-6">
-                Nenhuma atividade disponível para entrega no momento.
+                Você ainda não faz parte de um PFC, e a entrega é feita pelo grupo.
+                <a routerLink="/meu-pfc">Crie o PFC ou aceite um convite</a>.
+              </p>
+            } @else if (disponiveis().length === 0) {
+              <p class="vazio mt-6">
+                Nenhuma atividade aberta para entrega: o grupo já entregou tudo ou os
+                prazos encerraram.
               </p>
             } @else {
               <div class="form-grid form-grid--2 mt-6">
@@ -540,6 +564,20 @@ export class MateriaisComponent {
   readonly visaoProfessor = computed(() =>
     ehEquipeAcademica(this.auth.perfil()),
   );
+  readonly materiaisPersistentes = this.materialService.persistente;
+
+  /** Falha ao ler projeto, atividades ou entregas — no lugar de listas vazias enganosas. */
+  readonly erroCarga = signal('');
+
+  private semErro<T>(vazio: T) {
+    return (fonte: Observable<T>) =>
+      fonte.pipe(
+        catchError((e: Error) => {
+          this.erroCarga.set(e.message);
+          return of(vazio);
+        }),
+      );
+  }
   readonly salvando = signal(false);
 
   readonly form = this.fb.nonNullable.group({
@@ -551,11 +589,12 @@ export class MateriaisComponent {
   });
 
   /** Projeto do grupo do aluno logado, resolvido pelo RGM dele. */
-  private readonly projetoDoAluno = toSignal(
+  readonly projetoDoAluno = toSignal(
     toObservable(computed(() => rgmDoUsuario(this.auth.usuario()))).pipe(
       switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
+      this.semErro<Projeto | null>(null),
     ),
-    { initialValue: null },
+    { initialValue: null as Projeto | null },
   );
 
   /** Qual projeto a tela mostra: o grupo do aluno logado. */
@@ -568,13 +607,15 @@ export class MateriaisComponent {
       switchMap((p) =>
         p ? this.entregaService.timelineDoProjeto(p.id, p.nome) : of([]),
       ),
+      this.semErro([] as ItemTimeline[]),
     ),
     { initialValue: [] as ItemTimeline[] },
   );
 
-  private readonly atividadesDaTurma = toSignal(this.atividadeService.listar(), {
-    initialValue: [] as Atividade[],
-  });
+  private readonly atividadesDaTurma = toSignal(
+    this.atividadeService.listar().pipe(this.semErro([] as Atividade[])),
+    { initialValue: [] as Atividade[] },
+  );
 
   /** Entregas do grupo, com as respostas (atualiza a cada envio). */
   private readonly entregasDoGrupo = toSignal(
@@ -582,6 +623,7 @@ export class MateriaisComponent {
       switchMap((p) =>
         p ? this.entregaService.entregasDoProjeto(p.id) : of([] as Entrega[]),
       ),
+      this.semErro([] as Entrega[]),
     ),
     { initialValue: [] as Entrega[] },
   );
@@ -640,9 +682,7 @@ export class MateriaisComponent {
   readonly mensagem = signal('');
   readonly erroEntrega = signal('');
 
-  private readonly atividades = toSignal(this.atividadeService.listar(), {
-    initialValue: [] as Atividade[],
-  });
+  private readonly atividades = this.atividadesDaTurma;
 
   /** Campos do formulário da atividade escolhida. */
   readonly camposDaAtividade = computed<CampoEntrega[]>(

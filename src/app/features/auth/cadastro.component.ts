@@ -7,8 +7,10 @@ import {
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
+import { DICA_SENHA, REGRA_SENHA } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { IconeComponent } from '../../shared/components/icone.component';
+import { CampoSenhaComponent } from '../../shared/components/campo-senha.component';
 import { AuthCardComponent } from './auth-card.component';
 
 
@@ -20,6 +22,7 @@ import { AuthCardComponent } from './auth-card.component';
     ReactiveFormsModule,
     RouterLink,
     AuthCardComponent,
+    CampoSenhaComponent,
     IconeComponent,
   ],
   template: `
@@ -74,30 +77,15 @@ import { AuthCardComponent } from './auth-card.component';
 
         <div class="field">
           <label class="field__label" for="senha">Senha</label>
-          <div class="senha-wrap">
-            <input
-              id="senha"
-              [type]="mostrarSenha() ? 'text' : 'password'"
-              class="control"
-              placeholder="Crie uma senha segura"
-              autocomplete="new-password"
-              formControlName="senha"
-              [class.control--invalid]="invalido('senha')"
-            />
-            <button
-              type="button"
-              class="senha-wrap__botao"
-              [attr.aria-label]="mostrarSenha() ? 'Ocultar senha' : 'Mostrar senha'"
-              [attr.aria-pressed]="mostrarSenha()"
-              (click)="mostrarSenha.set(!mostrarSenha())"
-            >
-              <app-icone [nome]="mostrarSenha() ? 'olho-fechado' : 'olho'" />
-            </button>
-          </div>
-          <span class="field__hint">
-            Ao menos 8 caracteres, com letra maiúscula, letra minúscula,
-            número e símbolo.
-          </span>
+          <app-campo-senha
+            campoId="senha"
+            [controle]="form.controls.senha"
+            autocomplete="new-password"
+            placeholder="Crie uma senha segura"
+            descricao="senha-dica"
+            [invalido]="invalido('senha')"
+          />
+          <span class="field__hint" id="senha-dica">{{ dicaSenha }}</span>
           @if (invalido('senha')) {
             <span class="field__error">
               A senha não atende aos requisitos acima.
@@ -134,8 +122,8 @@ export class CadastroComponent {
   private readonly router = inject(Router);
 
   readonly carregando = signal(false);
-  readonly mostrarSenha = signal(false);
   readonly erro = signal('');
+  readonly dicaSenha = DICA_SENHA;
 
   /**
    * Mesmas regras do Cognito — sem isso o formulário aceitava senhas que o
@@ -148,13 +136,7 @@ export class CadastroComponent {
       '',
       [Validators.required, Validators.pattern(/^\d+@alunos\.umc\.br$/i)],
     ],
-    senha: [
-      '',
-      [
-        Validators.required,
-        Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/),
-      ],
-    ],
+    senha: ['', [Validators.required, Validators.pattern(REGRA_SENHA)]],
   });
 
   invalido(campo: 'nome' | 'email' | 'senha'): boolean {

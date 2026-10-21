@@ -1,16 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import {
-  Observable,
-  catchError,
-  combineLatest,
-  delay,
-  forkJoin,
-  map,
-  of,
-  switchMap,
-  throwError,
-} from 'rxjs';
+import { Observable, catchError, combineLatest, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import {
@@ -20,13 +10,10 @@ import {
   Projeto,
   ProjetoDetalhe,
   Usuario,
-  rgmDoUsuario,
   rotuloCurso,
 } from '../models';
-import { AuthService } from './auth.service';
 import { CursoService } from './curso.service';
 import { erroHttp } from './http-erro';
-import { MemoriaStore } from './memoria.store';
 import { ProgramaService } from './programa.service';
 import { UsuarioService } from './usuario.service';
 
@@ -50,140 +37,6 @@ export abstract class ProjetoService {
   abstract removerOrientador(projetoId: string): Observable<void>;
   abstract remover(projetoId: string): Observable<void>;
 }
-
-@Injectable()
-export class ProjetoMockService extends ProjetoService {
-  private readonly store = inject(MemoriaStore);
-  private readonly auth = inject(AuthService);
-
-  override listar(programaId?: string): Observable<Projeto[]> {
-    return this.store.projetos.pipe(
-      map((projetos) =>
-        (programaId
-          ? projetos.filter((p) => p.programaId === programaId)
-          : projetos
-        )
-          .slice()
-          .sort((a, b) => a.nome.localeCompare(b.nome)),
-      ),
-    );
-  }
-
-  
-  override detalhe(projetoId: string): Observable<ProjetoDetalhe | null> {
-    return combineLatest([
-      this.store.projetos,
-      this.store.usuarios,
-      this.store.cursos,
-      this.store.programas,
-    ]).pipe(
-      map(([projetos]) => {
-        const projeto = projetos.find((p) => p.id === projetoId);
-
-        if (!projeto) {
-          return null;
-        }
-
-        const programa = this.store.programasAtuais.find(
-          (p) => p.id === projeto.programaId,
-        );
-        const orientador = projeto.orientadorId
-          ? this.store.usuariosAtuais.find(
-              (u) => u.id === projeto.orientadorId,
-            )
-          : undefined;
-
-        return {
-          projeto,
-          cursoNome: this.store.nomeCurso(programa?.cursoId ?? null),
-          integrantes: this.store.integrantesDoProjeto(projeto.id),
-          orientador: orientador
-            ? { id: orientador.id, nome: orientador.nome }
-            : null,
-        };
-      }),
-    );
-  }
-
-  override doAluno(rgm: string): Observable<Projeto | null> {
-    return combineLatest([this.store.projetos, this.store.usuarios]).pipe(
-      map(() => this.store.projetoDoAluno(rgm) ?? null),
-    );
-  }
-
-  override criar(novo: NovoProjeto): Observable<Projeto> {
-    const projeto: Projeto = {
-      id: `p-${crypto.randomUUID()}`,
-      nome: novo.nome.trim(),
-      descricao: novo.descricao.trim(),
-      programaId: novo.programaId,
-      integrantes: novo.integrantes,
-    };
-
-    this.store.adicionarProjeto(projeto);
-    return of(projeto).pipe(delay(400));
-  }
-
-  override criarDoAluno(novo: NovoProjetoDoAluno): Observable<Projeto> {
-    const rgm = rgmDoUsuario(this.auth.usuario());
-    const programa = this.store.programasAtuais[0];
-    if (!rgm || !programa) {
-      return throwError(() => new Error('Sua turma ainda não tem PFC iniciado.'));
-    }
-    if (this.store.projetoDoAluno(rgm)) {
-      return throwError(() => new Error('Você já faz parte de um projeto.'));
-    }
-    return this.criar({
-      nome: novo.nome,
-      descricao: novo.descricao,
-      programaId: programa.id,
-      integrantes: [rgm, ...novo.integrantes.filter((r) => r !== rgm)],
-    });
-  }
-
-  override adicionarIntegrante(projetoId: string, rgm: string): Observable<void> {
-    if (this.store.projetoDoAluno(rgm)) {
-      return throwError(
-        () => new Error('Esse RGM já faz parte de um grupo.'),
-      ).pipe(delay(250));
-    }
-
-    this.store.adicionarIntegranteAoProjeto(projetoId, rgm);
-    return of(undefined).pipe(delay(300));
-  }
-
-  override removerIntegrante(projetoId: string, rgm: string): Observable<void> {
-    this.store.removerIntegranteDoProjeto(projetoId, rgm);
-    return of(undefined).pipe(delay(300));
-  }
-
-  override atualizar(
-    projetoId: string,
-    dados: AtualizacaoProjeto,
-  ): Observable<void> {
-    this.store.atualizarProjeto(projetoId, dados);
-    return of(undefined).pipe(delay(300));
-  }
-
-  override definirOrientador(
-    projetoId: string,
-    orientadorId: string,
-  ): Observable<void> {
-    this.store.definirOrientador(projetoId, orientadorId);
-    return of(undefined).pipe(delay(300));
-  }
-
-  override removerOrientador(projetoId: string): Observable<void> {
-    this.store.definirOrientador(projetoId, null);
-    return of(undefined).pipe(delay(300));
-  }
-
-  override remover(projetoId: string): Observable<void> {
-    this.store.removerProjeto(projetoId);
-    return of(undefined).pipe(delay(300));
-  }
-}
-
 
 @Injectable()
 export class ProjetoHttpService extends ProjetoService {

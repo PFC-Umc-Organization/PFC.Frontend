@@ -9,10 +9,11 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
 import { ErroApi } from '../../core/services/http-erro';
+import { CampoSenhaComponent } from '../../shared/components/campo-senha.component';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { AuthCardComponent } from './auth-card.component';
 
@@ -24,6 +25,7 @@ import { AuthCardComponent } from './auth-card.component';
     ReactiveFormsModule,
     RouterLink,
     AuthCardComponent,
+    CampoSenhaComponent,
     IconeComponent,
   ],
   template: `
@@ -68,33 +70,23 @@ import { AuthCardComponent } from './auth-card.component';
 
         <div class="field">
           <label class="field__label" for="senha">Senha</label>
-          <div class="control-wrap senha-wrap">
-            <app-icone nome="cadeado" class="control-wrap__icon" />
-            <input
-              id="senha"
-              [type]="mostrarSenha() ? 'text' : 'password'"
-              class="control"
-              placeholder="••••••••"
-              autocomplete="current-password"
-              formControlName="senha"
-              [class.control--invalid]="invalido('senha')"
-            />
-            <button
-              type="button"
-              class="senha-wrap__botao"
-              [attr.aria-label]="mostrarSenha() ? 'Ocultar senha' : 'Mostrar senha'"
-              [attr.aria-pressed]="mostrarSenha()"
-              (click)="mostrarSenha.set(!mostrarSenha())"
-            >
-              <app-icone [nome]="mostrarSenha() ? 'olho-fechado' : 'olho'" />
-            </button>
-          </div>
+          <app-campo-senha
+            campoId="senha"
+            [controle]="form.controls.senha"
+            [invalido]="invalido('senha')"
+            [comIcone]="true"
+          />
           @if (invalido('senha')) {
             <span class="field__error">Informe sua senha.</span>
           }
         </div>
 
-        <button type="button" class="link-button">Esqueci minha senha</button>
+        <a
+          class="link-button esqueci"
+          routerLink="/esqueci-senha"
+          [queryParams]="{ email: form.controls.email.value || null }"
+          >Esqueci minha senha</a
+        >
 
         <button
           type="submit"
@@ -117,15 +109,20 @@ import { AuthCardComponent } from './auth-card.component';
       gap: 1.25rem;
       margin-top: 1.75rem;
     }
+
+    .esqueci {
+      justify-self: center;
+    }
   `,
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  /** Página que a pessoa tentava abrir antes de cair no login. */
+  private readonly retorno = inject(ActivatedRoute).snapshot.queryParamMap.get('retorno');
 
   readonly carregando = signal(false);
-  readonly mostrarSenha = signal(false);
   readonly erro = signal('');
   /** Login recusado porque a conta ainda espera o código do e-mail (403). */
   readonly naoConfirmada = signal(false);
@@ -151,9 +148,13 @@ export class LoginComponent {
     this.carregando.set(true);
 
     this.auth.entrar(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: (resultado) => {
         this.carregando.set(false);
-        void this.router.navigate(['/']);
+        if (resultado === 'nova-senha') {
+          void this.router.navigate(['/nova-senha']);
+          return;
+        }
+        void this.router.navigateByUrl(this.destino());
       },
       error: (e: ErroApi) => {
         this.carregando.set(false);
@@ -161,5 +162,11 @@ export class LoginComponent {
         this.erro.set(e.message || 'Não foi possível entrar.');
       },
     });
+  }
+
+  /** Só caminhos internos: um `retorno` externo seria um redirecionamento aberto. */
+  private destino(): string {
+    const r = this.retorno;
+    return r && r.startsWith('/') && !r.startsWith('//') ? r : '/';
   }
 }

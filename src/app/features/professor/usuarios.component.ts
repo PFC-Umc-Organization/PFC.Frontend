@@ -334,8 +334,12 @@ type SecaoUsuarios = 'conta' | 'preautorizar' | 'matriculas' | 'pessoas';
             <p class="stat__label">Alunos</p>
           </article>
           <article class="stat">
-            <p class="stat__value">{{ totalProfessores() }}</p>
-            <p class="stat__label">Professores</p>
+            <p class="stat__value">{{ totalOrientadores() }}</p>
+            <p class="stat__label">Orientadores</p>
+          </article>
+          <article class="stat">
+            <p class="stat__value">{{ totalAdmins() }}</p>
+            <p class="stat__label">Coordenação</p>
           </article>
         </div>
 
@@ -730,8 +734,11 @@ export class UsuariosComponent {
   readonly totalAlunos = computed(
     () => this.todos().filter((u) => u.perfil === 'ALUNO').length,
   );
-  readonly totalProfessores = computed(
-    () => this.todos().filter((u) => u.perfil !== 'ALUNO').length,
+  readonly totalOrientadores = computed(
+    () => this.todos().filter((u) => u.perfil === 'ORIENTADOR').length,
+  );
+  readonly totalAdmins = computed(
+    () => this.todos().filter((u) => u.perfil === 'ADMIN').length,
   );
 
   rotuloPerfil(perfil: Perfil): string {

@@ -1,10 +1,14 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoDialogComponent } from './confirmacao-dialog.component';
 import { HeaderComponent } from './header.component';
 
-/** Casca das telas internas: header fixo + conteúdo roteado. */
+/**
+ * Casca das telas internas: header fixo + conteúdo roteado. Ao abrir, relê o
+ * usuário no backend — a sessão salva pode ter a turma desatualizada.
+ */
 @Component({
   selector: 'app-layout',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,4 +29,8 @@ import { HeaderComponent } from './header.component';
     }
   `,
 })
-export class LayoutComponent {}
+export class LayoutComponent {
+  constructor() {
+    inject(AuthService).atualizarUsuario().subscribe({ error: () => undefined });
+  }
+}

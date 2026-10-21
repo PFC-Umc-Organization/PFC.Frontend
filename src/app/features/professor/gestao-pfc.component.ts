@@ -25,8 +25,11 @@ import {
   Programa,
   Projeto,
   Usuario,
+  ehDoPeriodo,
   ehEquipeAcademica,
+  periodoAtual,
   rotuloCurso,
+  rotuloTurma,
 } from '../../core/models';
 import { AtividadeService } from '../../core/services/atividade.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -83,7 +86,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                 (change)="trocarTurma($event)"
               >
                 @for (c of cursos(); track c.id) {
-                  <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                  <option [value]="c.id" [selected]="c.id === turmaSelecionada()">{{ rotuloTurma(c) }}</option>
                 }
               </select>
             </div>
@@ -259,7 +262,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                 (change)="trocarTurma($event)"
               >
                 @for (c of cursos(); track c.id) {
-                  <option [value]="c.id">{{ rotuloCurso(c) }}</option>
+                  <option [value]="c.id" [selected]="c.id === turmaSelecionada()">{{ rotuloTurma(c) }}</option>
                 }
               </select>
             </div>
@@ -670,6 +673,12 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
             <h2 class="section-title">Cronograma de atividades</h2>
           </div>
 
+          @if (erroAtividades()) {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>Não foi possível carregar as atividades: {{ erroAtividades() }}</span>
+            </p>
+          }
           @if (erroRemocaoAtividade()) {
             <p class="alerta" role="alert">
               <app-icone nome="alerta" />
@@ -1043,6 +1052,7 @@ export class GestaoPfcComponent {
   private readonly usuarioService = inject(UsuarioService);
 
   readonly rotuloCurso = rotuloCurso;
+  readonly rotuloTurma = rotuloTurma;
 
   readonly souAdmin = computed(
     () => this.auth.perfil() === 'ADMIN',
@@ -1057,7 +1067,18 @@ export class GestaoPfcComponent {
   readonly secao = signal<SecaoGestao>('programa');
 
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
-  readonly turmaSelecionada = signal('c-eng-noite');
+  private readonly turmaEscolhida = signal<string | null>(null);
+
+  /** A turma escolhida ou, de início, a primeira do semestre atual. */
+  readonly turmaSelecionada = computed(() => {
+    const cursos = this.cursos();
+    const escolhida = this.turmaEscolhida();
+    if (escolhida && cursos.some((c) => c.id === escolhida)) {
+      return escolhida;
+    }
+    const atual = periodoAtual();
+    return (cursos.find((c) => ehDoPeriodo(c, atual)) ?? cursos[0])?.id ?? '';
+  });
 
   
   private readonly recarregarProgramas$ = new Subject<void>();
@@ -1066,7 +1087,14 @@ export class GestaoPfcComponent {
   readonly programas = toSignal(
     this.recarregarProgramas$.pipe(
       startWith(undefined),
-      switchMap(() => this.programaService.listar()),
+      switchMap(() =>
+        this.programaService.listar().pipe(
+          catchError((e: Error) => {
+            this.erroProgramas.set(e.message);
+            return of([] as Programa[]);
+          }),
+        ),
+      ),
     ),
     { initialValue: [] as Programa[] },
   );
@@ -1083,7 +1111,14 @@ export class GestaoPfcComponent {
       this.recarregarPfcs$.pipe(startWith(undefined)),
     ]).pipe(
       switchMap(([programaId]) =>
-        programaId ? this.projetoService.listar(programaId) : of([]),
+        programaId
+          ? this.projetoService.listar(programaId).pipe(
+              catchError((e: Error) => {
+                this.erroPfc.set(e.message);
+                return of([] as Projeto[]);
+              }),
+            )
+          : of([]),
       ),
     ),
     { initialValue: [] as Projeto[] },
@@ -1108,7 +1143,7 @@ export class GestaoPfcComponent {
         return {
           id: p.id,
           cursoId: p.cursoId,
-          turma: turma ? rotuloCurso(turma) : '—',
+          turma: turma ? rotuloCurso(turma) : 'Turma removida',
           periodo: turma?.periodo ?? '—',
           pfcs: this.todosPfcs().filter((x) => x.programaId === p.id).length,
         };
@@ -1186,7 +1221,7 @@ export class GestaoPfcComponent {
   readonly erroIntegrante = signal('');
 
   trocarTurma(evento: Event): void {
-    this.turmaSelecionada.set((evento.target as HTMLSelectElement).value);
+    this.turmaEscolhida.set((evento.target as HTMLSelectElement).value);
   }
 
   nomeUsuario(id: string): string {
@@ -1332,9 +1367,16 @@ export class GestaoPfcComponent {
 
   /* ------------------------------ atividades ------------------------------ */
 
-  readonly atividades = toSignal(this.atividadeService.listar(), {
-    initialValue: [] as Atividade[],
-  });
+  readonly erroAtividades = signal('');
+  readonly atividades = toSignal(
+    this.atividadeService.listar().pipe(
+      catchError((e: Error) => {
+        this.erroAtividades.set(e.message);
+        return of([] as Atividade[]);
+      }),
+    ),
+    { initialValue: [] as Atividade[] },
+  );
 
   readonly salvandoAtividade = signal(false);
   readonly sucessoAtividade = signal(false);
