@@ -1,24 +1,26 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, combineLatest, map, of, switchMap, tap } from 'rxjs';
+import { catchError, of, switchMap, tap } from 'rxjs';
 
 import {
   Entrega,
-  Projeto,
   TipoCampoEntrega,
+  ehArquivoGuardado,
   ehDoPeriodo,
+  nomeDoArquivo,
   periodoAtual,
   rotuloTurma,
 } from '../../core/models';
-import { AtividadeService } from '../../core/services/atividade.service';
+import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
 import { EntregaService, MatrizStatus } from '../../core/services/entrega.service';
 import { ProgramaService } from '../../core/services/programa.service';
-import { ProjetoService } from '../../core/services/projeto.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
+
+const MATRIZ_VAZIA: MatrizStatus = { atividades: [], linhas: [], entregas: [] };
 
 /** Painel da equipe acadêmica: entregas de cada grupo da turma. */
 @Component({
@@ -54,7 +56,7 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
       <div class="card__head">
         <app-icone nome="prancheta" class="card__head-icone" />
         <h2 class="section-title">
-          Status de entrega por projeto ({{ projetos().length }})
+          Status de entrega por projeto ({{ matriz().linhas.length }})
         </h2>
       </div>
 
@@ -76,7 +78,7 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
             </tr>
           </thead>
           <tbody>
-            @if (carregandoProjetos()) {
+            @if (carregando()) {
               <tr>
                 <td class="table-empty" [attr.colspan]="matriz().atividades.length + 1">
                   Carregando projetos…
@@ -110,7 +112,11 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
                     [attr.colspan]="matriz().atividades.length + 1"
                   >
                     @if (programaSelecionadoId()) {
-                      Nenhum projeto cadastrado nesta turma.
+                      @if (souOrientador()) {
+                        Nenhum projeto desta turma tem você como orientador.
+                      } @else {
+                        Nenhum projeto cadastrado nesta turma.
+                      }
                     } @else {
                       Nenhum PFC iniciado para esta turma — crie em Gestão de PFC.
                     }
@@ -153,6 +159,18 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
                 <dd>
                   @if (!l.valor) {
                     <span class="detalhe__vazio">não preenchido</span>
+                  } @else if (l.tipo === 'ARQUIVO' && guardado(l.valor)) {
+                    <button
+                      type="button"
+                      class="link-botao"
+                      (click)="baixar(d.projetoId, d.atividadeId, l.campoId)"
+                    >
+                      <app-icone nome="download" />
+                      {{ nomeArquivo(l.valor) }}
+                    </button>
+                  } @else if (l.tipo === 'ARQUIVO') {
+                    {{ l.valor }}
+                    <span class="detalhe__vazio">(só o nome — enviado antes do upload)</span>
                   } @else if (l.tipo === 'LINK') {
                     <a [href]="l.valor" target="_blank" rel="noopener noreferrer">
                       {{ l.valor }}
@@ -165,6 +183,9 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
             </dl>
             @if (erroRemocao()) {
               <p class="alerta alerta--solto" role="alert">{{ erroRemocao() }}</p>
+            }
+            @if (erroDownload()) {
+              <p class="alerta alerta--solto" role="alert">{{ erroDownload() }}</p>
             }
             <button
               type="button"
@@ -253,10 +274,9 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
 export class PainelEquipeComponent {
   private readonly cursoService = inject(CursoService);
   private readonly programaService = inject(ProgramaService);
-  private readonly projetoService = inject(ProjetoService);
   private readonly entregaService = inject(EntregaService);
-  private readonly atividadeService = inject(AtividadeService);
   private readonly confirmacao = inject(ConfirmacaoService);
+  private readonly auth = inject(AuthService);
 
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
 
@@ -283,43 +303,31 @@ export class PainelEquipeComponent {
     () => this.programas().find((p) => p.cursoId === this.cursoSelecionado())?.id,
   );
 
-  readonly carregandoProjetos = signal(false);
+  readonly souOrientador = computed(() => this.auth.usuario()?.perfil === 'ORIENTADOR');
+
+  readonly carregando = signal(false);
   readonly erroProjetos = signal('');
 
-  /** Todos os PFCs reais da turma — cada um vira uma linha da tabela. */
-  readonly projetos = toSignal(
+  /** Projetos, atividades e entregas da turma — cada projeto vira uma linha. */
+  readonly matriz = toSignal(
     toObservable(this.programaSelecionadoId).pipe(
       tap(() => this.erroProjetos.set('')),
       switchMap((programaId) => {
         if (!programaId) {
-          return of([] as Projeto[]);
+          return of(MATRIZ_VAZIA);
         }
-        this.carregandoProjetos.set(true);
-        return this.projetoService.listar(programaId).pipe(
-          tap(() => this.carregandoProjetos.set(false)),
+        this.carregando.set(true);
+        return this.entregaService.matriz(programaId).pipe(
+          tap(() => this.carregando.set(false)),
           catchError((e: Error) => {
-            this.carregandoProjetos.set(false);
+            this.carregando.set(false);
             this.erroProjetos.set(e.message);
-            return of([] as Projeto[]);
+            return of(MATRIZ_VAZIA);
           }),
         );
       }),
     ),
-    { initialValue: [] as Projeto[] },
-  );
-
-  readonly matriz = toSignal(
-    toObservable(this.projetos).pipe(
-      switchMap((projetos) =>
-        this.entregaService.matrizDosProjetos(projetos).pipe(
-          catchError((e: Error) => {
-            this.erroProjetos.set(e.message);
-            return of({ atividades: [], linhas: [] } as MatrizStatus);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: { atividades: [], linhas: [] } as MatrizStatus },
+    { initialValue: MATRIZ_VAZIA },
   );
 
   /** Célula da matriz aberta no painel de detalhe. */
@@ -331,38 +339,44 @@ export class PainelEquipeComponent {
   readonly erroRemocao = signal('');
 
   /** O que o grupo respondeu em cada campo da atividade escolhida. */
-  readonly detalhe = toSignal(
-    toObservable(this.selecionada).pipe(
-      switchMap((sel) =>
-        sel
-          ? combineLatest([
-              this.atividadeService.listar(),
-              this.entregaService.entregasDoProjeto(sel.projetoId),
-            ]).pipe(
-              map(([atividades, entregas]) => {
-                const atividade = atividades.find((a) => a.id === sel.atividadeId);
-                if (!atividade) {
-                  return null;
-                }
-                const entrega: Entrega | null =
-                  entregas.find((e) => e.atividadeId === sel.atividadeId) ?? null;
-                return {
-                  ...sel,
-                  atividade,
-                  entrega,
-                  linhas: atividade.campos.map((c) => ({
-                    rotulo: c.rotulo,
-                    tipo: c.tipo as TipoCampoEntrega,
-                    valor: entrega?.respostas?.[c.id] ?? '',
-                  })),
-                };
-              }),
-            )
-          : of(null),
-      ),
-    ),
-    { initialValue: null },
-  );
+  readonly detalhe = computed(() => {
+    const sel = this.selecionada();
+    if (!sel) {
+      return null;
+    }
+    const { atividades, entregas } = this.matriz();
+    const atividade = atividades.find((a) => a.id === sel.atividadeId);
+    if (!atividade) {
+      return null;
+    }
+    const entrega: Entrega | null =
+      entregas.find(
+        (e) => e.projetoId === sel.projetoId && e.atividadeId === sel.atividadeId,
+      ) ?? null;
+    return {
+      ...sel,
+      atividade,
+      entrega,
+      linhas: atividade.campos.map((c) => ({
+        campoId: c.id,
+        rotulo: c.rotulo,
+        tipo: c.tipo as TipoCampoEntrega,
+        valor: entrega?.respostas?.[c.id] ?? '',
+      })),
+    };
+  });
+
+  readonly guardado = ehArquivoGuardado;
+  readonly nomeArquivo = nomeDoArquivo;
+  readonly erroDownload = signal('');
+
+  baixar(projetoId: string, atividadeId: string, campoId: string): void {
+    this.erroDownload.set('');
+    this.entregaService.linkDoArquivo(projetoId, atividadeId, campoId).subscribe({
+      next: ({ url }) => window.location.assign(url),
+      error: (e: Error) => this.erroDownload.set(e.message),
+    });
+  }
 
   abrir(projetoId: string, projetoNome: string, atividadeId: string): void {
     this.erroRemocao.set('');

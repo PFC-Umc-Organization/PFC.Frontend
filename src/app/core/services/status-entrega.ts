@@ -1,4 +1,4 @@
-import { Atividade, StatusEntrega } from '../models';
+import { Atividade, StatusEntrega, nomeDoArquivo } from '../models';
 
 /** Status calculado no cliente a partir do prazo e do instante da entrega. */
 export function statusDaEntrega(
@@ -20,5 +20,6 @@ export function arquivoDaEntrega(
   respostas: Record<string, string> | undefined,
 ): string | undefined {
   const campo = atividade.campos.find((c) => c.tipo === 'ARQUIVO');
-  return campo ? respostas?.[campo.id] : undefined;
+  const resposta = campo ? respostas?.[campo.id] : undefined;
+  return resposta ? nomeDoArquivo(resposta) : undefined;
 }

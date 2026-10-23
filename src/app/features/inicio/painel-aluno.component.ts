@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 
-import { ItemTimeline, Projeto, rgmDoUsuario } from '../../core/models';
+import { ItemTimeline, Projeto } from '../../core/models';
 import { AtividadeService } from '../../core/services/atividade.service';
-import { AuthService } from '../../core/services/auth.service';
 import { EntregaService } from '../../core/services/entrega.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { statusDaEntrega } from '../../core/services/status-entrega';
@@ -84,14 +83,12 @@ type Estado =
   `,
 })
 export class PainelAlunoComponent {
-  private readonly auth = inject(AuthService);
   private readonly projetoService = inject(ProjetoService);
   private readonly entregaService = inject(EntregaService);
   private readonly atividadeService = inject(AtividadeService);
 
   readonly estado = toSignal(
-    toObservable(computed(() => rgmDoUsuario(this.auth.usuario()))).pipe(
-      switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
+    this.projetoService.meuProjeto().pipe(
       switchMap((projeto) =>
         (projeto
           ? this.entregaService.timelineDoProjeto(projeto.id, projeto.nome)

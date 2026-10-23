@@ -31,11 +31,12 @@ contra outra API, troque `apiBaseUrl` ali.
 | `/criar-conta`, `/confirmar-conta` | visitante | Cadastro do aluno (RGM pré-autorizado) e confirmação pelo código do e-mail |
 | `/esqueci-senha` | visitante | Pede o código por e-mail e define a senha nova |
 | `/nova-senha` | visitante | Troca da senha temporária (orientador e admin, primeiro acesso) |
-| `/` | todos | Equipe: status de entrega de cada grupo da turma. Aluno: cronograma das atividades (mesmo sem grupo) |
-| `/meu-pfc` | aluno | Cria o PFC do grupo, convites e aceite |
-| `/materiais` | todos | Equipe: materiais de apoio. Aluno: envio das entregas do grupo |
+| `/` | todos | Equipe: status de entrega de cada grupo da turma (o orientador vê só os grupos que orienta). Aluno: cronograma das atividades (mesmo sem grupo) |
+| `/meu-pfc` | aluno | Grupo com nomes, orientador e turma (uma chamada, `GET /meu-pfc`); sem grupo, cria o PFC ou aceita um convite |
+| `/entregaveis` | aluno | Envio das entregas do grupo (arquivo sobe direto para o S3, com progresso) e o que já foi entregue, com download |
+| `/materiais` | todos | Equipe publica materiais (link ou arquivo, por turma ou para todas); aluno lê os gerais e os da turma dele |
 | `/referencias` | todos | Busca de artigos (OpenAlex/Crossref) e lista ABNT do grupo |
-| `/gestao` | orientador, admin | Programa de PFC por turma, PFCs dos alunos e atividades com os campos de entrega |
+| `/gestao` | orientador, admin | Admin: programa de PFC por turma, PFCs dos alunos e atividades. Orientador: os PFCs que orienta e as atividades |
 | `/usuarios` | admin | Cadastro de orientador/admin, pré-autorização de RGMs e contas |
 | `/turmas` | admin | Cursos e turmas |
 
@@ -53,16 +54,35 @@ src/app/
 ```
 
 Cada domínio tem um `abstract class XService` e a implementação `XHttpService`,
-escolhida em `app.config.ts`. A exceção é **Materiais**: o backend ainda não
-tem esse domínio, então `MaterialLocalService` guarda os materiais só na
-memória do navegador — a tela avisa que é uma prévia (somem ao recarregar e o
-aluno não vê).
+escolhida em `app.config.ts`.
+
+Arquivos (entregas e materiais) não passam pela API: o backend devolve um
+formulário assinado e `core/services/upload.ts` manda o arquivo direto para o
+bucket, com progresso. O interceptor só põe o `Bearer` em chamadas à API — o
+S3 recusa um envio assinado que também traga `Authorization`.
 
 Erros de carregamento aparecem na tela: nenhuma lista vira "vazia" quando a
 API falha.
 
+As telas pedem os dados já no formato em que mostram: o aluno acha o próprio
+grupo por `GET /meu-pfc` (não baixa os projetos dos outros nem a lista de
+usuários, que é só da equipe) e a matriz do painel vem de três chamadas em
+paralelo — projetos, atividades e `GET /programas/:id/entregas`.
+
 As rotas, os corpos e as regras de cada chamada estão no README do
 `PFC.Backend` (seção "Rotas implementadas").
+
+## Testes
+
+```bash
+npm test        # Vitest: modelos, interceptors e telas (roda no pipeline)
+npm run e2e     # build + Playwright contra a API falsa de e2e/api-falsa.mjs
+```
+
+O e2e cobre os três perfis (aluno com e sem grupo, coordenação, orientadora),
+upload e download de arquivo, materiais, senha temporária, esqueci a senha e
+as telas no celular. Precisa do Chromium uma vez: `npx playwright install
+chromium`. Mudou uma regra do backend? Atualize a API falsa junto.
 
 ## Design system
 

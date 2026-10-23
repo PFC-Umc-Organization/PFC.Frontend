@@ -8,23 +8,26 @@ import {
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { BehaviorSubject, catchError, combineLatest, of, switchMap } from 'rxjs';
+import { BehaviorSubject, catchError, combineLatest, map, of, switchMap } from 'rxjs';
 
 import {
   Convite,
   LIMITES_PROJETO,
-  Projeto,
-  ProjetoDetalhe,
+  MeuPfc,
   colegasDoFormulario,
   rgmDoUsuario,
+  rotuloTurma,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { ConviteService } from '../../core/services/convite.service';
-import { ProgramaService } from '../../core/services/programa.service';
 import { ProjetoService } from '../../core/services/projeto.service';
 import { IconeComponent } from '../../shared/components/icone.component';
 
+type Estado =
+  | { tipo: 'carregando' }
+  | { tipo: 'erro'; mensagem: string }
+  | { tipo: 'pronto'; meu: MeuPfc };
 
 @Component({
   selector: 'app-meu-pfc',
@@ -48,7 +51,12 @@ import { IconeComponent } from '../../shared/components/icone.component';
             <p class="eyebrow">Projeto cadastrado</p>
             <h2 class="page-title mt-2">{{ detalhe.projeto.nome }}</h2>
             <p class="lead mt-2">{{ detalhe.projeto.descricao }}</p>
-            <p class="text-sm mt-4">
+            @if (detalhe.turma) {
+              <p class="text-sm mt-4">
+                <span class="cell-strong">Turma: </span>{{ rotulo(detalhe.turma) }}
+              </p>
+            }
+            <p class="text-sm mt-2">
               <span class="cell-strong">Orientador: </span>
               @if (detalhe.orientador) {
                 {{ detalhe.orientador.nome }}
@@ -216,7 +224,16 @@ import { IconeComponent } from '../../shared/components/icone.component';
             </p>
           }
           @case ('carregando') {
-            <p class="muted text-sm">Verificando a sua turma…</p>
+            <p class="muted text-sm">Carregando o seu PFC…</p>
+          }
+          @case ('erro') {
+            <p class="alerta" role="alert">
+              <app-icone nome="alerta" />
+              <span>Não foi possível carregar o seu PFC: {{ erroCarga() }}</span>
+              <button type="button" class="btn btn--outline btn--sm" (click)="recarregar()">
+                Tentar de novo
+              </button>
+            </p>
           }
           @default {
         <section class="card">
@@ -374,55 +391,59 @@ import { IconeComponent } from '../../shared/components/icone.component';
 export class MeuPfcComponent {
   private readonly auth = inject(AuthService);
   private readonly projetoService = inject(ProjetoService);
-  private readonly programaService = inject(ProgramaService);
   private readonly conviteService = inject(ConviteService);
   private readonly confirmacao = inject(ConfirmacaoService);
 
-  /** `integrantes` guarda RGM, não `Usuario.id` — a busca é pelo RGM do aluno. */
   private readonly meuRgm = computed(() => rgmDoUsuario(this.auth.usuario()));
 
   private readonly fb = inject(FormBuilder);
   private readonly recarregar$ = new BehaviorSubject<void>(undefined);
   private readonly recarregarConvites$ = new BehaviorSubject<void>(undefined);
 
-  private readonly meuProjetoBase = toSignal(
-    combineLatest([toObservable(this.meuRgm), this.recarregar$]).pipe(
-      switchMap(([rgm]) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
+  /** Uma chamada traz o grupo (com nomes e orientador) ou a turma do aluno. */
+  private readonly estado = toSignal(
+    this.recarregar$.pipe(
+      switchMap(() =>
+        this.projetoService.meuPfc().pipe(
+          map((meu): Estado => ({ tipo: 'pronto', meu })),
+          catchError((e: Error) => of<Estado>({ tipo: 'erro', mensagem: e.message })),
+        ),
+      ),
     ),
-    { initialValue: null as Projeto | null },
+    { initialValue: { tipo: 'carregando' } as Estado },
   );
 
-  /**
-   * A turma vem da sessão (gravada no login): se a coordenação pré-autorizar
-   * o aluno depois, a tela só sabe quando ele entra de novo.
-   */
-  private readonly minhaTurmaId = computed(
-    () => this.auth.usuario()?.cursoIds?.[0] ?? '',
-  );
+  readonly meuProjetoDetalhe = computed(() => {
+    const e = this.estado();
+    return e.tipo === 'pronto' ? e.meu.grupo : null;
+  });
 
-  /** `undefined` enquanto carrega; `null` se falhar (aí o backend decide no envio). */
-  private readonly programas = toSignal(
-    this.programaService.listar().pipe(catchError(() => of(null))),
-    { initialValue: undefined },
-  );
+  private readonly meuProjetoId = computed(() => this.meuProjetoDetalhe()?.projeto.id ?? '');
+
+  readonly erroCarga = computed(() => {
+    const e = this.estado();
+    return e.tipo === 'erro' ? e.mensagem : '';
+  });
 
   /** Só oferece o formulário a quem pode criar; os outros casos viram aviso. */
-  readonly situacao = computed<'carregando' | 'sem-turma' | 'sem-programa' | 'pode-criar'>(
+  readonly situacao = computed<'carregando' | 'erro' | 'sem-turma' | 'sem-programa' | 'pode-criar'>(
     () => {
-      const turmaId = this.minhaTurmaId();
-      if (!turmaId) {
+      const e = this.estado();
+      if (e.tipo !== 'pronto') {
+        return e.tipo;
+      }
+      if (!e.meu.turma) {
         return 'sem-turma';
       }
-      const programas = this.programas();
-      if (programas === undefined) {
-        return 'carregando';
-      }
-      if (programas === null) {
-        return 'pode-criar';
-      }
-      return programas.some((p) => p.cursoId === turmaId) ? 'pode-criar' : 'sem-programa';
+      return e.meu.programaId ? 'pode-criar' : 'sem-programa';
     },
   );
+
+  readonly rotulo = rotuloTurma;
+
+  recarregar(): void {
+    this.recarregar$.next();
+  }
 
   readonly form = this.fb.nonNullable.group({
     nome: [
@@ -482,13 +503,6 @@ export class MeuPfcComponent {
       });
   }
 
-  readonly meuProjetoDetalhe = toSignal(
-    toObservable(computed(() => this.meuProjetoBase()?.id ?? '')).pipe(
-      switchMap((id) => (id ? this.projetoService.detalhe(id) : of(null))),
-    ),
-    { initialValue: null as ProjetoDetalhe | null },
-  );
-
   // ── Convites (atividade 8) ──────────────────────────────────────────────
 
   /**
@@ -506,9 +520,12 @@ export class MeuPfcComponent {
 
   /** Convites que o aluno logado recebeu (só aparecem enquanto ele não tem grupo). */
   readonly meusConvites = toSignal(
-    combineLatest([toObservable(this.meuRgm), this.recarregarConvites$]).pipe(
-      switchMap(([rgm]) =>
-        rgm
+    combineLatest([
+      toObservable(computed(() => this.situacao() !== 'carregando' && !this.meuProjetoId())),
+      this.recarregarConvites$,
+    ]).pipe(
+      switchMap(([semGrupo]) =>
+        semGrupo
           ? this.conviteService.meusConvites().pipe(catchError(() => of([] as Convite[])))
           : of([] as Convite[]),
       ),
@@ -519,7 +536,7 @@ export class MeuPfcComponent {
   /** Convites que o grupo mandou e ninguém respondeu ainda. */
   readonly pendentes = toSignal(
     combineLatest([
-      toObservable(computed(() => this.meuProjetoBase()?.id ?? '')),
+      toObservable(this.meuProjetoId),
       this.recarregarConvites$,
     ]).pipe(
       switchMap(([id]) =>
@@ -578,7 +595,7 @@ export class MeuPfcComponent {
   }
 
   convidar(): void {
-    const projetoId = this.meuProjetoBase()?.id;
+    const projetoId = this.meuProjetoId();
     const rgm = this.conviteForm.controls.rgm.value.trim();
     this.erroGrupo.set('');
     if (!projetoId || !rgm) {
@@ -601,7 +618,7 @@ export class MeuPfcComponent {
   }
 
   async cancelar(c: Convite): Promise<void> {
-    const projetoId = this.meuProjetoBase()?.id;
+    const projetoId = this.meuProjetoId();
     if (!projetoId) {
       return;
     }

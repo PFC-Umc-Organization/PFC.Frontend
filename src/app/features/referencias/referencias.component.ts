@@ -17,7 +17,6 @@ import {
   ReferenciaFormatada,
   autoriaCurta,
   ehEquipeAcademica,
-  rgmDoUsuario,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
@@ -417,13 +416,13 @@ export class ReferenciasComponent {
 
   /* ---------------------------- projeto alvo ---------------------------- */
 
-  /** Aluno: o grupo dele, pelo RGM. */
+  /** Aluno: o grupo dele. */
   private readonly projetoDoAluno = toSignal(
-    toObservable(computed(() => rgmDoUsuario(this.auth.usuario()))).pipe(
-      switchMap((rgm) =>
-        rgm && !this.visaoProfessor()
-          ? this.projetoService.doAluno(rgm).pipe(catchError(() => of(null)))
-          : of(null),
+    toObservable(this.visaoProfessor).pipe(
+      switchMap((professor) =>
+        professor
+          ? of(null)
+          : this.projetoService.meuProjeto().pipe(catchError(() => of(null))),
       ),
     ),
     { initialValue: null as Projeto | null },

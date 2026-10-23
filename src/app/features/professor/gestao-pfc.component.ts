@@ -57,7 +57,7 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
 
       <!-- ------------------------- menu de seções ------------------------- -->
       <div class="segmented segmented--grid secoes" role="group" aria-label="Seção da tela">
-        @for (s of secoes; track s.id) {
+        @for (s of secoes(); track s.id) {
           <button
             type="button"
             class="segmented__item"
@@ -277,8 +277,12 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
 
           @if (!programaAtual()) {
             <p class="pfcs__aviso">
-              Esta turma ainda não tem programa de PFC. Crie o programa em
-              "Criar programa de PFC" para os alunos poderem criar os PFCs.
+              @if (souAdmin()) {
+                Esta turma ainda não tem programa de PFC. Crie o programa em
+                "Criar programa de PFC" para os alunos poderem criar os PFCs.
+              } @else {
+                Esta turma ainda não tem programa de PFC — a coordenação cria.
+              }
             </p>
           } @else {
             <div class="table-scroll">
@@ -476,31 +480,37 @@ type SecaoGestao = 'programa' | 'pfcs' | 'atividades';
                           }
                         </td>
                         <td>
-                          <div class="row">
-                            <button
-                              type="button"
-                              class="acao-remover"
-                              (click)="iniciarEdicao(p)"
-                              [attr.aria-label]="'Editar PFC ' + p.nome"
-                            >
-                              <app-icone nome="editar" />
-                            </button>
-                            <button
-                              type="button"
-                              class="acao-remover"
-                              (click)="excluirPfc(p.id, p.nome)"
-                              [attr.aria-label]="'Excluir PFC ' + p.nome"
-                            >
-                              <app-icone nome="lixeira" />
-                            </button>
-                          </div>
+                          @if (souAdmin()) {
+                            <div class="row">
+                              <button
+                                type="button"
+                                class="acao-remover"
+                                (click)="iniciarEdicao(p)"
+                                [attr.aria-label]="'Editar PFC ' + p.nome"
+                              >
+                                <app-icone nome="editar" />
+                              </button>
+                              <button
+                                type="button"
+                                class="acao-remover"
+                                (click)="excluirPfc(p.id, p.nome)"
+                                [attr.aria-label]="'Excluir PFC ' + p.nome"
+                              >
+                                <app-icone nome="lixeira" />
+                              </button>
+                            </div>
+                          }
                         </td>
                       </tr>
                     }
                   } @empty {
                     <tr>
                       <td class="table-empty" colspan="4">
-                        Nenhum PFC criado pelos alunos desta turma ainda.
+                        @if (souAdmin()) {
+                          Nenhum PFC criado pelos alunos desta turma ainda.
+                        } @else {
+                          Nenhum PFC desta turma tem você como orientador.
+                        }
                       </td>
                     </tr>
                   }
@@ -1058,13 +1068,16 @@ export class GestaoPfcComponent {
     () => this.auth.perfil() === 'ADMIN',
   );
 
-  /** A tela mostra uma seção por vez; a escolha vem do menu no topo. */
-  readonly secoes: { id: SecaoGestao; rotulo: string }[] = [
-    { id: 'programa', rotulo: 'Criar programa de PFC' },
-    { id: 'pfcs', rotulo: 'PFCs dos alunos' },
+  /**
+   * A tela mostra uma seção por vez; a escolha vem do menu no topo. Programa
+   * de PFC é só da coordenação: o orientador começa nos PFCs.
+   */
+  readonly secoes = computed<{ id: SecaoGestao; rotulo: string }[]>(() => [
+    ...(this.souAdmin() ? [{ id: 'programa' as const, rotulo: 'Criar programa de PFC' }] : []),
+    { id: 'pfcs', rotulo: this.souAdmin() ? 'PFCs dos alunos' : 'Meus orientandos' },
     { id: 'atividades', rotulo: 'Atividades' },
-  ];
-  readonly secao = signal<SecaoGestao>('programa');
+  ]);
+  readonly secao = signal<SecaoGestao>(this.auth.perfil() === 'ADMIN' ? 'programa' : 'pfcs');
 
   readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
   private readonly turmaEscolhida = signal<string | null>(null);

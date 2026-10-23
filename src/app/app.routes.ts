@@ -74,6 +74,15 @@ export const rotas: Routes = [
           ),
       },
       {
+        path: 'entregaveis',
+        canActivate: [perfilGuard(['ALUNO'])],
+        title: 'Entregáveis — Athena',
+        loadComponent: () =>
+          import('./features/entregaveis/entregaveis.component').then(
+            (m) => m.EntregaveisComponent,
+          ),
+      },
+      {
         path: 'referencias',
         title: 'Referências — Athena',
         loadComponent: () =>

@@ -57,7 +57,7 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
         } @else {
           <a
             class="btn btn--full-xs btn--primary"
-            routerLink="/materiais"
+            routerLink="/entregaveis"
             [queryParams]="{ atividade: item().atividadeId }"
           >
             Enviar entrega

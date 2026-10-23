@@ -3,16 +3,20 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
+import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
 
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
+  // O token vai só para a API: o S3 recusa um upload assinado que também
+  // traga Authorization.
+  const ehDaApi = req.url.startsWith(environment.apiBaseUrl);
   const ehRotaPublica = req.url.includes('/auth/');
   const token = auth.token();
 
-  if (ehRotaPublica || !token) {
+  if (!ehDaApi || ehRotaPublica || !token) {
     return next(req);
   }
 

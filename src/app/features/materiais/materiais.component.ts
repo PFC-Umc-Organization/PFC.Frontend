@@ -1,85 +1,64 @@
-import { DatePipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   signal,
 } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Observable, catchError, of, switchMap } from 'rxjs';
+import { catchError, map, of, startWith } from 'rxjs';
 
 import {
-  Atividade,
-  CampoEntrega,
-  Projeto,
-  Entrega,
-  ItemTimeline,
+  EXTENSOES_ARQUIVO,
   Material,
   ROTULO_TIPO_MATERIAL,
   TipoMaterial,
   ehEquipeAcademica,
-  rgmDoUsuario,
-  rotuloCurso,
+  problemaDoArquivo,
+  rotuloTurma,
 } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ConfirmacaoService } from '../../core/services/confirmacao.service';
 import { CursoService } from '../../core/services/curso.service';
-import { AtividadeService } from '../../core/services/atividade.service';
-import { EntregaService } from '../../core/services/entrega.service';
+import { ErroApi } from '../../core/services/http-erro';
 import { MaterialService } from '../../core/services/material.service';
-import { ProjetoService } from '../../core/services/projeto.service';
-import { TimelineComponent } from '../aluno/timeline.component';
 import { IconeComponent } from '../../shared/components/icone.component';
 import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
 
+type Estado =
+  | { tipo: 'carregando' }
+  | { tipo: 'erro'; mensagem: string }
+  | { tipo: 'pronto'; materiais: Material[] };
 
+/** Materiais de apoio: a equipe publica (link ou arquivo), todos consultam. */
 @Component({
   selector: 'app-materiais',
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
-  imports: [RouterLink, 
-    ReactiveFormsModule,
-    IconeComponent,
-    PrazoPipe,
-    TimelineComponent,
-    DatePipe,
-  ],
+  imports: [ReactiveFormsModule, IconeComponent, PrazoPipe],
   template: `
     <div class="page">
-      @if (visaoProfessor()) {
-        <!-- ------------------------ visão professor ------------------------ -->
-        <header>
-          <p class="eyebrow">Apoio ao PFC</p>
-          <h1 class="page-title mt-2">Materiais de Apoio</h1>
-          <p class="lead mt-2">
-            Modelos, guias e gravações publicados pela coordenação. Materiais
-            sem curso valem para todos.
-          </p>
-        </header>
+      <header>
+        <p class="eyebrow">Apoio ao PFC</p>
+        <h1 class="page-title mt-2">Materiais de apoio</h1>
+        <p class="lead mt-2">
+          @if (equipe()) {
+            Modelos, guias e gravações para os grupos. Escolha a turma ou deixe
+            "Todas as turmas" para publicar para todos.
+          } @else {
+            Modelos, guias e gravações publicados pela coordenação e pelos
+            orientadores para a sua turma.
+          }
+        </p>
+      </header>
 
-        @if (!materiaisPersistentes) {
-          <p class="alerta" role="status">
-            <app-icone nome="alerta" />
-            <span>
-              Prévia: os materiais ainda não são salvos no servidor. O que for
-              publicado aqui some ao recarregar a página e os alunos não veem.
-            </span>
-          </p>
-        }
-
+      @if (equipe()) {
         <section class="card">
           <div class="card__body">
             <h2 class="section-title">Publicar material</h2>
 
-            <form
-              class="form-grid form-grid--2 mt-6"
-              [formGroup]="form"
-              (ngSubmit)="publicar()"
-            >
+            <form class="form-grid form-grid--2 mt-6" [formGroup]="form" (ngSubmit)="publicar()">
               <div class="field">
                 <label class="field__label" for="titulo">Título</label>
                 <input
@@ -88,35 +67,98 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
                   class="control"
                   placeholder="Ex.: Modelo oficial de PFC"
                   formControlName="titulo"
+                  [class.control--invalid]="invalido('titulo')"
                 />
+                @if (invalido('titulo')) {
+                  <span class="field__error">Informe um título de 3 a 150 caracteres.</span>
+                }
               </div>
 
               <div class="field">
                 <label class="field__label" for="tipo">Tipo</label>
                 <select id="tipo" class="control" formControlName="tipo">
                   @for (t of tipos; track t) {
-                    <option [value]="t">{{ rotuloTipo(t) }}</option>
+                    <option [value]="t">{{ rotuloTipo[t] }}</option>
                   }
                 </select>
               </div>
 
-              <div class="field">
-                <label class="field__label" for="url">Link</label>
-                <input
-                  id="url"
-                  type="url"
-                  class="control"
-                  placeholder="https://…"
-                  formControlName="url"
-                />
-              </div>
+              <fieldset class="field origem">
+                <legend class="field__label">Conteúdo</legend>
+                <div class="segmented" role="group" aria-label="Link ou arquivo">
+                  <button
+                    type="button"
+                    class="segmented__item"
+                    [attr.aria-pressed]="origem() === 'link'"
+                    (click)="trocarOrigem('link')"
+                  >
+                    Link
+                  </button>
+                  <button
+                    type="button"
+                    class="segmented__item"
+                    [attr.aria-pressed]="origem() === 'arquivo'"
+                    (click)="trocarOrigem('arquivo')"
+                  >
+                    Arquivo
+                  </button>
+                </div>
+              </fieldset>
+
+              @if (origem() === 'link') {
+                <div class="field">
+                  <label class="field__label" for="url">Link</label>
+                  <input
+                    id="url"
+                    type="url"
+                    class="control"
+                    placeholder="https://…"
+                    formControlName="url"
+                    [class.control--invalid]="invalido('url')"
+                  />
+                  @if (invalido('url')) {
+                    <span class="field__error">Informe um endereço que comece com https://</span>
+                  }
+                </div>
+              } @else {
+                <div class="field">
+                  <span class="field__label">Arquivo</span>
+                  <div class="upload">
+                    <label for="material-arquivo" class="btn btn--outline" [class.btn--disabled]="progresso() !== null">
+                      {{ arquivo() ? 'Trocar arquivo' : 'Escolher arquivo' }}
+                    </label>
+                    <span class="upload__nome" aria-live="polite">
+                      @if (progresso() !== null) {
+                        Enviando… {{ progresso() }}%
+                      } @else {
+                        {{ arquivo()?.nome || 'Nenhum arquivo selecionado' }}
+                      }
+                    </span>
+                  </div>
+                  @if (progresso() !== null) {
+                    <progress class="upload__barra" max="100" [value]="progresso()"></progress>
+                  }
+                  <span class="field__hint">PDF, Office/LibreOffice, imagem, ZIP ou texto, até 50 MB.</span>
+                  @if (erroArquivo()) {
+                    <span class="field__error" role="alert">{{ erroArquivo() }}</span>
+                  }
+                  <input
+                    id="material-arquivo"
+                    type="file"
+                    class="upload__input"
+                    [accept]="extensoes"
+                    [disabled]="progresso() !== null"
+                    (change)="aoSelecionarArquivo($event)"
+                  />
+                </div>
+              }
 
               <div class="field">
-                <label class="field__label" for="curso">Curso</label>
-                <select id="curso" class="control" formControlName="cursoId">
-                  <option value="">Todos os cursos</option>
-                  @for (c of cursos(); track c.id) {
-                    <option [value]="c.id">{{ rotulo(c) }}</option>
+                <label class="field__label" for="turma">Turma</label>
+                <select id="turma" class="control" formControlName="cursoId">
+                  <option value="">Todas as turmas</option>
+                  @for (c of turmas(); track c.id) {
+                    <option [value]="c.id">{{ rotuloDaTurma(c) }}</option>
                   }
                 </select>
               </div>
@@ -132,250 +174,100 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
               </div>
 
               <div class="form-grid__full">
-                <button type="submit" class="btn btn--primary">
+                <button type="submit" class="btn btn--primary" [disabled]="!podePublicar()">
                   <app-icone nome="mais" class="btn__icon" />
-                  Publicar material
+                  {{ salvando() ? 'Publicando…' : 'Publicar material' }}
                 </button>
+                @if (erroPublicar()) {
+                  <p class="alerta mt-4" role="alert">
+                    <app-icone nome="alerta" />
+                    <span>{{ erroPublicar() }}</span>
+                  </p>
+                }
+                @if (publicado()) {
+                  <p class="ok mt-4" role="status">
+                    <app-icone nome="check" />
+                    <span>Material publicado.</span>
+                  </p>
+                }
               </div>
             </form>
           </div>
         </section>
+      }
 
-        <div class="grade">
-          @for (m of materiais(); track m.id) {
-            <article class="material">
-              <div class="material__topo">
-                <span class="badge badge--primary">{{ rotuloTipo(m.tipo) }}</span>
-                <button
-                  type="button"
-                  class="material__remover"
-                  (click)="remover(m.id, m.titulo)"
-                  [attr.aria-label]="'Remover ' + m.titulo"
-                >
-                  <app-icone nome="lixeira" />
-                </button>
-              </div>
+      @if (erroAcao()) {
+        <p class="alerta" role="alert">
+          <app-icone nome="alerta" />
+          <span>{{ erroAcao() }}</span>
+        </p>
+      }
 
-              <h3 class="material__titulo">{{ m.titulo }}</h3>
-              <p class="material__desc">{{ m.descricao }}</p>
-
-              <footer class="material__base">
-                <span class="text-xs muted">
-                  Publicado em {{ m.publicadoEm | prazo: true }}
-                </span>
-                <a
-                  class="material__link"
-                  [href]="m.url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Abrir
-                  <app-icone nome="link-externo" />
-                </a>
-              </footer>
-            </article>
-          } @empty {
-            <p class="vazio">Nenhum material publicado ainda.</p>
-          }
-        </div>
-      } @else {
-        <!-- -------------------------- visão aluno -------------------------- -->
-        <header>
-          <p class="eyebrow">Entrega de atividades</p>
-          <h1 class="page-title mt-2">Entregáveis</h1>
-          <p class="lead mt-2">
-            Escolha uma atividade cadastrada pelo professor, preencha os campos do
-            formulário e envie a entrega do seu grupo antes do prazo.
-          </p>
-        </header>
-
-        @if (erroCarga()) {
+      @switch (estado().tipo) {
+        @case ('carregando') {
+          <p class="muted text-sm">Carregando materiais…</p>
+        }
+        @case ('erro') {
           <p class="alerta" role="alert">
             <app-icone nome="alerta" />
-            <span>Não foi possível carregar as entregas: {{ erroCarga() }}</span>
+            <span>Não foi possível carregar os materiais: {{ mensagemErro() }}</span>
           </p>
         }
-
-        <section class="card">
-          <div class="card__body">
-            <h2 class="section-title">Enviar entrega</h2>
-
-            @if (!projetoDoAluno()) {
-              <p class="vazio mt-6">
-                Você ainda não faz parte de um PFC, e a entrega é feita pelo grupo.
-                <a routerLink="/meu-pfc">Crie o PFC ou aceite um convite</a>.
-              </p>
-            } @else if (disponiveis().length === 0) {
-              <p class="vazio mt-6">
-                Nenhuma atividade aberta para entrega: o grupo já entregou tudo ou os
-                prazos encerraram.
-              </p>
-            } @else {
-              <div class="form-grid form-grid--2 mt-6">
-                <div class="field">
-                  <label class="field__label" for="atividade">Atividade</label>
-                  <select
-                    id="atividade"
-                    class="control"
-                    [value]="atividadeSelecionada()"
-                    (change)="aoTrocarAtividade($event)"
-                  >
-                    <option value="">Selecione…</option>
-                    @for (item of disponiveis(); track item.atividadeId) {
-                      <option [value]="item.atividadeId">
-                        {{ item.titulo }} — entrega até {{ item.prazo | prazo }}
-                        @if (item.status !== 'PENDENTE') {
-                          (já entregue — editar)
-                        }
-                      </option>
-                    }
-                  </select>
+        @default {
+          <div class="grade">
+            @for (m of materiais(); track m.id) {
+              <article class="material">
+                <div class="material__topo">
+                  <span class="badge badge--primary">{{ rotuloTipo[m.tipo] }}</span>
+                  @if (podeRemover(m)) {
+                    <button
+                      type="button"
+                      class="material__remover"
+                      (click)="remover(m)"
+                      [attr.aria-label]="'Remover ' + m.titulo"
+                    >
+                      <app-icone nome="lixeira" />
+                    </button>
+                  }
                 </div>
 
-                @for (campo of camposDaAtividade(); track campo.id) {
-                  <div
-                    class="field"
-                    [class.form-grid__full]="campo.tipo === 'TEXTO_LONGO'"
-                  >
-                    <label class="field__label" [attr.for]="'campo-' + campo.id">
-                      {{ campo.rotulo }}
-                      @if (!campo.obrigatorio) {
-                        <span class="campo-opcional">(opcional)</span>
-                      }
-                    </label>
-
-                    @switch (campo.tipo) {
-                      @case ('ARQUIVO') {
-                        <div class="upload">
-                          <label [attr.for]="'campo-' + campo.id" class="btn btn--outline">
-                            Escolher arquivo
-                          </label>
-                          <span class="upload__nome">
-                            {{ respostas()[campo.id] || 'Nenhum arquivo selecionado' }}
-                          </span>
-                        </div>
-                        <input
-                          [id]="'campo-' + campo.id"
-                          type="file"
-                          class="upload__input"
-                          (change)="aoSelecionarArquivo(campo.id, $event)"
-                        />
-                      }
-                      @case ('TEXTO_LONGO') {
-                        <textarea
-                          [id]="'campo-' + campo.id"
-                          class="control control--textarea"
-                          [value]="respostas()[campo.id] ?? ''"
-                          (input)="aoDigitar(campo.id, $event)"
-                        ></textarea>
-                      }
-                      @case ('LINK') {
-                        <input
-                          [id]="'campo-' + campo.id"
-                          class="control"
-                          type="url"
-                          placeholder="https://"
-                          [value]="respostas()[campo.id] ?? ''"
-                          (input)="aoDigitar(campo.id, $event)"
-                        />
-                      }
-                      @default {
-                        <input
-                          [id]="'campo-' + campo.id"
-                          class="control"
-                          type="text"
-                          [value]="respostas()[campo.id] ?? ''"
-                          (input)="aoDigitar(campo.id, $event)"
-                        />
-                      }
-                    }
-                  </div>
+                <h3 class="material__titulo">{{ m.titulo }}</h3>
+                @if (m.descricao) {
+                  <p class="material__desc">{{ m.descricao }}</p>
                 }
+                <p class="material__turma">{{ destino(m) }}</p>
 
-                <div class="form-grid__full">
-                  <button
-                    type="button"
-                    class="btn btn--primary"
-                    [disabled]="!podeEnviar()"
-                    (click)="enviarEntrega()"
-                  >
-                    <app-icone nome="mais" class="btn__icon" />
-                    {{ editando() ? 'Salvar alterações' : 'Enviar entrega' }}
-                  </button>
-                  @if (mensagem()) {
-                    <p class="confirmacao">{{ mensagem() }}</p>
+                <footer class="material__base">
+                  <span class="text-xs muted">
+                    {{ m.publicadoEm | prazo: true }}
+                    @if (m.publicadoPor) {
+                      · {{ m.publicadoPor }}
+                    }
+                  </span>
+                  @if (m.arquivo) {
+                    <button type="button" class="material__link link-botao" (click)="baixar(m)">
+                      Baixar
+                      <app-icone nome="download" />
+                    </button>
+                  } @else {
+                    <a class="material__link" [href]="m.url" target="_blank" rel="noopener noreferrer">
+                      Abrir
+                      <app-icone nome="link-externo" />
+                    </a>
                   }
-                  @if (erroEntrega()) {
-                    <p class="confirmacao confirmacao--erro">{{ erroEntrega() }}</p>
-                  }
-                </div>
-              </div>
+                </footer>
+              </article>
+            } @empty {
+              <p class="vazio">
+                @if (equipe()) {
+                  Nenhum material publicado ainda. Os grupos veem aqui o que for publicado.
+                } @else {
+                  A coordenação ainda não publicou materiais para a sua turma.
+                }
+              </p>
             }
           </div>
-        </section>
-
-        @if (minhasEntregas().length > 0) {
-          <section class="card">
-            <div class="card__body">
-              <h2 class="section-title">Suas entregas</h2>
-              <p class="lead mt-2">
-                O que o seu grupo enviou. Dá para editar até o prazo da atividade.
-              </p>
-
-              @for (m of minhasEntregas(); track m.atividade.id) {
-                <article class="entrega mt-6">
-                  <header class="entrega__topo">
-                    <div>
-                      <h3 class="entrega__titulo">{{ m.atividade.titulo }}</h3>
-                      <p class="entrega__sub">
-                        Enviada em {{ m.entrega.entregueEm | date: 'dd/MM/yyyy HH:mm' }}
-                        @if (m.entrega.entreguePor) {
-                          por {{ m.entrega.entreguePor }}
-                        }
-                      </p>
-                    </div>
-                    @if (m.podeEditar) {
-                      <button
-                        type="button"
-                        class="btn btn--outline btn--sm"
-                        (click)="editar(m.atividade.id)"
-                      >
-                        Editar
-                      </button>
-                    } @else {
-                      <span class="entrega__sub">Prazo encerrado</span>
-                    }
-                  </header>
-                  <dl class="entrega__lista">
-                    @for (l of m.linhas; track l.rotulo) {
-                      <dt>{{ l.rotulo }}</dt>
-                      <dd>
-                        @if (!l.valor) {
-                          <span class="entrega__sub">não preenchido</span>
-                        } @else if (l.tipo === 'LINK') {
-                          <a [href]="l.valor" target="_blank" rel="noopener noreferrer">
-                            {{ l.valor }}
-                          </a>
-                        } @else {
-                          {{ l.valor }}
-                        }
-                      </dd>
-                    }
-                  </dl>
-                </article>
-              }
-            </div>
-          </section>
         }
-
-        <app-timeline
-          [itens]="itensEntregaveis()"
-          [interativo]="false"
-          [mostrarLegenda]="false"
-          titulo="Entregas"
-          sobretitulo=""
-          descricao=""
-        />
       }
     </div>
   `,
@@ -386,55 +278,77 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
       grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
     }
 
-    .entrega {
-      padding: 1rem;
-      border: 1px solid var(--border);
-    }
-
-    .entrega__topo {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 1rem;
-    }
-
-    .entrega__titulo {
-      font-size: 1rem;
-      font-weight: 700;
-      color: var(--primary);
-    }
-
-    .entrega__sub {
-      margin: 0.125rem 0 0;
-      font-size: 0.75rem;
-      color: var(--muted-foreground);
-    }
-
-    .entrega__lista {
-      display: grid;
-      grid-template-columns: minmax(8rem, 14rem) 1fr;
-      gap: 0.5rem 1rem;
-      margin: 0.75rem 0 0;
-    }
-
-    .entrega__lista dt {
-      font-weight: 700;
-      font-size: 0.8125rem;
-    }
-
-    .entrega__lista dd {
+    .origem {
       margin: 0;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
+      padding: 0;
+      border: 0;
     }
 
-    .campo-opcional {
-      font-weight: 400;
+    .upload {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      height: 2.75rem;
+    }
+
+    .upload__nome {
+      overflow: hidden;
+      font-size: 0.8125rem;
       color: var(--muted-foreground);
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .confirmacao--erro {
-      color: var(--destructive);
+    .upload__barra {
+      width: 100%;
+      height: 0.375rem;
+      accent-color: var(--primary);
+    }
+
+    /* Some visualmente, mas o <label for> abre o seletor e o teclado alcança. */
+    .upload__input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .btn--disabled {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .material__turma {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--bronze);
+    }
+
+    .material__link {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .material__link.link-botao {
+      text-decoration: none;
+    }
+
+    .origem .segmented {
+      width: fit-content;
+    }
+
+    .vazio {
+      grid-column: 1 / -1;
+      padding: 2.5rem 1.25rem;
+      text-align: center;
+      color: var(--muted-foreground);
+      background: var(--card);
+      border: 1px dashed color-mix(in oklch, var(--primary) 20%, transparent);
     }
 
     .material {
@@ -497,338 +411,198 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
     .material__link:hover {
       text-decoration: underline;
     }
-
-    .vazio {
-      padding: 2.5rem 1.25rem;
-      text-align: center;
-      color: var(--muted-foreground);
-      background: var(--card);
-      border: 1px dashed color-mix(in oklch, var(--primary) 20%, transparent);
-    }
-
-    .confirmacao {
-      margin-top: 0.75rem;
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--success);
-    }
-
-    .upload {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      height: 2.75rem;
-    }
-
-    .upload__nome {
-      overflow: hidden;
-      font-size: 0.8125rem;
-      color: var(--muted-foreground);
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* Some visualmente, mas continua acessível: o <label for> abre o seletor
-       de arquivo e o foco do teclado ainda alcança o input. */
-    .upload__input {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      margin: -1px;
-      padding: 0;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
-    }
   `,
 })
 export class MateriaisComponent {
   private readonly fb = inject(FormBuilder);
-  private readonly materialService = inject(MaterialService);
-  private readonly confirmacao = inject(ConfirmacaoService);
-  private readonly cursoService = inject(CursoService);
-  private readonly projetoService = inject(ProjetoService);
-  private readonly entregaService = inject(EntregaService);
-  private readonly atividadeService = inject(AtividadeService);
-  private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
+  private readonly materialService = inject(MaterialService);
+  private readonly cursoService = inject(CursoService);
+  private readonly confirmacao = inject(ConfirmacaoService);
 
+  readonly equipe = computed(() => ehEquipeAcademica(this.auth.perfil()));
   readonly tipos: TipoMaterial[] = ['MODELO', 'DOCUMENTO', 'VIDEO', 'LINK'];
+  readonly rotuloTipo = ROTULO_TIPO_MATERIAL;
+  readonly extensoes = EXTENSOES_ARQUIVO.join(',');
+  readonly rotuloDaTurma = rotuloTurma;
 
-  readonly cursos = toSignal(this.cursoService.listar(), { initialValue: [] });
-  readonly materiais = toSignal(this.materialService.listar(), {
-    initialValue: [] as Material[],
+  readonly turmas = toSignal(this.cursoService.listar().pipe(catchError(() => of([]))), {
+    initialValue: [],
   });
 
-  readonly visaoProfessor = computed(() =>
-    ehEquipeAcademica(this.auth.perfil()),
+  readonly estado = toSignal(
+    this.materialService.listar().pipe(
+      map((materiais): Estado => ({ tipo: 'pronto', materiais })),
+      catchError((e: Error) => of<Estado>({ tipo: 'erro', mensagem: e.message })),
+      startWith<Estado>({ tipo: 'carregando' }),
+    ),
+    { initialValue: { tipo: 'carregando' } as Estado },
   );
-  readonly materiaisPersistentes = this.materialService.persistente;
 
-  /** Falha ao ler projeto, atividades ou entregas — no lugar de listas vazias enganosas. */
-  readonly erroCarga = signal('');
+  readonly materiais = computed(() => {
+    const e = this.estado();
+    return e.tipo === 'pronto' ? e.materiais : [];
+  });
 
-  private semErro<T>(vazio: T) {
-    return (fonte: Observable<T>) =>
-      fonte.pipe(
-        catchError((e: Error) => {
-          this.erroCarga.set(e.message);
-          return of(vazio);
-        }),
-      );
-  }
-  readonly salvando = signal(false);
+  readonly mensagemErro = computed(() => {
+    const e = this.estado();
+    return e.tipo === 'erro' ? e.mensagem : '';
+  });
 
   readonly form = this.fb.nonNullable.group({
-    titulo: ['', [Validators.required, Validators.minLength(3)]],
-    descricao: [''],
-    tipo: ['MODELO' as TipoMaterial, [Validators.required]],
-    url: ['', [Validators.required]],
+    titulo: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(150)]],
+    tipo: ['MODELO' as TipoMaterial, Validators.required],
+    url: ['', [Validators.required, Validators.pattern(/^https?:\/\/\S+$/)]],
     cursoId: [''],
+    descricao: ['', Validators.maxLength(2000)],
   });
 
-  /** Projeto do grupo do aluno logado, resolvido pelo RGM dele. */
-  readonly projetoDoAluno = toSignal(
-    toObservable(computed(() => rgmDoUsuario(this.auth.usuario()))).pipe(
-      switchMap((rgm) => (rgm ? this.projetoService.doAluno(rgm) : of(null))),
-      this.semErro<Projeto | null>(null),
-    ),
-    { initialValue: null as Projeto | null },
+  readonly origem = signal<'link' | 'arquivo'>('link');
+  /** Arquivo já no bucket, pronto para publicar. */
+  readonly arquivo = signal<{ chave: string; nome: string } | null>(null);
+  readonly progresso = signal<number | null>(null);
+  readonly erroArquivo = signal('');
+  readonly salvando = signal(false);
+  readonly erroPublicar = signal('');
+  readonly publicado = signal(false);
+  readonly erroAcao = signal('');
+
+  private readonly formValido = toSignal(
+    this.form.statusChanges.pipe(map(() => this.formOk())),
+    { initialValue: false },
   );
 
-  /** Qual projeto a tela mostra: o grupo do aluno logado. */
-  private readonly projetoAlvoId = computed(
-    () => this.projetoDoAluno()?.id ?? '',
+  readonly podePublicar = computed(
+    () =>
+      this.formValido() &&
+      (this.origem() === 'link' || this.arquivo() !== null) &&
+      this.progresso() === null &&
+      !this.salvando(),
   );
 
-  readonly itensEntregaveis = toSignal(
-    toObservable(this.projetoDoAluno).pipe(
-      switchMap((p) =>
-        p ? this.entregaService.timelineDoProjeto(p.id, p.nome) : of([]),
-      ),
-      this.semErro([] as ItemTimeline[]),
-    ),
-    { initialValue: [] as ItemTimeline[] },
-  );
-
-  private readonly atividadesDaTurma = toSignal(
-    this.atividadeService.listar().pipe(this.semErro([] as Atividade[])),
-    { initialValue: [] as Atividade[] },
-  );
-
-  /** Entregas do grupo, com as respostas (atualiza a cada envio). */
-  private readonly entregasDoGrupo = toSignal(
-    toObservable(this.projetoDoAluno).pipe(
-      switchMap((p) =>
-        p ? this.entregaService.entregasDoProjeto(p.id) : of([] as Entrega[]),
-      ),
-      this.semErro([] as Entrega[]),
-    ),
-    { initialValue: [] as Entrega[] },
-  );
-
-  /** Já entregue e ainda dentro do prazo = dá pra editar. */
-  private editavel(item: ItemTimeline): boolean {
-    return (
-      (item.status === 'ENTREGUE' || item.status === 'ENTREGUE_COM_ATRASO') &&
-      new Date(item.prazo) > new Date()
-    );
+  private formOk(): boolean {
+    const c = this.form.controls;
+    return c.titulo.valid && c.descricao.valid && (this.origem() === 'arquivo' || c.url.valid);
   }
 
-  /** Entra na seleção: o que falta entregar e o que dá pra editar. */
-  readonly disponiveis = computed(() =>
-    this.itensEntregaveis().filter(
-      (item) => item.status === 'PENDENTE' || this.editavel(item),
-    ),
-  );
+  invalido(campo: 'titulo' | 'url'): boolean {
+    const c = this.form.controls[campo];
+    return c.invalid && c.touched;
+  }
 
-  /** Entregas já feitas, com cada resposta ao lado do nome do campo. */
-  readonly minhasEntregas = computed(() =>
-    this.entregasDoGrupo()
-      .map((entrega) => {
-        const atividade = this.atividadesDaTurma().find(
-          (a) => a.id === entrega.atividadeId,
-        );
-        if (!atividade) {
-          return null;
-        }
-        return {
-          atividade,
-          entrega,
-          podeEditar: new Date(atividade.prazo) > new Date(),
-          linhas: atividade.campos.map((c) => ({
-            rotulo: c.rotulo,
-            tipo: c.tipo,
-            valor: entrega.respostas?.[c.id] ?? '',
-          })),
-        };
-      })
-      .filter((m) => m !== null)
-      .sort((a, b) => a.atividade.prazo.localeCompare(b.atividade.prazo)),
-  );
-
-  /** A atividade escolhida já tem entrega — o envio vira uma edição. */
-  readonly editando = computed(() =>
-    this.entregasDoGrupo().some(
-      (e) => e.atividadeId === this.atividadeSelecionada(),
-    ),
-  );
-
-  readonly atividadeSelecionada = signal('');
-  /** Resposta de cada campo, por id (campo de arquivo guarda o nome). */
-  readonly respostas = signal<Record<string, string | undefined>>({});
-  readonly enviando = signal(false);
-  readonly mensagem = signal('');
-  readonly erroEntrega = signal('');
-
-  private readonly atividades = this.atividadesDaTurma;
-
-  /** Campos do formulário da atividade escolhida. */
-  readonly camposDaAtividade = computed<CampoEntrega[]>(
-    () =>
-      this.atividades().find((a) => a.id === this.atividadeSelecionada())
-        ?.campos ?? [],
-  );
-
-  readonly podeEnviar = computed(() => {
-    const campos = this.camposDaAtividade();
-    const respostas = this.respostas();
-    return (
-      !!this.atividadeSelecionada() &&
-      campos.length > 0 &&
-      campos.every((c) => !c.obrigatorio || !!respostas[c.id]?.trim()) &&
-      !this.enviando()
-    );
-  });
-
-  rotulo = rotuloCurso;
-
-  constructor() {
-    const inicial = this.route.snapshot.queryParamMap.get('atividade');
-
-    if (inicial) {
-      effect(() => {
-        if (
-          !this.atividadeSelecionada() &&
-          this.disponiveis().some((item) => item.atividadeId === inicial)
-        ) {
-          this.atividadeSelecionada.set(inicial);
-        }
-      });
+  trocarOrigem(origem: 'link' | 'arquivo'): void {
+    this.origem.set(origem);
+    if (origem === 'arquivo') {
+      this.form.controls.url.disable();
+    } else {
+      this.form.controls.url.enable();
     }
   }
 
-  rotuloTipo(tipo: TipoMaterial): string {
-    return ROTULO_TIPO_MATERIAL[tipo];
+  aoSelecionarArquivo(evento: Event): void {
+    const input = evento.target as HTMLInputElement;
+    const arquivo = input.files?.[0];
+    input.value = '';
+    if (!arquivo) {
+      return;
+    }
+    const problema = problemaDoArquivo(arquivo);
+    this.erroArquivo.set(problema);
+    if (problema) {
+      return;
+    }
+    this.publicado.set(false);
+    this.progresso.set(0);
+    this.materialService.enviarArquivo(arquivo).subscribe({
+      next: (ev) => {
+        if (ev.tipo === 'progresso') {
+          this.progresso.set(ev.percentual);
+        } else {
+          this.arquivo.set({ chave: ev.chave, nome: arquivo.name });
+          this.progresso.set(null);
+        }
+      },
+      error: (e: ErroApi) => {
+        this.progresso.set(null);
+        this.erroArquivo.set(
+          e.status === 503 ? 'O envio de arquivos ainda não está disponível — publique um link.' : e.message,
+        );
+      },
+    });
   }
 
   publicar(): void {
-    if (this.form.invalid) {
+    this.erroPublicar.set('');
+    this.publicado.set(false);
+    if (!this.formOk()) {
       this.form.markAllAsTouched();
       return;
     }
-
-    const { titulo, descricao, tipo, url, cursoId } = this.form.getRawValue();
+    if (!this.podePublicar()) {
+      return;
+    }
+    const { titulo, tipo, url, cursoId, descricao } = this.form.getRawValue();
     this.salvando.set(true);
-
     this.materialService
       .criar({
-        titulo,
-        descricao,
+        titulo: titulo.trim(),
+        descricao: descricao.trim(),
         tipo,
-        url,
-        cursoId: cursoId === '' ? null : cursoId,
+        cursoId: cursoId || null,
+        ...(this.origem() === 'link' ? { url: url.trim() } : { arquivo: this.arquivo()!.chave }),
       })
       .subscribe({
         next: () => {
           this.salvando.set(false);
-          this.form.reset({ tipo: 'MODELO', cursoId: '' });
+          this.publicado.set(true);
+          this.arquivo.set(null);
+          this.form.reset({ tipo, cursoId });
         },
-        error: () => this.salvando.set(false),
+        error: (e: Error) => {
+          this.salvando.set(false);
+          this.erroPublicar.set(e.message);
+        },
       });
   }
 
-  async remover(materialId: string, titulo: string): Promise<void> {
+  /** A coordenação remove qualquer material; o orientador, os que publicou. */
+  podeRemover(m: Material): boolean {
+    const u = this.auth.usuario();
+    return u?.perfil === 'ADMIN' || (u?.perfil === 'ORIENTADOR' && m.autorId === u.id);
+  }
+
+  destino(m: Material): string {
+    if (!m.cursoId) {
+      return 'Todas as turmas';
+    }
+    if (!this.equipe()) {
+      return 'Para a sua turma';
+    }
+    const turma = this.turmas().find((t) => t.id === m.cursoId);
+    return turma ? rotuloTurma(turma) : 'Turma removida';
+  }
+
+  async remover(m: Material): Promise<void> {
     const confirmado = await this.confirmacao.confirmar({
       titulo: 'Remover material',
-      mensagem: `Remover "${titulo}" da lista de materiais? Essa ação não pode ser desfeita.`,
+      mensagem: `Remover "${m.titulo}"? Os grupos deixam de ver o material${m.arquivo ? ' e o arquivo é apagado' : ''}.`,
       textoConfirmar: 'Remover',
       perigo: true,
     });
     if (!confirmado) {
       return;
     }
-    this.materialService.remover(materialId).subscribe();
+    this.erroAcao.set('');
+    this.materialService.remover(m.id).subscribe({
+      error: (e: Error) => this.erroAcao.set(e.message),
+    });
   }
 
-  aoTrocarAtividade(evento: Event): void {
-    this.escolherAtividade((evento.target as HTMLSelectElement).value);
-  }
-
-  /** Escolhe a atividade; se já foi entregue, preenche com o que foi enviado. */
-  private escolherAtividade(atividadeId: string): void {
-    const entrega = this.entregasDoGrupo().find(
-      (e) => e.atividadeId === atividadeId,
-    );
-    this.atividadeSelecionada.set(atividadeId);
-    this.respostas.set({ ...(entrega?.respostas ?? {}) });
-    this.mensagem.set('');
-    this.erroEntrega.set('');
-  }
-
-  /** Botão "Editar" da lista de entregas: carrega no formulário lá em cima. */
-  editar(atividadeId: string): void {
-    this.escolherAtividade(atividadeId);
-    document.getElementById('atividade')?.scrollIntoView({ behavior: 'smooth' });
-  }
-
-  aoDigitar(campoId: string, evento: Event): void {
-    const valor = (evento.target as HTMLInputElement | HTMLTextAreaElement).value;
-    this.respostas.update((r) => ({ ...r, [campoId]: valor }));
-  }
-
-  /** Por enquanto só o nome do arquivo segue na entrega (sem upload). */
-  aoSelecionarArquivo(campoId: string, evento: Event): void {
-    const input = evento.target as HTMLInputElement;
-    this.respostas.update((r) => ({
-      ...r,
-      [campoId]: input.files?.[0]?.name ?? '',
-    }));
-  }
-
-  enviarEntrega(): void {
-    const atividadeId = this.atividadeSelecionada();
-    const projetoId = this.projetoAlvoId();
-
-    if (!atividadeId || !projetoId || !this.podeEnviar()) {
-      return;
-    }
-
-    this.enviando.set(true);
-    this.erroEntrega.set('');
-
-    const respostas = Object.fromEntries(
-      Object.entries(this.respostas()).filter(
-        (par): par is [string, string] => !!par[1],
-      ),
-    );
-
-    this.entregaService
-      .entregar(atividadeId, projetoId, respostas)
-      .subscribe({
-        next: () => {
-          this.enviando.set(false);
-          this.mensagem.set(
-            this.editando() ? 'Entrega atualizada.' : 'Entrega enviada com sucesso.',
-          );
-          this.atividadeSelecionada.set('');
-          this.respostas.set({});
-        },
-        error: (e: Error) => {
-          this.enviando.set(false);
-          this.erroEntrega.set(e.message);
-        },
-      });
+  baixar(m: Material): void {
+    this.erroAcao.set('');
+    this.materialService.linkDoArquivo(m.id).subscribe({
+      next: ({ url }) => window.location.assign(url),
+      error: (e: Error) => this.erroAcao.set(e.message),
+    });
   }
 }

@@ -1,3 +1,5 @@
+import { Curso } from './curso.model';
+
 export interface Projeto {
   id: string;
   nome: string;
@@ -7,13 +9,24 @@ export interface Projeto {
   orientadorId?: string;
 }
 
+/** Projeto com os nomes já resolvidos pelo backend (`GET /projetos/:id`). */
 export interface ProjetoDetalhe {
   projeto: Projeto;
-  cursoNome: string;
+  /** `nome` é null quando o RGM ainda não tem conta. */
   integrantes: { rgm: string; nome: string | null }[];
   orientador: { id: string; nome: string } | null;
+  turma: Curso | null;
 }
 
+/**
+ * `GET /meu-pfc`: o grupo do aluno ou, sem grupo, a turma em que ele está
+ * pré-autorizado e o programa dela (sem `programaId`, a turma ainda não tem PFC).
+ */
+export interface MeuPfc {
+  turma: Curso | null;
+  programaId?: string;
+  grupo: ProjetoDetalhe | null;
+}
 
 export interface NovoProjeto {
   nome: string;

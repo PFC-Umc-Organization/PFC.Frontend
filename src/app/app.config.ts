@@ -26,7 +26,7 @@ import {
   GraduacaoService,
 } from './core/services/graduacao.service';
 import {
-  MaterialLocalService,
+  MaterialHttpService,
   MaterialService,
 } from './core/services/material.service';
 import {
@@ -50,11 +50,7 @@ import {
   UsuarioService,
 } from './core/services/usuario.service';
 
-/**
- * Único ponto do app que escolhe a implementação de cada service. Todos falam
- * com o backend, menos `Material`, que fica na memória do navegador até o
- * backend ter esse domínio.
- */
+/** Único ponto do app que escolhe a implementação de cada service. */
 export const appConfig: ApplicationConfig = {
   providers: [
     // Sem zone.js: a tela só é verificada quando um signal lido por ela muda
@@ -74,7 +70,7 @@ export const appConfig: ApplicationConfig = {
     { provide: ConviteService, useClass: ConviteHttpService },
     { provide: AtividadeService, useClass: AtividadeHttpService },
     { provide: EntregaService, useClass: EntregaHttpService },
-    { provide: MaterialService, useClass: MaterialLocalService },
+    { provide: MaterialService, useClass: MaterialHttpService },
     { provide: MatriculaService, useClass: MatriculaHttpService },
     { provide: ReferenciaService, useClass: ReferenciaHttpService },
   ],

@@ -5,9 +5,7 @@ import {
   Observable,
   catchError,
   combineLatest,
-  forkJoin,
   map,
-  of,
   switchMap,
   tap,
 } from 'rxjs';
@@ -15,20 +13,23 @@ import {
 import { environment } from '../../../environments/environment';
 import {
   Atividade,
+  EnvioArquivo,
   Entrega,
   ItemTimeline,
   LinhaStatusProjeto,
-  Projeto,
   RespostasEntrega,
 } from '../models';
 import { AtividadeService } from './atividade.service';
 import { erroHttp } from './http-erro';
 import { ProjetoService } from './projeto.service';
+import { TicketArquivo, enviarParaBucket } from './upload';
 import { arquivoDaEntrega, statusDaEntrega } from './status-entrega';
 
 export interface MatrizStatus {
   atividades: Atividade[];
   linhas: LinhaStatusProjeto[];
+  /** Entregas com as respostas: o detalhe da célula sai daqui, sem nova chamada. */
+  entregas: Entrega[];
 }
 
 export abstract class EntregaService {
@@ -38,15 +39,11 @@ export abstract class EntregaService {
     projetoId: string,
     projetoNome?: string,
   ): Observable<ItemTimeline[]>;
-  abstract timelineDoAluno(rgm: string): Observable<ItemTimeline[]>;
   /**
-   * Matriz projeto × atividade. Recebe os projetos prontos (os reais,
-   * vindos do ProjetoService) em vez de buscá-los — assim as linhas nunca
-   * saem dos projetos de exemplo do mock.
+   * Matriz projeto × atividade do programa: projetos, atividades e entregas
+   * buscados em paralelo (uma chamada cada). Atualiza a cada remoção.
    */
-  abstract matrizDosProjetos(
-    projetos: Pick<Projeto, 'id' | 'nome'>[],
-  ): Observable<MatrizStatus>;
+  abstract matriz(programaId: string): Observable<MatrizStatus>;
   /** Entregas do grupo (com as respostas), atualizada a cada envio/remoção. */
   abstract entregasDoProjeto(projetoId: string): Observable<Entrega[]>;
   /** Apaga a entrega do grupo — o orientador devolve a atividade pra refazer. */
@@ -60,7 +57,25 @@ export abstract class EntregaService {
     projetoId: string,
     respostas: RespostasEntrega,
   ): Observable<void>;
+  /**
+   * Envia o arquivo direto para o bucket, com o progresso; no fim emite a
+   * chave, que vira a resposta do campo. `status` 503 no erro = o backend
+   * ainda não tem bucket.
+   */
+  abstract enviarArquivo(
+    projetoId: string,
+    atividadeId: string,
+    campoId: string,
+    arquivo: File,
+  ): Observable<EnvioArquivo>;
+  /** Link de download (vale 5 minutos). */
+  abstract linkDoArquivo(
+    projetoId: string,
+    atividadeId: string,
+    campoId: string,
+  ): Observable<{ url: string; nome: string }>;
 }
+
 
 @Injectable()
 export class EntregaHttpService extends EntregaService {
@@ -79,14 +94,6 @@ export class EntregaHttpService extends EntregaService {
           .pipe(catchError(erroHttp)),
       ),
     );
-  }
-
-  private entregasDaAtividade(atividadeId: string): Observable<Entrega[]> {
-    return this.http
-      .get<Entrega[]>(
-        `${environment.apiBaseUrl}/atividades/${atividadeId}/entregas`,
-      )
-      .pipe(catchError(erroHttp));
   }
 
   override timelineDoProjeto(
@@ -113,43 +120,67 @@ export class EntregaHttpService extends EntregaService {
     );
   }
 
-  override timelineDoAluno(rgm: string): Observable<ItemTimeline[]> {
-    return this.projetos
-      .doAluno(rgm)
+  override matriz(programaId: string): Observable<MatrizStatus> {
+    const entregas$ = this.recarregar$.pipe(
+      switchMap(() =>
+        this.http
+          .get<Entrega[]>(
+            `${environment.apiBaseUrl}/programas/${programaId}/entregas`,
+          )
+          .pipe(catchError(erroHttp)),
+      ),
+    );
+    return combineLatest([
+      this.projetos.listar(programaId),
+      this.atividades.listar(),
+      entregas$,
+    ]).pipe(
+      map(([projetos, atividades, entregas]) => ({
+        atividades,
+        entregas,
+        linhas: projetos.map<LinhaStatusProjeto>((projeto) => ({
+          projeto: { id: projeto.id, nome: projeto.nome },
+          celulas: atividades.map((atividade) => ({
+            atividadeId: atividade.id,
+            status: statusDaEntrega(
+              atividade.prazo,
+              entregas.find(
+                (e) => e.projetoId === projeto.id && e.atividadeId === atividade.id,
+              )?.entregueEm,
+            ),
+          })),
+        })),
+      })),
+    );
+  }
+
+  override enviarArquivo(
+    projetoId: string,
+    atividadeId: string,
+    campoId: string,
+    arquivo: File,
+  ): Observable<EnvioArquivo> {
+    return this.http
+      .post<TicketArquivo>(
+        `${environment.apiBaseUrl}/projetos/${projetoId}/entregas/${atividadeId}/arquivos`,
+        { campoId, nome: arquivo.name, tamanho: arquivo.size },
+      )
       .pipe(
-        switchMap((p) =>
-          p ? this.timelineDoProjeto(p.id, p.nome) : of([] as ItemTimeline[]),
-        ),
+        catchError(erroHttp),
+        switchMap((ticket) => enviarParaBucket(this.http, ticket, arquivo)),
       );
   }
 
-  override matrizDosProjetos(
-    projetos: Pick<Projeto, 'id' | 'nome'>[],
-  ): Observable<MatrizStatus> {
-    return this.recarregar$.pipe(
-      switchMap(() => this.atividades.listar()),
-      switchMap((atividades) =>
-        (atividades.length === 0
-          ? of([] as Entrega[][])
-          : forkJoin(atividades.map((a) => this.entregasDaAtividade(a.id)))
-        ).pipe(
-          map((porAtividade) => ({
-            atividades,
-            linhas: projetos.map<LinhaStatusProjeto>((projeto) => ({
-              projeto: { id: projeto.id, nome: projeto.nome },
-              celulas: atividades.map((atividade, i) => ({
-                atividadeId: atividade.id,
-                status: statusDaEntrega(
-                  atividade.prazo,
-                  porAtividade[i].find((e) => e.projetoId === projeto.id)
-                    ?.entregueEm,
-                ),
-              })),
-            })),
-          })),
-        ),
-      ),
-    );
+  override linkDoArquivo(
+    projetoId: string,
+    atividadeId: string,
+    campoId: string,
+  ): Observable<{ url: string; nome: string }> {
+    return this.http
+      .get<{ url: string; nome: string }>(
+        `${environment.apiBaseUrl}/projetos/${projetoId}/entregas/${atividadeId}/arquivos/${campoId}`,
+      )
+      .pipe(catchError(erroHttp));
   }
 
   override remover(projetoId: string, atividadeId: string): Observable<void> {
