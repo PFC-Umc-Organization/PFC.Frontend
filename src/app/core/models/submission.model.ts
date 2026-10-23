@@ -29,14 +29,14 @@ export const STATUS_LABEL: Record<SubmissionStatus, string> = {
   ENTREGUE: 'Concluído',
   ENTREGUE_COM_ATRASO: 'Entregue com atraso',
   PENDENTE: 'Pendente no prazo',
-  ATRASADO: 'Penalidade por atraso',
+  ATRASADO: 'Não entregue',
 };
 
 export const STATUS_SHORT_LABEL: Record<SubmissionStatus, string> = {
   ENTREGUE: 'Entregue',
   ENTREGUE_COM_ATRASO: 'Entregue',
   PENDENTE: 'Pendente',
-  ATRASADO: 'Atrasado',
+  ATRASADO: 'Não entregue',
 };
 
 export const STATUS_TONE: Record<SubmissionStatus, StatusTone> = {
@@ -49,7 +49,7 @@ export const STATUS_TONE: Record<SubmissionStatus, StatusTone> = {
 export const STATUS_LEGEND: { tone: StatusTone; text: string }[] = [
   { tone: 'success', text: 'Concluído' },
   { tone: 'primary', text: 'Pendente no prazo' },
-  { tone: 'destructive', text: 'Atrasado' },
+  { tone: 'destructive', text: 'Não entregue' },
 ];
 
 export interface ProjectStatusRow {

@@ -23,13 +23,13 @@
           Entregável concluído
         }
       </p>
-    } @else if (!interactive()) {
-      <p class="action action--waiting">Aguardando entregas</p>
     } @else if (late()) {
       <p class="action action--late">
         <app-icon name="alert" />
         Prazo encerrado
       </p>
+    } @else if (!interactive()) {
+      <p class="action action--waiting">Aguardando a entrega</p>
     } @else {
       <a class="btn btn--full-xs btn--primary" routerLink="/entregaveis" [queryParams]="{ atividade: item().activityId }">
         Enviar entrega
