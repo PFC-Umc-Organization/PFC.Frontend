@@ -17,6 +17,9 @@ export interface Entrega {
   respostas?: Record<string, string>;
   /** Nome de quem enviou (vem do backend). */
   entreguePor?: string;
+  /** Última edição; `entregueEm` continua sendo a primeira entrega. */
+  atualizadaEm?: string;
+  atualizadaPor?: string;
 }
 
 /** Respostas do formulário de entrega, por id do campo (arquivo = chave no bucket). */

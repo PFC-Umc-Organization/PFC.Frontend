@@ -74,8 +74,8 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
             </p>
           } @else if (disponiveis().length === 0) {
             <p class="vazio mt-6">
-              Nenhuma atividade aberta para entrega: o grupo já entregou tudo ou os
-              prazos encerraram.
+              Nenhuma atividade aberta para entrega: os prazos das que faltam
+              encerraram.
             </p>
           } @else {
             <div class="form-grid form-grid--2 mt-6">
@@ -206,7 +206,8 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
           <div class="card__body">
             <h2 class="section-title">Suas entregas</h2>
             <p class="lead mt-2">
-              O que o seu grupo enviou. Dá para editar até o prazo da atividade.
+              O que o seu grupo enviou. Entregue no prazo, dá para editar depois;
+              sem entrega, o prazo encerra a atividade.
             </p>
             @if (erroDownload()) {
               <p class="alerta mt-4" role="alert">
@@ -225,19 +226,21 @@ import { PrazoPipe } from '../../shared/pipes/prazo.pipe';
                       @if (m.entrega.entreguePor) {
                         por {{ m.entrega.entreguePor }}
                       }
+                      @if (m.entrega.atualizadaEm) {
+                        · editada em {{ m.entrega.atualizadaEm | date: 'dd/MM/yyyy HH:mm' }}
+                        @if (m.entrega.atualizadaPor) {
+                          por {{ m.entrega.atualizadaPor }}
+                        }
+                      }
                     </p>
                   </div>
-                  @if (m.podeEditar) {
-                    <button
-                      type="button"
-                      class="btn btn--outline btn--sm"
-                      (click)="editar(m.atividade.id)"
-                    >
-                      Editar
-                    </button>
-                  } @else {
-                    <span class="entrega__sub">Prazo encerrado</span>
-                  }
+                  <button
+                    type="button"
+                    class="btn btn--outline btn--sm"
+                    (click)="editar(m.atividade.id)"
+                  >
+                    Editar
+                  </button>
                 </header>
                 <dl class="entrega__lista">
                   @for (l of m.linhas; track l.rotulo) {
@@ -450,19 +453,9 @@ export class EntregaveisComponent {
     { initialValue: [] as Entrega[] },
   );
 
-  /** Já entregue e ainda dentro do prazo = dá pra editar. */
-  private editavel(item: ItemTimeline): boolean {
-    return (
-      (item.status === 'ENTREGUE' || item.status === 'ENTREGUE_COM_ATRASO') &&
-      new Date(item.prazo) > new Date()
-    );
-  }
-
-  /** Entra na seleção: o que falta entregar e o que dá pra editar. */
+  /** Entra na seleção o que falta entregar no prazo e o que já foi entregue (editável sempre). */
   readonly disponiveis = computed(() =>
-    this.itensEntregaveis().filter(
-      (item) => item.status === 'PENDENTE' || this.editavel(item),
-    ),
+    this.itensEntregaveis().filter((item) => item.status !== 'ATRASADO'),
   );
 
   /** Entregas já feitas, com cada resposta ao lado do nome do campo. */
@@ -478,7 +471,6 @@ export class EntregaveisComponent {
         return {
           atividade,
           entrega,
-          podeEditar: new Date(atividade.prazo) > new Date(),
           linhas: atividade.campos.map((c) => ({
             campoId: c.id,
             rotulo: c.rotulo,

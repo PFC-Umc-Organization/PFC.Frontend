@@ -30,8 +30,8 @@ export function apiFalsa() {
     entregas: [{ atividadeId: 'a1', projetoId: 'pr1', entregueEm: '2026-10-09T12:00:00Z', entreguePor: 'Bia Lima', respostas: { c1: 'monografia.pdf' } }],
     atividades: [
       { id: 'a1', titulo: 'Monografia', descricao: '', prazo: '2026-10-10T23:59', publicadaEm: '2026-10-01T00:00:00Z', campos: [{ id: 'c1', rotulo: 'Arquivo', tipo: 'ARQUIVO', obrigatorio: true }] },
-      { id: 'a3', titulo: 'Monografia final', descricao: '', prazo: '2026-12-01T23:59', publicadaEm: '2026-10-01T00:00:00Z', campos: [{ id: 'c3', rotulo: 'Arquivo da entrega', tipo: 'ARQUIVO', obrigatorio: true }] },
-      { id: 'a2', titulo: '1º CRUD', descricao: '', prazo: '2026-11-19T20:55', publicadaEm: '2026-10-01T00:00:00Z', campos: [{ id: 'c2', rotulo: 'Link do git', tipo: 'LINK', obrigatorio: true }] },
+      { id: 'a3', titulo: 'Monografia final', descricao: '', prazo: '2099-12-01T23:59', publicadaEm: '2026-10-01T00:00:00Z', campos: [{ id: 'c3', rotulo: 'Arquivo da entrega', tipo: 'ARQUIVO', obrigatorio: true }] },
+      { id: 'a2', titulo: '1º CRUD', descricao: '', prazo: '2099-11-19T20:55', publicadaEm: '2026-10-01T00:00:00Z', campos: [{ id: 'c2', rotulo: 'Link do git', tipo: 'LINK', obrigatorio: true }] },
     ],
   };
   const calls = [];
@@ -141,8 +141,14 @@ export function apiFalsa() {
       return json(200, { url: 'https://bucket-falso.s3.us-east-1.amazonaws.com/' + v, nome: v.split('/').pop() });
     }
     if ((mm = p.match(/^\/projetos\/([^/]+)\/entregas\/([^/]+)$/)) && m === 'PUT') {
-      const e = { atividadeId: mm[2], projetoId: mm[1], entregueEm: new Date().toISOString(), entreguePor: me.name, respostas: body.respostas };
-      db.entregas = db.entregas.filter((x) => !(x.projetoId === mm[1] && x.atividadeId === mm[2])).concat(e);
+      const antes = db.entregas.find((x) => x.projetoId === mm[1] && x.atividadeId === mm[2]);
+      const atividade = db.atividades.find((a) => a.id === mm[2]);
+      if (!antes && new Date(atividade.prazo) < new Date()) return json(409, { erro: 'o prazo desta atividade acabou: só quem entregou no prazo pode editar a entrega' });
+      const agora = new Date().toISOString();
+      const e = antes
+        ? { ...antes, atualizadaEm: agora, atualizadaPor: me.name, respostas: body.respostas }
+        : { atividadeId: mm[2], projetoId: mm[1], entregueEm: agora, entreguePor: me.name, respostas: body.respostas };
+      db.entregas = db.entregas.filter((x) => x !== antes).concat(e);
       return json(200, e);
     }
     if ((mm = p.match(/^\/projetos\/([^/]+)\/entregas$/))) {

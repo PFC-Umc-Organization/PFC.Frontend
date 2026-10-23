@@ -108,6 +108,22 @@ test.describe('aluna com grupo', () => {
   });
 });
 
+test.describe('prazo', () => {
+  test('entregue no prazo segue editável depois dele; sem entrega, a atividade vencida some', async ({ page, api }) => {
+    api.db.atividades.push({ id: 'a4', titulo: 'Banca', descricao: '', prazo: '2026-01-10T23:59', publicadaEm: '2026-01-01T00:00:00Z', campos: [{ id: 'c4', rotulo: 'Link', tipo: 'LINK', obrigatorio: true }] });
+    await entrar(page, ALUNA_COM_GRUPO);
+    await page.goto('/entregaveis');
+    await expect(page.locator('#atividade option', { hasText: 'Banca' })).toHaveCount(0);
+
+    await page.locator('#atividade').selectOption('a1');
+    await page.getByRole('button', { name: 'Salvar alterações' }).click();
+    const editada = api.db.entregas.find((e) => e.atividadeId === 'a1');
+    expect(editada?.entregueEm).toBe('2026-10-09T12:00:00Z');
+    await expect(page.getByText(/editada em .* por/)).toBeVisible();
+    expect(api.failed).toEqual([]);
+  });
+});
+
 test.describe('coordenação', () => {
   test('painel começa na turma do semestre e monta a matriz com uma chamada de entregas', async ({ page, api }) => {
     await entrar(page, ADMIN);

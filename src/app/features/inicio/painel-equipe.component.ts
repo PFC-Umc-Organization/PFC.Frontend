@@ -152,6 +152,12 @@ const MATRIZ_VAZIA: MatrizStatus = { atividades: [], linhas: [], entregas: [] };
               @if (e.entreguePor) {
                 por {{ e.entreguePor }}
               }
+              @if (e.atualizadaEm) {
+                · editada em {{ e.atualizadaEm | date: 'dd/MM/yyyy HH:mm' }}
+                @if (e.atualizadaPor) {
+                  por {{ e.atualizadaPor }}
+                }
+              }
             </p>
             <dl class="detalhe__lista">
               @for (l of d.linhas; track l.rotulo) {
@@ -190,7 +196,7 @@ const MATRIZ_VAZIA: MatrizStatus = { atividades: [], linhas: [], entregas: [] };
             <button
               type="button"
               class="btn btn--outline btn--sm"
-              (click)="removerEntrega(d.projetoId, d.projetoNome, d.atividade.id)"
+              (click)="removerEntrega(d.projetoId, d.projetoNome, d.atividade.id, d.atividade.prazo)"
             >
               <app-icone nome="lixeira" class="btn__icon" />
               Remover entrega (devolver ao grupo)
@@ -391,10 +397,15 @@ export class PainelEquipeComponent {
     projetoId: string,
     projetoNome: string,
     atividadeId: string,
+    prazo: string,
   ): Promise<void> {
+    const depois =
+      new Date(prazo) > new Date()
+        ? 'O grupo poderá entregar de novo até o prazo.'
+        : 'O prazo já acabou: o grupo não poderá entregar de novo.';
     const confirmado = await this.confirmacao.confirmar({
       titulo: 'Remover entrega',
-      mensagem: `Remover a entrega do projeto "${projetoNome}"? O grupo poderá entregar de novo.`,
+      mensagem: `Remover a entrega do projeto "${projetoNome}"? ${depois}`,
       textoConfirmar: 'Remover',
       perigo: true,
     });
