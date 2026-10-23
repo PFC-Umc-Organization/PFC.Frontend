@@ -64,7 +64,7 @@ export class SentInvitationsComponent {
   async cancel(invitation: Invitation): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Cancelar convite',
-      message: `Cancelar o convite do RGM ${invitation.rgm}? Ele deixa de aparecer na tela dessa pessoa.`,
+      message: `Cancelar o convite de ${invitation.nome ? `${invitation.nome} (RGM ${invitation.rgm})` : `RGM ${invitation.rgm}`}? Ele deixa de aparecer na tela dessa pessoa.`,
       confirmText: 'Cancelar convite',
       cancelText: 'Voltar',
       danger: true,

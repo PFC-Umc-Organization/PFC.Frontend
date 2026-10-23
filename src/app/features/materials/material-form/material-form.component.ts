@@ -16,7 +16,6 @@ type Source = 'link' | 'file';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, IconComponent, FilePickerComponent],
   templateUrl: './material-form.component.html',
-  styleUrl: './material-form.component.scss',
 })
 export class MaterialFormComponent {
   private readonly materialService = inject(MaterialService);

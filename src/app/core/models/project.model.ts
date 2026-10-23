@@ -40,6 +40,8 @@ export interface Invitation {
   projetoId: string;
   projetoNome: string;
   rgm: string;
+  /** The guest's name, only in the group's list and once they have an account. */
+  nome?: string;
   convidadoPor: string;
   criadoEm: string;
 }

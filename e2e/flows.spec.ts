@@ -84,6 +84,8 @@ test.describe('student with a group', () => {
     await expect(page.getByText('RGM 11231101230 (aguardando cadastro)')).toBeVisible();
     await expect(page.getByText('Orientadora Ana')).toBeVisible();
     await expect(page.getByText('Engenharia de Software (Noite, 2026.2)')).toBeVisible();
+    await expect(page.locator('.invitation').filter({ hasText: 'André Novaes' })).toContainText('RGM 11231101228');
+    await expect(page.getByText('RGM 11231103420 (aguardando cadastro)')).toBeVisible();
     expect(api.calls.some((c) => c.includes('/usuarios') || (c.includes('/programas') && c.includes('/projetos')))).toBe(false);
     expect(api.failed).toEqual([]);
   });

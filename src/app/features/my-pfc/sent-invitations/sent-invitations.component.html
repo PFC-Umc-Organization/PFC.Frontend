@@ -9,8 +9,13 @@
         @for (i of pending(); track i.rgm) {
           <li class="invitation">
             <span class="invitation__text">
-              <span class="cell-strong">RGM {{ i.rgm }}</span>
-              <span class="muted text-sm">Convidado em {{ i.criadoEm | date: 'dd/MM/yyyy' }}</span>
+              @if (i.nome) {
+                <span class="cell-strong">{{ i.nome }}</span>
+                <span class="muted text-sm">RGM {{ i.rgm }} · Convidado em {{ i.criadoEm | date: 'dd/MM/yyyy' }}</span>
+              } @else {
+                <span class="cell-strong">RGM {{ i.rgm }} (aguardando cadastro)</span>
+                <span class="muted text-sm">Convidado em {{ i.criadoEm | date: 'dd/MM/yyyy' }}</span>
+              }
             </span>
             <button type="button" class="btn btn--outline btn--sm" [disabled]="busy()" (click)="cancel(i)">
               <app-icon name="trash" class="btn__icon" />

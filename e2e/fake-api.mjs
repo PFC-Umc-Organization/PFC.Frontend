@@ -134,6 +134,10 @@ export function fakeApi() {
       if (!pr) return json(404, { erro: 'Projeto não encontrado' });
       return canView(pr) ? json(200, detail(pr)) : json(403, { erro: 'Acesso restrito aos integrantes, ao orientador do projeto e à coordenação' });
     }
+    if ((mm = p.match(/^\/projetos\/([^/]+)\/convites$/)) && m === 'GET') {
+      const invited = mm[1] === 'pr1' ? ['11231101228', '11231103420'] : [];
+      return json(200, invited.map((r) => ({ projetoId: mm[1], projetoNome: 'Athena', rgm: r, nome: nameOf(r) ?? undefined, convidadoPor: 'Bia Lima', criadoEm: '2026-10-20T12:00:00Z' })));
+    }
     if ((mm = p.match(/^\/projetos\/([^/]+)\/convites$/))) return json(200, []);
     const activity = (id) => db.activities.find((x) => x.id === id);
     const project = (id) => db.projects.find((x) => x.id === id);
