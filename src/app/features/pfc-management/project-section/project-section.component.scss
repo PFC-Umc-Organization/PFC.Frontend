@@ -1,0 +1,26 @@
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.picker {
+  min-width: 14rem;
+}
+
+.advisor {
+  height: 2.25rem;
+  font-size: 0.8125rem;
+}
+
+.notice {
+  padding: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.alert {
+  margin: 1rem 1.25rem 0;
+}

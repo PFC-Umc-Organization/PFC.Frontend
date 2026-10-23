@@ -1,0 +1,82 @@
+<section class="card">
+  <div class="card__body">
+    <h2 class="section-title">Pré-autorizar alunos por RGM</h2>
+    <p class="lead text-sm mt-1">
+      O aluno cria a própria conta em "Criar conta" — o RGM aqui só libera o cadastro dele. Nome e
+      e-mail são preenchidos pelo próprio aluno na hora.
+    </p>
+
+    @if (result(); as r) {
+      <p class="ok mt-4" role="status">
+        <app-icon name="check" />
+        {{ r.processados }} RGM(s) pré-autorizado(s)
+        @if (r.falhas.length > 0) {
+          — {{ r.falhas.length }} falharam
+        }
+        .
+      </p>
+    }
+    @if (error()) {
+      <p class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <span>{{ error() }}</span>
+      </p>
+    }
+
+    @if (termCohorts().length === 0) {
+      <p class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <span>
+          Nenhuma turma do semestre {{ term }} cadastrada — cadastre a turma deste semestre antes de
+          pré-autorizar RGMs.
+          <a routerLink="/turmas">Ir para Turmas</a>
+        </span>
+      </p>
+    } @else {
+      <form class="form-grid mt-6" [formGroup]="form" (ngSubmit)="enroll()">
+        <div class="field">
+          <label class="field__label" for="enroll-cohort">Turma</label>
+          <select
+            id="enroll-cohort"
+            class="control"
+            formControlName="turmaId"
+            [class.control--invalid]="invalid('turmaId')"
+          >
+            <option value="" disabled>Selecione a turma</option>
+            @for (c of termCohorts(); track c.id) {
+              <option [value]="c.id">{{ cohortLabel(c) }}</option>
+            }
+          </select>
+          @if (invalid('turmaId')) {
+            <span class="field__error">Selecione a turma.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label class="field__label" for="rgms">RGMs</label>
+          <textarea
+            id="rgms"
+            class="control control--textarea"
+            placeholder="Um RGM por linha — ex.: 20260009"
+            formControlName="rgms"
+            [class.control--invalid]="invalid('rgms')"
+          ></textarea>
+          <span class="field__hint">
+            Aceita vários RGMs de uma vez — separados por linha ou vírgula. Todos entram
+            pré-autorizados na turma selecionada.
+          </span>
+          @if (invalid('rgms')) {
+            <span class="field__error">Informe ao menos um RGM válido (só números).</span>
+          }
+        </div>
+
+        <div>
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">
+            <app-icon name="plus" class="btn__icon" />
+            {{ saving() ? 'Enviando…' : 'Pré-autorizar' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</section>

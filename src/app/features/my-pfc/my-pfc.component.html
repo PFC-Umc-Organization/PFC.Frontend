@@ -1,0 +1,50 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Meu grupo</p>
+    <h1 class="page-title mt-2">PFC</h1>
+    <p class="lead mt-2">Crie o projeto do seu grupo e acompanhe o orientador definido pela coordenação.</p>
+  </header>
+
+  @if (group(); as g) {
+    <app-group-card [detail]="g" />
+    <app-sent-invitations [projectId]="g.projeto.id" />
+  } @else {
+    @if (situation() !== 'loading' && situation() !== 'error') {
+      <app-received-invitations (joined)="reload()" />
+    }
+
+    @switch (situation()) {
+      @case ('no-cohort') {
+        <p class="alert" role="alert">
+          <app-icon name="alert" />
+          <span>
+            O seu RGM ainda não está pré-autorizado em nenhuma turma, então ainda não dá para criar o PFC.
+            Fale com a coordenação. Se ela acabou de liberar, recarregue a página.
+          </span>
+        </p>
+      }
+      @case ('no-program') {
+        <p class="alert" role="alert">
+          <app-icon name="alert" />
+          <span>
+            A sua turma ainda não tem PFC iniciado. Assim que a coordenação criar o programa de PFC da
+            turma, você poderá criar o projeto do seu grupo aqui.
+          </span>
+        </p>
+      }
+      @case ('loading') {
+        <p class="muted text-sm">Carregando o seu PFC…</p>
+      }
+      @case ('error') {
+        <p class="alert" role="alert">
+          <app-icon name="alert" />
+          <span>Não foi possível carregar o seu PFC: {{ loadError() }}</span>
+          <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar de novo</button>
+        </p>
+      }
+      @default {
+        <app-create-project (created)="reload()" />
+      }
+    }
+  }
+</div>

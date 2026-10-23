@@ -3,60 +3,60 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, map, switchMap, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { EnvioArquivo, Material, NovoMaterial } from '../models';
-import { erroHttp } from './http-erro';
-import { TicketArquivo, enviarParaBucket } from './upload';
+import { Material, NewMaterial, UploadEvent } from '../models';
+import { toApiError } from './http-error';
+import { UploadTicket, uploadToBucket } from './upload';
 
 export abstract class MaterialService {
-  /** O backend já filtra: o aluno recebe os gerais e os da turma dele. */
-  abstract listar(): Observable<Material[]>;
-  abstract criar(novo: NovoMaterial): Observable<Material>;
-  abstract remover(materialId: string): Observable<void>;
-  /** Envia o arquivo direto para o bucket; no fim emite a chave para `criar`. */
-  abstract enviarArquivo(arquivo: File): Observable<EnvioArquivo>;
-  /** Link de download (vale 5 minutos). */
-  abstract linkDoArquivo(materialId: string): Observable<{ url: string; nome: string }>;
+  /** Already filtered by the backend: a student gets the general ones and their cohort's. */
+  abstract list(): Observable<Material[]>;
+  abstract create(material: NewMaterial): Observable<Material>;
+  abstract remove(materialId: string): Observable<void>;
+  /** Uploads straight to the bucket; ends with the key to pass to `create`. */
+  abstract uploadFile(file: File): Observable<UploadEvent>;
+  /** A download link valid for 5 minutes. */
+  abstract fileLink(materialId: string): Observable<{ url: string; nome: string }>;
 }
 
 @Injectable()
 export class MaterialHttpService extends MaterialService {
   private readonly http = inject(HttpClient);
   private readonly url = `${environment.apiBaseUrl}/materiais`;
-  private readonly recarregar$ = new BehaviorSubject<void>(undefined);
+  private readonly reload$ = new BehaviorSubject<void>(undefined);
 
-  override listar(): Observable<Material[]> {
-    return this.recarregar$.pipe(
-      switchMap(() => this.http.get<Material[]>(this.url).pipe(catchError(erroHttp))),
+  override list(): Observable<Material[]> {
+    return this.reload$.pipe(
+      switchMap(() => this.http.get<Material[]>(this.url).pipe(catchError(toApiError))),
     );
   }
 
-  override criar(novo: NovoMaterial): Observable<Material> {
-    return this.http.post<Material>(this.url, novo).pipe(
-      tap(() => this.recarregar$.next()),
-      catchError(erroHttp),
+  override create(material: NewMaterial): Observable<Material> {
+    return this.http.post<Material>(this.url, material).pipe(
+      tap(() => this.reload$.next()),
+      catchError(toApiError),
     );
   }
 
-  override remover(materialId: string): Observable<void> {
+  override remove(materialId: string): Observable<void> {
     return this.http.delete(`${this.url}/${materialId}`).pipe(
-      tap(() => this.recarregar$.next()),
+      tap(() => this.reload$.next()),
       map(() => undefined),
-      catchError(erroHttp),
+      catchError(toApiError),
     );
   }
 
-  override enviarArquivo(arquivo: File): Observable<EnvioArquivo> {
+  override uploadFile(file: File): Observable<UploadEvent> {
     return this.http
-      .post<TicketArquivo>(`${this.url}/arquivos`, { nome: arquivo.name, tamanho: arquivo.size })
+      .post<UploadTicket>(`${this.url}/arquivos`, { nome: file.name, tamanho: file.size })
       .pipe(
-        catchError(erroHttp),
-        switchMap((ticket) => enviarParaBucket(this.http, ticket, arquivo)),
+        catchError(toApiError),
+        switchMap((ticket) => uploadToBucket(this.http, ticket, file)),
       );
   }
 
-  override linkDoArquivo(materialId: string): Observable<{ url: string; nome: string }> {
+  override fileLink(materialId: string): Observable<{ url: string; nome: string }> {
     return this.http
       .get<{ url: string; nome: string }>(`${this.url}/${materialId}/arquivo`)
-      .pipe(catchError(erroHttp));
+      .pipe(catchError(toApiError));
   }
 }

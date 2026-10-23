@@ -1,6 +1,6 @@
 
 :root {
-  /* Marca */
+  /* Brand */
   --primary: oklch(38% 0.14 264);
   --primary-foreground: oklch(99% 0 0);
   --bronze: oklch(58.5% 0.095 62);
@@ -100,7 +100,7 @@ table {
 }
 
 /* -------------------------------------------------------------------------
-   3. Tipografia
+   3. Typography
    ------------------------------------------------------------------------- */
 h1,
 h2,
@@ -125,7 +125,7 @@ h4 {
   font-size: 1.125rem;
 }
 
-/* Sobrelinha em bronze — "ENTREGÁVEIS DO PFC", "ADMINISTRAÇÃO" etc. */
+/* The bronze overline above page titles. */
 .eyebrow {
   font-family: var(--font-sans);
   font-size: 0.75rem;
@@ -168,9 +168,9 @@ h4 {
 .page {
   padding-block: 2rem;
   display: grid;
-  /* minmax(0, 1fr): sem isso a coluna do grid cresce até caber a tabela
-     mais larga (min-width das .data-table) e a página inteira passa a rolar
-     de lado no celular, em vez de só a tabela dentro do .table-scroll. */
+  /* minmax(0, 1fr): otherwise the column grows to fit the widest table
+     (the .data-table min-width) and the whole page scrolls sideways on a
+     phone, instead of just the table inside .table-scroll. */
   grid-template-columns: minmax(0, 1fr);
   gap: 2.5rem;
 }
@@ -195,7 +195,7 @@ h4 {
 }
 
 /* -------------------------------------------------------------------------
-   5. Cartões e painéis
+   5. Cards and panels
    ------------------------------------------------------------------------- */
 .card {
   background: var(--card);
@@ -217,13 +217,13 @@ h4 {
   padding: 1.25rem;
 }
 
-.card__head-icone {
-  --icone-size: 1.125rem;
+.card__head-icon {
+  --icon-size: 1.125rem;
   color: var(--primary);
 }
 
 /* -------------------------------------------------------------------------
-   6. Botões
+   6. Buttons
    ------------------------------------------------------------------------- */
 .btn {
   display: inline-flex;
@@ -235,6 +235,7 @@ h4 {
   font-size: 0.875rem;
   font-weight: 600;
   border: 1px solid transparent;
+  text-decoration: none;
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
@@ -334,7 +335,7 @@ h4 {
 }
 
 /* -------------------------------------------------------------------------
-   7. Formulários
+   7. Forms
    ------------------------------------------------------------------------- */
 .field {
   display: grid;
@@ -347,8 +348,8 @@ h4 {
   color: var(--foreground);
 }
 
-/* Ação que parece link: baixar arquivo de entrega. */
-.link-botao {
+/* An action that looks like a link, such as downloading a file. */
+.text-button {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
@@ -438,23 +439,23 @@ select.control {
   pointer-events: none;
 }
 
-/* Campo de senha com o botão de mostrar/ocultar à direita. */
-.senha-wrap {
+/* Password input with the show/hide button on the right. */
+.password-wrap {
   position: relative;
 }
 
-.senha-wrap .control {
+.password-wrap .control {
   padding-right: 2.75rem;
 }
 
-/* O Edge desenha o próprio botão de mostrar senha em campo de senha com
-   foco; sem isso apareceriam dois olhos. */
-.senha-wrap .control::-ms-reveal,
-.senha-wrap .control::-ms-clear {
+/* Edge draws its own reveal button on a focused password input; without
+   this there would be two eyes. */
+.password-wrap .control::-ms-reveal,
+.password-wrap .control::-ms-clear {
   display: none;
 }
 
-.senha-wrap__botao {
+.password-wrap__toggle {
   position: absolute;
   top: 0;
   right: 0;
@@ -463,11 +464,11 @@ select.control {
   place-items: center;
   width: 2.75rem;
   color: var(--muted-foreground);
-  --icone-size: 1.125rem;
+  --icon-size: 1.125rem;
 }
 
-.senha-wrap__botao:hover,
-.senha-wrap__botao:focus-visible {
+.password-wrap__toggle:hover,
+.password-wrap__toggle:focus-visible {
   color: var(--primary);
 }
 
@@ -487,7 +488,7 @@ select.control {
 }
 
 /* -------------------------------------------------------------------------
-   8. Segmented control ("Ver como", abas Entrar/Criar conta)
+   8. Segmented control (section tabs)
    ------------------------------------------------------------------------- */
 .segmented {
   display: inline-flex;
@@ -518,21 +519,20 @@ select.control {
   color: var(--primary-foreground);
 }
 
-/* Formulário das telas de autenticação (entrar, criar conta, confirmar). */
+/* The form of the signed-out screens. */
 .form {
   display: grid;
   gap: 1.25rem;
   margin-top: 1.75rem;
 }
 
-.troca {
+.auth-switch {
   font-size: 0.875rem;
   color: var(--muted-foreground);
 }
 
-/* Mensagem de erro (.alerta) e de sucesso (.ok) — o espaçamento em volta
-   fica com cada tela. */
-.alerta,
+/* Error (.alert) and success (.ok) messages; each screen sets the spacing around. */
+.alert,
 .ok {
   display: flex;
   align-items: flex-start;
@@ -542,7 +542,7 @@ select.control {
   font-weight: 500;
 }
 
-.alerta {
+.alert {
   color: var(--destructive);
   background: color-mix(in oklch, var(--destructive) 6%, transparent);
   border: 1px solid color-mix(in oklch, var(--destructive) 30%, transparent);
@@ -554,27 +554,27 @@ select.control {
   border: 1px solid color-mix(in oklch, var(--success) 30%, transparent);
 }
 
-/* Botão de ícone que remove/apaga uma linha. */
-.acao-remover {
+/* An icon button acting on a table row. */
+.icon-action {
   display: inline-flex;
   padding: 0.375rem;
   color: var(--muted-foreground);
   border: 1px solid transparent;
 }
 
-.acao-remover:disabled {
+.icon-action:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.acao-remover:hover:not(:disabled) {
+.icon-action:hover:not(:disabled) {
   color: var(--destructive);
   border-color: color-mix(in oklch, var(--destructive) 30%, transparent);
   background: color-mix(in oklch, var(--destructive) 6%, transparent);
 }
 
 /* -------------------------------------------------------------------------
-   9. Badges e indicadores de status
+   9. Badges and status dots
    ------------------------------------------------------------------------- */
 .badge {
   display: inline-flex;
@@ -646,12 +646,11 @@ select.control {
 }
 
 /* -------------------------------------------------------------------------
-   10. Tabelas
+   10. Tables
    ------------------------------------------------------------------------- */
 .table-scroll {
-  /* position: relative prende aqui dentro os .sr-only (absolutos) do
-     cabeçalho da tabela — sem isso eles escapavam da rolagem e alargavam a
-     página inteira no celular. */
+  /* position: relative keeps the header's absolute .sr-only inside the
+     scroll; otherwise they widened the whole page on a phone. */
   position: relative;
   overflow-x: auto;
 }
@@ -735,7 +734,7 @@ select.control {
 }
 
 /* -------------------------------------------------------------------------
-   12. Ornamentos neoclássicos
+   12. Neoclassical ornaments
    ------------------------------------------------------------------------- */
 .frieze {
   height: 1.5rem;
@@ -750,7 +749,7 @@ select.control {
 }
 
 /* -------------------------------------------------------------------------
-   13. Utilitários
+   13. Utilities
    ------------------------------------------------------------------------- */
 .sr-only {
   position: absolute;
@@ -802,7 +801,7 @@ select.control {
   margin-top: 1.5rem;
 }
 
-/* Quem pede menos movimento no sistema não recebe transições. */
+/* No transitions for whoever asks the system for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -811,4 +810,14 @@ select.control {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
   }
+}
+
+/* Empty list placeholder. */
+.empty-state {
+  grid-column: 1 / -1;
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  color: var(--muted-foreground);
+  background: var(--card);
+  border: 1px dashed color-mix(in oklch, var(--primary) 20%, transparent);
 }

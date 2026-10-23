@@ -1,0 +1,71 @@
+<app-auth-card heading="Confirmar conta" subtitle="Digite o código de 6 dígitos que enviamos para o seu e-mail.">
+  @if (confirmed()) {
+    <p class="ok standalone" role="status">
+      <app-icon name="check" />
+      <span>{{ confirmed() }}</span>
+    </p>
+    <p class="auth-switch mt-4"><a routerLink="/entrar">Ir para o login</a></p>
+  } @else {
+    <form class="form" [formGroup]="form" (ngSubmit)="confirm()">
+      @if (error()) {
+        <p class="alert" role="alert">
+          <app-icon name="alert" />
+          <span>{{ error() }}</span>
+        </p>
+      }
+      @if (notice()) {
+        <p class="ok" role="status">
+          <app-icon name="check" />
+          <span>{{ notice() }}</span>
+        </p>
+      }
+
+      <div class="field">
+        <label class="field__label" for="email">E-mail</label>
+        <input
+          id="email"
+          type="email"
+          class="control"
+          placeholder="seurgm@alunos.umc.br"
+          autocomplete="username"
+          formControlName="email"
+          [class.control--invalid]="invalid('email')"
+        />
+        @if (invalid('email')) {
+          <span class="field__error">Informe o e-mail do cadastro.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="code">Código</label>
+        <input
+          id="code"
+          type="text"
+          inputmode="numeric"
+          maxlength="6"
+          class="control code"
+          placeholder="000000"
+          autocomplete="one-time-code"
+          formControlName="codigo"
+          [class.control--invalid]="invalid('codigo')"
+        />
+        <span class="field__hint">Não chegou? Confira a caixa de spam ou lixo eletrônico.</span>
+        @if (invalid('codigo')) {
+          <span class="field__error">O código tem 6 dígitos.</span>
+        }
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" [disabled]="loading()">
+        {{ loading() ? 'Confirmando…' : 'Confirmar conta' }}
+      </button>
+
+      <p class="auth-switch actions">
+        <button type="button" class="link-button" [disabled]="resending()" (click)="resend()">
+          {{ resending() ? 'Enviando…' : 'Reenviar código' }}
+        </button>
+        ·
+        <a routerLink="/entrar">Voltar ao login</a>
+      </p>
+    </form>
+  }
+</app-auth-card>

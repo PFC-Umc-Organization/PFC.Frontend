@@ -1,0 +1,83 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Pesquisa</p>
+    <h1 class="page-title mt-2">Referências</h1>
+    <p class="lead mt-2">
+      @if (staff()) {
+        Acompanhe a bibliografia que cada grupo está montando para o PFC.
+      } @else {
+        Encontre artigos acadêmicos e monte a lista de referências do seu PFC já formatada nas normas da ABNT.
+      }
+    </p>
+  </header>
+
+  @if (staff()) {
+    <section class="card">
+      <div class="card__body">
+        <div class="field picker">
+          <label class="field__label" for="project">PFC</label>
+          <select id="project" class="control" [value]="project()?.id ?? ''" (change)="choose($event)">
+            @for (p of projects(); track p.id) {
+              <option [value]="p.id">{{ p.nome }}</option>
+            } @empty {
+              <option value="">Nenhum PFC cadastrado</option>
+            }
+          </select>
+        </div>
+      </div>
+    </section>
+  } @else {
+    @if (!project()) {
+      <p class="empty-state">
+        Você ainda não foi alocado a um PFC. Dá para pesquisar artigos, mas a lista de referências é do grupo —
+        fale com a coordenação para entrar em um.
+      </p>
+    }
+
+    <section class="card">
+      <div class="card__body stack">
+        <div class="segmented segmented--grid modes" role="tablist" aria-label="Forma de busca">
+          <button
+            type="button"
+            role="tab"
+            class="segmented__item"
+            [attr.aria-selected]="mode() === 'topic'"
+            (click)="mode.set('topic')"
+          >
+            Buscar por tema
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="segmented__item"
+            [attr.aria-selected]="mode() === 'doi'"
+            (click)="mode.set('doi')"
+          >
+            Tenho o DOI
+          </button>
+        </div>
+
+        @if (mode() === 'topic') {
+          <app-topic-search [projectId]="project()?.id ?? ''" [inList]="dois()" (added)="added()" (started)="message.set('')" />
+        } @else {
+          <app-doi-lookup [projectId]="project()?.id ?? ''" [inList]="dois()" (added)="added()" (started)="message.set('')" />
+        }
+
+        @if (message()) {
+          <p class="done" aria-live="polite">{{ message() }}</p>
+        }
+      </div>
+    </section>
+  }
+
+  @if (project(); as p) {
+    <app-reference-list
+      [references]="references()"
+      [projectName]="p.nome"
+      [editable]="!staff()"
+      [loading]="loading()"
+      [error]="loadError()"
+      (changed)="reload()"
+    />
+  }
+</div>

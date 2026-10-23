@@ -1,0 +1,27 @@
+<div class="file-picker">
+  <label [for]="inputId()" class="btn btn--outline" [class.btn--disabled]="busy()">
+    {{ fileName() ? 'Trocar arquivo' : 'Escolher arquivo' }}
+  </label>
+  <span class="file-picker__name" aria-live="polite">
+    @if (busy()) {
+      Enviando… {{ progress() }}%
+    } @else {
+      {{ fileName() || 'Nenhum arquivo selecionado' }}
+    }
+  </span>
+</div>
+@if (busy()) {
+  <progress class="file-picker__bar" max="100" [value]="progress()"></progress>
+}
+<span class="field__hint">PDF, Office/LibreOffice, imagem, ZIP ou texto, até 50 MB.</span>
+@if (problem() || error()) {
+  <span class="field__error" role="alert">{{ problem() || error() }}</span>
+}
+<input
+  [id]="inputId()"
+  type="file"
+  class="file-picker__input"
+  [accept]="accept"
+  [disabled]="busy()"
+  (change)="choose($event)"
+/>

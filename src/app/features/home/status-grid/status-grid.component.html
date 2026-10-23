@@ -1,0 +1,56 @@
+<section class="card card--flush">
+  <div class="card__head">
+    <app-icon name="clipboard" class="card__head-icon" />
+    <h2 class="section-title">Status de entrega por projeto ({{ grid().rows.length }})</h2>
+  </div>
+
+  @if (error()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ error() }}</span>
+    </p>
+  }
+
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Projeto</th>
+          @for (a of grid().activities; track a.id) {
+            <th scope="col">{{ a.titulo }}</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading()) {
+          <tr>
+            <td class="table-empty" [attr.colspan]="grid().activities.length + 1">Carregando projetos…</td>
+          </tr>
+        } @else {
+          @for (row of grid().rows; track row.project.id) {
+            <tr>
+              <td class="cell-strong">{{ row.project.nome }}</td>
+              @for (c of row.cells; track c.activityId) {
+                <td>
+                  <button
+                    type="button"
+                    class="cell"
+                    [class.cell--active]="isSelected(row.project.id, c.activityId)"
+                    (click)="open.emit({ projectId: row.project.id, projectName: row.project.nome, activityId: c.activityId })"
+                    [attr.aria-label]="'Ver entrega de ' + row.project.nome"
+                  >
+                    <app-status-badge [status]="c.status" />
+                  </button>
+                </td>
+              }
+            </tr>
+          } @empty {
+            <tr>
+              <td class="table-empty" [attr.colspan]="grid().activities.length + 1">{{ emptyText() }}</td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

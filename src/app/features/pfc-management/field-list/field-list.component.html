@@ -1,0 +1,22 @@
+<p class="field__label">Campos de entrega</p>
+@if (hint()) {
+  <p class="hint">{{ hint() }}</p>
+}
+<ul class="list">
+  @for (f of fields(); track $index) {
+    <li class="list__item">
+      <span class="cell-strong">{{ f.rotulo }}</span>
+      <span class="list__meta">{{ typeLabel[f.tipo] }} · {{ f.obrigatorio ? 'obrigatório' : 'opcional' }}</span>
+      <button
+        type="button"
+        class="icon-action"
+        [disabled]="fields().length <= 1"
+        (click)="remove.emit($index)"
+        [attr.aria-label]="'Remover campo ' + f.rotulo"
+      >
+        <app-icon name="trash" />
+      </button>
+    </li>
+  }
+</ul>
+<ng-content />

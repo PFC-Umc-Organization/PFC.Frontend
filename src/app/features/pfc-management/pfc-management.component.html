@@ -1,0 +1,32 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Planejamento acadêmico</p>
+    <h1 class="page-title mt-2">Gestão de PFC</h1>
+  </header>
+
+  <div class="segmented segmented--grid sections" role="group" aria-label="Seção da tela">
+    @for (s of sections(); track s.id) {
+      <button
+        type="button"
+        class="segmented__item"
+        [attr.aria-pressed]="section() === s.id"
+        (click)="section.set(s.id)"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+
+  @switch (section()) {
+    @case ('program') {
+      <app-program-section />
+    }
+    @case ('projects') {
+      <app-project-section />
+    }
+    @case ('activities') {
+      <app-new-activity />
+      <app-activity-schedule />
+    }
+  }
+</div>

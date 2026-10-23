@@ -1,0 +1,33 @@
+@if (service.request(); as request) {
+  <div class="backdrop" (click)="answer(false)">
+    <div
+      class="box"
+      role="alertdialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="'confirm-title'"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="box__head" [class.box__head--danger]="request.danger">
+        <app-icon name="alert" />
+        <h2 id="confirm-title" class="box__title">{{ request.title }}</h2>
+      </div>
+
+      <p class="box__message">{{ request.message }}</p>
+
+      <div class="box__actions">
+        <button type="button" class="btn btn--outline btn--sm" (click)="answer(false)">
+          {{ request.cancelText ?? 'Cancelar' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn--sm"
+          [class.btn--danger]="request.danger"
+          [class.btn--primary]="!request.danger"
+          (click)="answer(true)"
+        >
+          {{ request.confirmText ?? 'Confirmar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

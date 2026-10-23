@@ -1,0 +1,39 @@
+<article class="deliverable" [class]="'tone-' + tone()">
+  <div>
+    <div class="row">
+      <span class="dot" [class]="'dot--' + tone()" aria-hidden="true"></span>
+      <span class="status">{{ label() }}</span>
+    </div>
+    <h3 class="title">{{ item().title }}</h3>
+    <p class="project">{{ item().projectName }}</p>
+  </div>
+
+  <div class="bottom">
+    <p class="deadline">
+      <app-icon name="calendar" class="deadline__icon" />
+      Entrega até: {{ item().deadline | deadline }}
+    </p>
+
+    @if (done()) {
+      <p class="action action--done">
+        <app-icon name="check" />
+        @if (item().fileName; as name) {
+          Entregue — {{ name }}
+        } @else {
+          Entregável concluído
+        }
+      </p>
+    } @else if (!interactive()) {
+      <p class="action action--waiting">Aguardando entregas</p>
+    } @else if (late()) {
+      <p class="action action--late">
+        <app-icon name="alert" />
+        Prazo encerrado
+      </p>
+    } @else {
+      <a class="btn btn--full-xs btn--primary" routerLink="/entregaveis" [queryParams]="{ atividade: item().activityId }">
+        Enviar entrega
+      </a>
+    }
+  </div>
+</article>

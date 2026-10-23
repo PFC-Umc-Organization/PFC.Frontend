@@ -1,0 +1,39 @@
+<div class="material__top">
+  <span class="badge badge--primary">{{ kindLabel[material().tipo] }}</span>
+  @if (removable()) {
+    <button
+      type="button"
+      class="material__remove"
+      (click)="removed.emit()"
+      [attr.aria-label]="'Remover ' + material().titulo"
+    >
+      <app-icon name="trash" />
+    </button>
+  }
+</div>
+
+<h3 class="material__title">{{ material().titulo }}</h3>
+@if (material().descricao) {
+  <p class="material__description">{{ material().descricao }}</p>
+}
+<p class="material__audience">{{ audience() }}</p>
+
+<footer class="material__footer">
+  <span class="text-xs muted">
+    {{ material().publicadoEm | deadline: true }}
+    @if (material().publicadoPor) {
+      · {{ material().publicadoPor }}
+    }
+  </span>
+  @if (material().arquivo) {
+    <button type="button" class="material__link text-button" (click)="downloaded.emit()">
+      Baixar
+      <app-icon name="download" />
+    </button>
+  } @else {
+    <a class="material__link" [href]="material().url" target="_blank" rel="noopener noreferrer">
+      Abrir
+      <app-icon name="external-link" />
+    </a>
+  }
+</footer>

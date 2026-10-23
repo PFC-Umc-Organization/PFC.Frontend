@@ -1,0 +1,22 @@
+.answers {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: 0.5rem 1rem;
+  margin: 0.75rem 0 0;
+}
+
+.answers dt {
+  font-weight: 700;
+  font-size: 0.8125rem;
+}
+
+.answers dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.answers__muted {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}

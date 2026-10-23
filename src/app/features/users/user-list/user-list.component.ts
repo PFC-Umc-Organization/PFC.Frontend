@@ -1,0 +1,61 @@
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { catchError, of, switchMap } from 'rxjs';
+
+import { ROLE_LABEL, Role, User } from '../../../core/models';
+import { UserService } from '../../../core/services/user.service';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+
+@Component({
+  selector: 'app-user-list',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [IconComponent],
+  templateUrl: './user-list.component.html',
+  styleUrl: './user-list.component.scss',
+})
+export class UserListComponent {
+  private readonly userService = inject(UserService);
+
+  protected readonly roleLabel = ROLE_LABEL;
+  readonly search = signal('');
+  readonly role = signal<Role | 'TODOS'>('TODOS');
+  readonly error = signal('');
+
+  /** The service caches the list, so filtering makes no new call. */
+  readonly users = toSignal(
+    toObservable(computed(() => ({ search: this.search(), role: this.role() }))).pipe(
+      switchMap((filter) =>
+        this.userService.list(filter).pipe(
+          catchError((e: Error) => {
+            this.error.set(e.message);
+            return of([] as User[]);
+          }),
+        ),
+      ),
+    ),
+    { initialValue: [] as User[] },
+  );
+
+  /** Counted over everyone, regardless of the filters. */
+  private readonly everyone = toSignal(this.userService.list().pipe(catchError(() => of([] as User[]))), {
+    initialValue: [] as User[],
+  });
+  readonly stats = computed(() => {
+    const all = this.everyone();
+    const count = (f: (u: User) => boolean) => all.filter(f).length;
+    return [
+      { label: 'Usuários ativos', value: count((u) => u.status === 'ATIVO') },
+      { label: 'Alunos', value: count((u) => u.perfil === 'ALUNO') },
+      { label: 'Orientadores', value: count((u) => u.perfil === 'ORIENTADOR') },
+      { label: 'Coordenação', value: count((u) => u.perfil === 'ADMIN') },
+    ];
+  });
+
+  setSearch(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  setRole(event: Event): void {
+    this.role.set((event.target as HTMLSelectElement).value as Role | 'TODOS');
+  }
+}

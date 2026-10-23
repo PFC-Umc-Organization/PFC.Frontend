@@ -1,0 +1,24 @@
+:host {
+  display: contents;
+}
+
+td .badge + .badge {
+  margin-left: 0.375rem;
+}
+
+.filters {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 720px) {
+  .filters {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: end;
+  }
+}
+
+.alert {
+  margin: 0 1.25rem 1rem;
+}

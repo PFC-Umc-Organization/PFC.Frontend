@@ -1,0 +1,13 @@
+@if (!doi()) {
+  <span class="text-xs muted">Sem DOI</span>
+} @else if (present()) {
+  <span class="in-list">
+    <app-icon name="check" class="btn__icon" />
+    Na lista
+  </span>
+} @else {
+  <button type="button" class="btn btn--primary btn--sm" [disabled]="adding()" (click)="add()">
+    <app-icon name="plus" class="btn__icon" />
+    {{ adding() ? 'Adicionando…' : 'Adicionar' }}
+  </button>
+}

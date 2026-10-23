@@ -1,0 +1,36 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Entrega de atividades</p>
+    <h1 class="page-title mt-2">Entregáveis</h1>
+    <p class="lead mt-2">
+      Escolha uma atividade cadastrada pelo professor, preencha os campos do formulário e envie a entrega
+      do seu grupo antes do prazo.
+    </p>
+  </header>
+
+  @if (loadError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar as entregas: {{ loadError() }}</span>
+    </p>
+  }
+
+  <app-submission-form
+    [project]="project()"
+    [available]="available()"
+    [activities]="activities()"
+    [submissions]="submissions()"
+    [(activityId)]="selected"
+  />
+
+  @if (sent().length > 0) {
+    <app-submission-list
+      [items]="sent()"
+      [error]="downloadError()"
+      (edit)="edit($event)"
+      (download)="download($event)"
+    />
+  }
+
+  <app-timeline [items]="timeline()" [interactive]="false" [showLegend]="false" eyebrow="" heading="Entregas" description="" />
+</div>

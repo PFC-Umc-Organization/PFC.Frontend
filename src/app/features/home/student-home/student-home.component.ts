@@ -1,0 +1,77 @@
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { catchError, map, of, startWith, switchMap } from 'rxjs';
+
+import { Project, TimelineItem } from '../../../core/models';
+import { ActivityService } from '../../../core/services/activity.service';
+import { ProjectService } from '../../../core/services/project.service';
+import { SubmissionService } from '../../../core/services/submission.service';
+import { submissionStatus } from '../../../core/services/submission-status';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { TimelineComponent } from '../../../shared/components/timeline/timeline.component';
+
+type State =
+  | { kind: 'loading' }
+  | { kind: 'error'; message: string }
+  | { kind: 'ready'; project: Project | null; items: TimelineItem[] };
+
+/**
+ * The activities' schedule. Without a group the student still sees the
+ * deadlines (activities are the same for every cohort) and a notice that
+ * submitting is done by the group.
+ */
+@Component({
+  selector: 'app-student-home',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TimelineComponent, IconComponent, RouterLink],
+  templateUrl: './student-home.component.html',
+  styleUrl: './student-home.component.scss',
+})
+export class StudentHomeComponent {
+  private readonly submissionService = inject(SubmissionService);
+  private readonly activityService = inject(ActivityService);
+
+  readonly state = toSignal(
+    inject(ProjectService)
+      .myProject()
+      .pipe(
+        switchMap((project) =>
+          (project
+            ? this.submissionService.projectTimeline(project.id, project.nome)
+            : this.activityService.list().pipe(
+                map((activities) =>
+                  activities.map<TimelineItem>((a) => ({
+                    activityId: a.id,
+                    title: a.titulo,
+                    projectName: '',
+                    deadline: a.prazo,
+                    status: submissionStatus(a.prazo, undefined),
+                  })),
+                ),
+              )
+          ).pipe(map((items): State => ({ kind: 'ready', project, items }))),
+        ),
+        catchError((e: Error) => of<State>({ kind: 'error', message: e.message })),
+        startWith<State>({ kind: 'loading' }),
+      ),
+    { initialValue: { kind: 'loading' } as State },
+  );
+
+  readonly project = computed(() => {
+    const s = this.state();
+    return s.kind === 'ready' ? s.project : null;
+  });
+  readonly items = computed(() => {
+    const s = this.state();
+    return s.kind === 'ready' ? s.items : [];
+  });
+  readonly error = computed(() => {
+    const s = this.state();
+    return s.kind === 'error' ? `Não foi possível carregar as atividades: ${s.message}` : '';
+  });
+  readonly description = computed(() => {
+    const project = this.project();
+    return project ? `Prazos e situação das entregas do grupo ${project.nome}.` : 'Prazos das atividades do PFC.';
+  });
+}

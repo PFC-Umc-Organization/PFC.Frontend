@@ -1,0 +1,34 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Acompanhamento</p>
+    <h1 class="page-title mt-2">Painel do PFC</h1>
+    <p class="lead mt-2">Entregas de cada grupo da turma, atividade por atividade.</p>
+  </div>
+  <div class="field picker">
+    <label class="field__label" for="cohort">Turma</label>
+    <select id="cohort" class="control" [value]="cohortId()" (change)="chooseCohort($event)">
+      @for (c of cohorts(); track c.id) {
+        <option [value]="c.id" [selected]="c.id === cohortId()">{{ cohortLabel(c) }}</option>
+      }
+    </select>
+  </div>
+</header>
+
+<app-status-grid
+  [grid]="grid()"
+  [loading]="loading()"
+  [error]="error()"
+  [selected]="selected()"
+  [emptyText]="emptyText()"
+  (open)="selected.set($event)"
+/>
+
+@if (detail(); as d) {
+  <app-submission-detail
+    [projectId]="d.projectId"
+    [projectName]="d.projectName"
+    [activity]="d.activity"
+    [submission]="d.submission"
+    (closed)="selected.set(null)"
+  />
+}

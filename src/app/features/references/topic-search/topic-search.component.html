@@ -1,0 +1,64 @@
+<form class="search" (submit)="search($event)">
+  <div class="control-wrap search__field">
+    <app-icon name="search" class="control-wrap__icon" />
+    <input
+      type="search"
+      class="control"
+      placeholder="Ex.: gerenciamento de projetos de software"
+      aria-label="Tema da pesquisa"
+      maxlength="200"
+      [value]="term()"
+      (input)="typeTerm($event)"
+    />
+  </div>
+  <button type="submit" class="btn btn--primary" [disabled]="term().trim().length < 3 || searching()">
+    {{ searching() && page() === 1 ? 'Buscando…' : 'Buscar' }}
+  </button>
+</form>
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+@if (done() && !error()) {
+  <p class="text-sm muted" aria-live="polite">
+    {{ count(total()) }} {{ total() === 1 ? 'resultado' : 'resultados' }} · fonte: OpenAlex
+  </p>
+
+  <ul class="results">
+    @for (a of articles(); track $index) {
+      <li class="article">
+        <div class="article__text">
+          <h3 class="article__title">{{ a.titulo }}</h3>
+          <p class="text-sm muted">{{ authorship(a.autores) }}</p>
+          <p class="text-xs muted">{{ details(a) }}</p>
+        </div>
+        <div class="article__actions">
+          @if (a.url) {
+            <a class="btn btn--ghost btn--sm" [href]="a.url" target="_blank" rel="noopener noreferrer">
+              Abrir
+              <app-icon name="external-link" class="btn__icon" />
+            </a>
+          }
+          @if (projectId()) {
+            <app-add-reference
+              [projectId]="projectId()"
+              [doi]="a.doi"
+              [inList]="inList()"
+              (added)="added.emit()"
+              (failed)="error.set($event)"
+            />
+          }
+        </div>
+      </li>
+    } @empty {
+      <li class="results__empty">Nenhum artigo encontrado. Tente outras palavras-chave.</li>
+    }
+  </ul>
+
+  @if (articles().length < total()) {
+    <button type="button" class="btn btn--outline more" [disabled]="searching()" (click)="more()">
+      {{ searching() ? 'Carregando…' : 'Carregar mais' }}
+    </button>
+  }
+}

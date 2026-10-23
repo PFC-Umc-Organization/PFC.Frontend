@@ -1,0 +1,63 @@
+<section class="card card--flush">
+  <div class="card__head">
+    <app-icon name="clipboard" class="card__head-icon" />
+    <h2 class="section-title">RGMs pré-autorizados</h2>
+  </div>
+
+  @if (error()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ error() }}</span>
+    </p>
+  }
+
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">RGM</th>
+          <th scope="col">Turma</th>
+          <th scope="col">Situação</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (m of enrollments(); track m.rgm) {
+          <tr>
+            <td class="cell-strong">{{ m.rgm }}</td>
+            <td>{{ cohortName(m.turmaId) }}</td>
+            <td>
+              @if (accountOf(m.rgm); as account) {
+                @if (account.confirmado === false) {
+                  <span class="badge badge--muted" title="A conta existe, mas o e-mail ainda não foi confirmado">
+                    Conta não confirmada
+                  </span>
+                } @else {
+                  <span class="badge badge--primary">
+                    Conta criada{{ account.nome ? ' — ' + account.nome : '' }}
+                  </span>
+                }
+              } @else {
+                <span class="badge badge--muted">Aguardando cadastro</span>
+              }
+            </td>
+            <td>
+              <button
+                type="button"
+                class="icon-action"
+                (click)="remove(m.rgm)"
+                [attr.aria-label]="'Remover pré-autorização do RGM ' + m.rgm"
+              >
+                <app-icon name="trash" />
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="table-empty" colspan="4">Nenhum RGM pré-autorizado no momento.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

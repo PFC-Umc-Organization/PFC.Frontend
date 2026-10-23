@@ -1,0 +1,28 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Administração</p>
+    <h1 class="page-title mt-2">Cursos e turmas</h1>
+  </header>
+
+  <div class="segmented segmented--grid sections" role="group" aria-label="Seção da tela">
+    @for (s of sections; track s.id) {
+      <button
+        type="button"
+        class="segmented__item"
+        [attr.aria-pressed]="section() === s.id"
+        (click)="section.set(s.id)"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+
+  @switch (section()) {
+    @case ('courses') {
+      <app-course-section />
+    }
+    @case ('cohorts') {
+      <app-cohort-section (goToCourses)="section.set('courses')" />
+    }
+  }
+</div>

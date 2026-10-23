@@ -1,0 +1,68 @@
+<app-auth-card heading="Criar conta" subtitle="Cadastro de aluno — seu RGM precisa já estar pré-autorizado pela coordenação.">
+  <form class="form" [formGroup]="form" (ngSubmit)="signUp()">
+    @if (error()) {
+      <p class="alert" role="alert">
+        <app-icon name="alert" />
+        <span>{{ error() }}</span>
+      </p>
+    }
+
+    <div class="field">
+      <label class="field__label" for="name">Nome completo</label>
+      <input
+        id="name"
+        type="text"
+        class="control"
+        placeholder="Seu nome"
+        autocomplete="name"
+        formControlName="nome"
+        [class.control--invalid]="invalid('nome')"
+      />
+      @if (invalid('nome')) {
+        <span class="field__error">Informe seu nome completo.</span>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="email">E-mail</label>
+      <input
+        id="email"
+        type="email"
+        class="control"
+        placeholder="seurgm@alunos.umc.br"
+        autocomplete="username"
+        formControlName="email"
+        [class.control--invalid]="invalid('email')"
+      />
+      <span class="field__hint">Use o e-mail institucional com o seu RGM.</span>
+      @if (invalid('email')) {
+        <span class="field__error">Use o formato &lt;seu RGM&gt;&#64;alunos.umc.br.</span>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="password">Senha</label>
+      <app-password-field
+        fieldId="password"
+        [control]="form.controls.senha"
+        autocomplete="new-password"
+        placeholder="Crie uma senha segura"
+        describedBy="password-hint"
+        [invalid]="invalid('senha')"
+      />
+      <span class="field__hint" id="password-hint">{{ passwordHint }}</span>
+      @if (invalid('senha')) {
+        <span class="field__error">A senha não atende aos requisitos acima.</span>
+      }
+    </div>
+
+    <button type="submit" class="btn btn--primary btn--block" [disabled]="loading()">
+      {{ loading() ? 'Criando conta…' : 'Criar conta' }}
+    </button>
+
+    <p class="auth-switch">
+      Já tem uma conta?
+      <a routerLink="/entrar">Entrar</a>
+    </p>
+  </form>
+</app-auth-card>

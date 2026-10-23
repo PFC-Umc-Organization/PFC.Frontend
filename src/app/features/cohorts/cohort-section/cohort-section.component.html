@@ -1,0 +1,127 @@
+<section class="card">
+  <div class="card__body">
+    <h2 class="section-title">Nova turma</h2>
+
+    @if (store.cohortsError()) {
+      <p class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <span>{{ store.cohortsError() }}</span>
+      </p>
+    }
+
+    @if (store.courses().length === 0) {
+      <p class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <span>
+          Nenhum curso cadastrado. Cadastre o curso antes de criar a turma.
+          <button type="button" class="link-button" (click)="goToCourses.emit()">Ir para Cursos</button>
+        </span>
+      </p>
+    } @else {
+      <form class="form-grid form-grid--2 mt-6" [formGroup]="newForm" (ngSubmit)="create()">
+        <app-cohort-fields [form]="newForm" [courses]="store.courses()" idPrefix="new" />
+        <div class="form-grid__full">
+          <button type="submit" class="btn btn--primary" [disabled]="creating()">
+            <app-icon name="plus" class="btn__icon" />
+            {{ creating() ? 'Criando…' : 'Criar turma' }}
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</section>
+
+<section class="card card--flush">
+  <div class="card__head head">
+    <div class="row">
+      <app-icon name="calendar" class="card__head-icon" />
+      <h2 class="section-title">Turmas cadastradas ({{ visible().length }})</h2>
+    </div>
+
+    <div class="field filter">
+      <label class="sr-only" for="course-filter">Curso</label>
+      <select
+        id="course-filter"
+        class="control"
+        [value]="courseFilter()"
+        (change)="courseFilter.set($any($event.target).value)"
+      >
+        <option value="">Todos os cursos</option>
+        @for (c of store.courses(); track c.id) {
+          <option [value]="c.nome">{{ c.nome }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Curso</th>
+          <th scope="col">Turno</th>
+          <th scope="col">Período</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of visible(); track c.id) {
+          @if (editingId() === c.id) {
+            <tr>
+              <td colspan="4">
+                <form class="form-grid form-grid--2 editor" [formGroup]="editForm" (ngSubmit)="saveEdit(c.id)">
+                  <app-cohort-fields [form]="editForm" [courses]="store.courses()" idPrefix="edit" />
+                  <div class="form-grid__full row">
+                    <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
+                    <button type="button" class="btn btn--outline btn--sm" (click)="editingId.set(null)">
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+          } @else {
+            <tr>
+              <td class="cell-strong">
+                {{ c.nome }}
+                @if (!store.isRegistered(c.nome)) {
+                  <span class="badge badge--muted" title="Cadastre este curso na aba Cursos para poder editar a turma">
+                    Curso não cadastrado
+                  </span>
+                }
+              </td>
+              <td>{{ shiftLabel[c.turno] }}</td>
+              <td>{{ c.periodo }}</td>
+              <td>
+                <div class="row">
+                  <button
+                    type="button"
+                    class="icon-action"
+                    (click)="startEdit(c)"
+                    [attr.aria-label]="'Editar turma ' + c.nome"
+                  >
+                    <app-icon name="edit" />
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-action"
+                    (click)="remove(c.id, c.nome)"
+                    [attr.aria-label]="'Excluir turma ' + c.nome"
+                  >
+                    <app-icon name="trash" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr>
+            <td class="table-empty" colspan="4">
+              {{ courseFilter() ? 'Este curso ainda não tem turmas.' : 'Nenhuma turma cadastrada ainda.' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

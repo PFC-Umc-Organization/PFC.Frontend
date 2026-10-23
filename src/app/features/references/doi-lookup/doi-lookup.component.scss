@@ -1,0 +1,14 @@
+.preview {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: start;
+  padding: 1.25rem;
+  background: color-mix(in oklch, var(--primary) 4%, var(--card));
+  border: 1px solid color-mix(in oklch, var(--primary) 15%, transparent);
+}
+
+.preview__abnt {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}

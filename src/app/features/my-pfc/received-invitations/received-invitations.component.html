@@ -1,0 +1,37 @@
+@if (invitations().length) {
+  <section class="card card--flush">
+    <div class="card__head">
+      <app-icon name="email" class="card__head-icon" />
+      <h2 class="section-title">Convites recebidos</h2>
+    </div>
+    <div class="card__body invitations">
+      <p class="muted text-sm">
+        Aceitar coloca você no grupo. Você só pode participar de um PFC, então os outros convites somem.
+      </p>
+      <ul class="invitations__list">
+        @for (i of invitations(); track i.projetoId) {
+          <li class="invitation">
+            <span class="invitation__text">
+              <span class="cell-strong">{{ i.projetoNome }}</span>
+              <span class="muted text-sm">
+                convidado por {{ i.convidadoPor || 'um colega' }} em {{ i.criadoEm | date: 'dd/MM/yyyy' }}
+              </span>
+            </span>
+            <span class="invitation__actions">
+              <button type="button" class="btn btn--outline btn--sm" [disabled]="busy()" (click)="decline(i)">
+                Recusar
+              </button>
+              <button type="button" class="btn btn--primary btn--sm" [disabled]="busy()" (click)="accept(i)">
+                <app-icon name="check" class="btn__icon" />
+                {{ acceptingId() === i.projetoId ? 'Entrando…' : 'Aceitar' }}
+              </button>
+            </span>
+          </li>
+        }
+      </ul>
+      @if (error()) {
+        <p class="error" role="alert">{{ error() }}</p>
+      }
+    </div>
+  </section>
+}

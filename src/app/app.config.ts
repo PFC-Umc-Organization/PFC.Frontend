@@ -5,73 +5,73 @@ import {
 } from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 
-import { rotas } from './app.routes';
+import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { deduplicarInterceptor } from './core/interceptors/deduplicar.interceptor';
+import { dedupeInterceptor } from './core/interceptors/dedupe.interceptor';
 import {
-  AtividadeHttpService,
-  AtividadeService,
-} from './core/services/atividade.service';
+  ActivityHttpService,
+  ActivityService,
+} from './core/services/activity.service';
 import {
-  ConviteHttpService,
-  ConviteService,
-} from './core/services/convite.service';
-import { CursoHttpService, CursoService } from './core/services/curso.service';
+  InvitationHttpService,
+  InvitationService,
+} from './core/services/invitation.service';
+import { CohortHttpService, CohortService } from './core/services/cohort.service';
 import {
-  EntregaHttpService,
-  EntregaService,
-} from './core/services/entrega.service';
+  SubmissionHttpService,
+  SubmissionService,
+} from './core/services/submission.service';
 import {
-  GraduacaoHttpService,
-  GraduacaoService,
-} from './core/services/graduacao.service';
+  CourseHttpService,
+  CourseService,
+} from './core/services/course.service';
 import {
   MaterialHttpService,
   MaterialService,
 } from './core/services/material.service';
 import {
-  MatriculaHttpService,
-  MatriculaService,
-} from './core/services/matricula.service';
+  EnrollmentHttpService,
+  EnrollmentService,
+} from './core/services/enrollment.service';
 import {
-  ProgramaHttpService,
-  ProgramaService,
-} from './core/services/programa.service';
+  ProgramHttpService,
+  ProgramService,
+} from './core/services/program.service';
 import {
-  ProjetoHttpService,
-  ProjetoService,
-} from './core/services/projeto.service';
+  ProjectHttpService,
+  ProjectService,
+} from './core/services/project.service';
 import {
-  ReferenciaHttpService,
-  ReferenciaService,
-} from './core/services/referencia.service';
+  ReferenceHttpService,
+  ReferenceService,
+} from './core/services/reference.service';
 import {
-  UsuarioHttpService,
-  UsuarioService,
-} from './core/services/usuario.service';
+  UserHttpService,
+  UserService,
+} from './core/services/user.service';
 
-/** Único ponto do app que escolhe a implementação de cada service. */
+/** The one place that picks each service's implementation. */
 export const appConfig: ApplicationConfig = {
   providers: [
-    // Sem zone.js: a tela só é verificada quando um signal lido por ela muda
-    // (ou num evento do template). Todo componente é OnPush e todo estado de
-    // tela é signal — ver README, "Detecção de mudanças".
+    // No zone.js: a view is checked only when a signal it reads changes (or on
+    // a template event). Every component is OnPush and all screen state is a
+    // signal; see the README, "Detecção de mudanças".
     provideZonelessChangeDetection(),
-    provideRouter(rotas, withComponentInputBinding()),
+    provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(
-      withInterceptors([deduplicarInterceptor, authInterceptor]),
+      withInterceptors([dedupeInterceptor, authInterceptor]),
     ),
 
-    { provide: UsuarioService, useClass: UsuarioHttpService },
-    { provide: CursoService, useClass: CursoHttpService },
-    { provide: GraduacaoService, useClass: GraduacaoHttpService },
-    { provide: ProgramaService, useClass: ProgramaHttpService },
-    { provide: ProjetoService, useClass: ProjetoHttpService },
-    { provide: ConviteService, useClass: ConviteHttpService },
-    { provide: AtividadeService, useClass: AtividadeHttpService },
-    { provide: EntregaService, useClass: EntregaHttpService },
+    { provide: UserService, useClass: UserHttpService },
+    { provide: CohortService, useClass: CohortHttpService },
+    { provide: CourseService, useClass: CourseHttpService },
+    { provide: ProgramService, useClass: ProgramHttpService },
+    { provide: ProjectService, useClass: ProjectHttpService },
+    { provide: InvitationService, useClass: InvitationHttpService },
+    { provide: ActivityService, useClass: ActivityHttpService },
+    { provide: SubmissionService, useClass: SubmissionHttpService },
     { provide: MaterialService, useClass: MaterialHttpService },
-    { provide: MatriculaService, useClass: MatriculaHttpService },
-    { provide: ReferenciaService, useClass: ReferenciaHttpService },
+    { provide: EnrollmentService, useClass: EnrollmentHttpService },
+    { provide: ReferenceService, useClass: ReferenceHttpService },
   ],
 };

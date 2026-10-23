@@ -1,0 +1,36 @@
+<section class="card" aria-live="polite">
+  <div class="card__body">
+    <div class="top">
+      <div>
+        <h2 class="section-title">{{ activity().titulo }}</h2>
+        <p class="meta">Projeto {{ projectName() }}</p>
+      </div>
+      <button type="button" class="btn btn--outline btn--sm" (click)="closed.emit()">Fechar</button>
+    </div>
+
+    @if (submission(); as s) {
+      <p class="meta">
+        Entregue em {{ s.entregueEm | date: 'dd/MM/yyyy HH:mm' }}
+        @if (s.entreguePor) {
+          por {{ s.entreguePor }}
+        }
+        @if (s.atualizadaEm) {
+          · editada em {{ s.atualizadaEm | date: 'dd/MM/yyyy HH:mm' }}
+          @if (s.atualizadaPor) {
+            por {{ s.atualizadaPor }}
+          }
+        }
+      </p>
+      <app-answer-list [activity]="activity()" [submission]="s" (download)="download($event)" />
+      @if (error()) {
+        <p class="alert alert--inline" role="alert">{{ error() }}</p>
+      }
+      <button type="button" class="btn btn--outline btn--sm" (click)="handBack()">
+        <app-icon name="trash" class="btn__icon" />
+        Remover entrega (devolver ao grupo)
+      </button>
+    } @else {
+      <p class="meta">Este grupo ainda não entregou esta atividade.</p>
+    }
+  </div>
+</section>

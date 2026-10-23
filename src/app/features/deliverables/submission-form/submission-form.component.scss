@@ -1,0 +1,10 @@
+.result {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.result--error {
+  color: var(--destructive);
+}

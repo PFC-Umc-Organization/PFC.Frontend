@@ -1,0 +1,22 @@
+<dl class="answers">
+  @for (r of rows(); track r.fieldId) {
+    <dt>{{ r.label }}</dt>
+    <dd>
+      @if (!r.value) {
+        <span class="answers__muted">não preenchido</span>
+      } @else if (r.type === 'ARQUIVO' && isStoredFile(r.value)) {
+        <button type="button" class="text-button" (click)="download.emit(r.fieldId)">
+          <app-icon name="download" />
+          {{ fileNameOf(r.value) }}
+        </button>
+      } @else if (r.type === 'ARQUIVO') {
+        {{ r.value }}
+        <span class="answers__muted">(enviado antes do upload — só o nome)</span>
+      } @else if (r.type === 'LINK') {
+        <a [href]="r.value" target="_blank" rel="noopener noreferrer">{{ r.value }}</a>
+      } @else {
+        {{ r.value }}
+      }
+    </dd>
+  }
+</dl>

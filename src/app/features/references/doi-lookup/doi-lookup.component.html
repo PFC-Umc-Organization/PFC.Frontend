@@ -1,0 +1,38 @@
+<form class="search" (submit)="lookUp($event)">
+  <div class="search__field">
+    <input
+      type="text"
+      class="control"
+      placeholder="Ex.: 10.1145/3290605.3300233 ou https://doi.org/…"
+      aria-label="DOI do artigo"
+      [value]="doi()"
+      (input)="typeDoi($event)"
+    />
+  </div>
+  <button type="submit" class="btn btn--primary" [disabled]="!doi().trim() || looking()">
+    {{ looking() ? 'Consultando…' : 'Consultar' }}
+  </button>
+</form>
+<p class="field__hint">
+  O DOI costuma aparecer na primeira página do artigo ou no site da revista. Fonte: Crossref.
+</p>
+
+@if (error()) {
+  <p class="error" role="alert">{{ error() }}</p>
+}
+
+@if (preview(); as p) {
+  <div class="preview">
+    <p class="eyebrow">Pré-visualização (ABNT)</p>
+    <p class="preview__abnt" [innerHTML]="p.abntHtml"></p>
+    @if (projectId()) {
+      <app-add-reference
+        [projectId]="projectId()"
+        [doi]="p.doi"
+        [inList]="inList()"
+        (added)="added.emit()"
+        (failed)="error.set($event)"
+      />
+    }
+  </div>
+}

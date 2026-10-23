@@ -1,0 +1,49 @@
+<section class="card card--flush">
+  <div class="card__head">
+    <app-icon name="email" class="card__head-icon" />
+    <h2 class="section-title">Convites pendentes</h2>
+  </div>
+  <div class="card__body invitations">
+    @if (pending().length) {
+      <ul class="invitations__list">
+        @for (i of pending(); track i.rgm) {
+          <li class="invitation">
+            <span class="invitation__text">
+              <span class="cell-strong">RGM {{ i.rgm }}</span>
+              <span class="muted text-sm">convidado em {{ i.criadoEm | date: 'dd/MM/yyyy' }}</span>
+            </span>
+            <button type="button" class="btn btn--outline btn--sm" [disabled]="busy()" (click)="cancel(i)">
+              <app-icon name="trash" class="btn__icon" />
+              Cancelar
+            </button>
+          </li>
+        }
+      </ul>
+    } @else {
+      <p class="muted text-sm">
+        Nenhum convite esperando resposta. Os colegas entram no grupo quando aceitam o convite na tela deles.
+      </p>
+    }
+
+    <form class="invite" [formGroup]="form" (ngSubmit)="invite()">
+      <div class="field invite__field">
+        <label class="field__label" for="invite-rgm">Convidar colega (RGM)</label>
+        <input
+          id="invite-rgm"
+          type="text"
+          inputmode="numeric"
+          class="control"
+          placeholder="Ex.: 12345678"
+          formControlName="rgm"
+        />
+      </div>
+      <button type="submit" class="btn btn--primary" [disabled]="busy()">
+        <app-icon name="plus" class="btn__icon" />
+        {{ inviting() ? 'Convidando…' : 'Convidar' }}
+      </button>
+    </form>
+    @if (error()) {
+      <p class="error" role="alert">{{ error() }}</p>
+    }
+  </div>
+</section>

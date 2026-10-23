@@ -1,0 +1,10 @@
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.5rem;
+}
+
+.picker {
+  width: 100%;
+  max-width: 20rem;
+}

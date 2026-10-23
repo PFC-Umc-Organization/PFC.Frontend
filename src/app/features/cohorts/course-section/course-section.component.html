@@ -1,0 +1,121 @@
+<section class="card">
+  <div class="card__body">
+    <h2 class="section-title">Novo curso</h2>
+
+    @if (store.coursesError()) {
+      <p class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <span>{{ store.coursesError() }}</span>
+      </p>
+    }
+
+    <form class="form-grid form-grid--2 mt-6" [formGroup]="form" (ngSubmit)="create()">
+      <div class="field">
+        <label class="field__label" for="new-course-name">Nome do curso</label>
+        <input
+          id="new-course-name"
+          type="text"
+          class="control"
+          placeholder="Ex.: Engenharia de Software"
+          maxlength="100"
+          formControlName="nome"
+          [class.control--invalid]="invalid(name)"
+        />
+        @if (invalid(name)) {
+          <span class="field__error">Informe o nome do curso.</span>
+        }
+      </div>
+
+      <div class="form-grid__full">
+        <button type="submit" class="btn btn--primary" [disabled]="creating()">
+          <app-icon name="plus" class="btn__icon" />
+          {{ creating() ? 'Criando…' : 'Criar curso' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section class="card card--flush">
+  <div class="card__head">
+    <app-icon name="book" class="card__head-icon" />
+    <h2 class="section-title">Cursos cadastrados ({{ store.courses().length }})</h2>
+  </div>
+
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Curso</th>
+          <th scope="col">Turmas</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of store.courses(); track c.id) {
+          @if (editingId() === c.id) {
+            <tr>
+              <td colspan="3">
+                <form class="form-grid form-grid--2 editor" [formGroup]="editForm" (ngSubmit)="saveEdit(c.id)">
+                  <div class="field">
+                    <label class="field__label" for="edit-course-name">Nome do curso</label>
+                    <input
+                      id="edit-course-name"
+                      type="text"
+                      class="control"
+                      maxlength="100"
+                      formControlName="nome"
+                      [class.control--invalid]="invalid(editName)"
+                    />
+                    @if (c.nome !== editName.value.trim() && store.cohortsOf(c) > 0) {
+                      <span class="field__hint">
+                        As {{ store.cohortsOf(c) }} turma(s) deste curso passam a usar o novo nome.
+                      </span>
+                    }
+                  </div>
+                  <div class="form-grid__full row">
+                    <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
+                    <button type="button" class="btn btn--outline btn--sm" (click)="editingId.set(null)">
+                      Cancelar
+                    </button>
+                  </div>
+                </form>
+              </td>
+            </tr>
+          } @else {
+            <tr>
+              <td class="cell-strong">{{ c.nome }}</td>
+              <td>{{ store.cohortsOf(c) }}</td>
+              <td>
+                <div class="row">
+                  <button
+                    type="button"
+                    class="icon-action"
+                    (click)="startEdit(c)"
+                    [attr.aria-label]="'Editar curso ' + c.nome"
+                  >
+                    <app-icon name="edit" />
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-action"
+                    [disabled]="store.cohortsOf(c) > 0"
+                    [attr.title]="store.cohortsOf(c) > 0 ? 'Remova as turmas do curso antes de excluí-lo' : null"
+                    (click)="remove(c)"
+                    [attr.aria-label]="'Excluir curso ' + c.nome"
+                  >
+                    <app-icon name="trash" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr>
+            <td class="table-empty" colspan="3">Nenhum curso cadastrado ainda.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

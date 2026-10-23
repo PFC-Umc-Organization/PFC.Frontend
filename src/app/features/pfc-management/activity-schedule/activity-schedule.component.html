@@ -1,0 +1,71 @@
+<section class="card card--flush">
+  <div class="card__head">
+    <app-icon name="clipboard" class="card__head-icon" />
+    <h2 class="section-title">Cronograma de atividades</h2>
+  </div>
+
+  @if (loadError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar as atividades: {{ loadError() }}</span>
+    </p>
+  }
+  @if (removeError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ removeError() }}</span>
+    </p>
+  }
+
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Atividade</th>
+          <th scope="col">Data e hora limite</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (a of activities(); track a.id) {
+          @if (editingId() === a.id) {
+            <tr>
+              <td colspan="3">
+                <app-activity-editor [activity]="a" (closed)="editingId.set(null)" />
+              </td>
+            </tr>
+          } @else {
+            <tr>
+              <td class="cell-strong">{{ a.titulo }}</td>
+              <td>{{ a.prazo | deadline }}</td>
+              <td>
+                <div class="row">
+                  <button
+                    type="button"
+                    class="icon-action"
+                    (click)="editingId.set(a.id)"
+                    [attr.aria-label]="'Editar atividade ' + a.titulo"
+                  >
+                    <app-icon name="edit" />
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-action"
+                    (click)="remove(a.id, a.titulo)"
+                    [attr.aria-label]="'Remover atividade ' + a.titulo"
+                  >
+                    <app-icon name="trash" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        } @empty {
+          <tr>
+            <td class="table-empty" colspan="3">Nenhuma atividade cadastrada ainda.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

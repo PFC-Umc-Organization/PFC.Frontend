@@ -1,0 +1,30 @@
+@switch (state().kind) {
+  @case ('loading') {
+    <p class="loading" role="status">Carregando as atividades…</p>
+  }
+  @case ('error') {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ error() }}</span>
+    </p>
+  }
+  @default {
+    @if (!project()) {
+      <p class="notice" role="status">
+        <app-icon name="alert" />
+        <span>
+          Você ainda não faz parte de um PFC. As entregas são feitas pelo grupo:
+          <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
+        </span>
+      </p>
+    }
+    <app-timeline
+      eyebrow="Entregáveis"
+      heading="Cronograma de entregas"
+      [description]="description()"
+      [items]="items()"
+      [showLegend]="items().length > 0"
+      [interactive]="!!project()"
+    />
+  }
+}

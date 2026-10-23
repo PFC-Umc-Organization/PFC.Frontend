@@ -1,0 +1,194 @@
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-bottom: 1px solid
+    color-mix(in oklch, var(--primary-foreground) 20%, transparent);
+}
+
+.topbar__inner {
+  min-height: var(--header-h);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.75rem;
+}
+
+/* ---------------------------- brand ---------------------------- */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand__seal {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  background: var(--marble);
+  color: var(--primary);
+  border: 1px solid
+    color-mix(in oklch, var(--primary-foreground) 35%, transparent);
+}
+
+.brand__icon {
+  --icon-size: 1.5rem;
+}
+
+.brand__text {
+  min-width: 0;
+  display: grid;
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+}
+
+.brand__tagline {
+  font-size: 0.75rem;
+  color: color-mix(in oklch, var(--primary-foreground) 70%, transparent);
+}
+
+/* ---------------------------- actions ---------------------------- */
+/* Below 1100px the full navigation does not fit in one line: it becomes a
+   menu that opens under the header instead of wrapping. */
+.menu-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  --icon-size: 1.375rem;
+  color: var(--primary-foreground);
+  border: 1px solid
+    color-mix(in oklch, var(--primary-foreground) 25%, transparent);
+}
+
+.menu-toggle:hover {
+  background: color-mix(in oklch, var(--primary-foreground) 8%, transparent);
+}
+
+.topbar__actions {
+  display: none;
+  flex-basis: 100%;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+}
+
+.topbar__actions--open {
+  display: flex;
+}
+
+.nav {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.nav__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2.75rem;
+  padding-inline: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: color-mix(in oklch, var(--primary-foreground) 80%, transparent);
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.nav__item:hover {
+  color: var(--primary-foreground);
+  background: color-mix(in oklch, var(--primary-foreground) 8%, transparent);
+}
+
+.nav__item--active {
+  color: var(--primary-foreground);
+  background: color-mix(
+    in oklch,
+    var(--primary-foreground) 15%,
+    transparent
+  );
+}
+
+/* ---------------------------- session ---------------------------- */
+.session {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 0.75rem 0;
+  border-top: 1px solid
+    color-mix(in oklch, var(--primary-foreground) 20%, transparent);
+}
+
+.session__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.session__signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: color-mix(in oklch, var(--primary-foreground) 80%, transparent);
+}
+
+.session__signout:hover {
+  color: var(--primary-foreground);
+}
+
+@media (min-width: 1100px) {
+  .menu-toggle {
+    display: none;
+  }
+
+  .topbar__actions,
+  .topbar__actions--open {
+    display: flex;
+    flex-basis: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding-bottom: 0;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+  }
+
+  .nav__item {
+    height: 2.25rem;
+  }
+
+  .session {
+    padding: 0 0 0 1rem;
+    border-top: 0;
+    border-left: 1px solid
+      color-mix(in oklch, var(--primary-foreground) 20%, transparent);
+  }
+
+  .session__signout {
+    min-height: 0;
+  }
+}

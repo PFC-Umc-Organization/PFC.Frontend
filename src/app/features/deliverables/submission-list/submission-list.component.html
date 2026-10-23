@@ -1,0 +1,43 @@
+<section class="card">
+  <div class="card__body">
+    <h2 class="section-title">Suas entregas</h2>
+    <p class="lead mt-2">
+      O que o seu grupo enviou. Entregue no prazo, dá para editar depois; sem entrega, o prazo encerra a
+      atividade.
+    </p>
+    @if (error()) {
+      <p class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <span>{{ error() }}</span>
+      </p>
+    }
+
+    @for (item of items(); track item.activity.id) {
+      <article class="sent mt-6">
+        <header class="sent__top">
+          <div>
+            <h3 class="sent__title">{{ item.activity.titulo }}</h3>
+            <p class="sent__meta">
+              Enviada em {{ item.submission.entregueEm | date: 'dd/MM/yyyy HH:mm' }}
+              @if (item.submission.entreguePor) {
+                por {{ item.submission.entreguePor }}
+              }
+              @if (item.submission.atualizadaEm) {
+                · editada em {{ item.submission.atualizadaEm | date: 'dd/MM/yyyy HH:mm' }}
+                @if (item.submission.atualizadaPor) {
+                  por {{ item.submission.atualizadaPor }}
+                }
+              }
+            </p>
+          </div>
+          <button type="button" class="btn btn--outline btn--sm" (click)="edit.emit(item.activity.id)">Editar</button>
+        </header>
+        <app-answer-list
+          [activity]="item.activity"
+          [submission]="item.submission"
+          (download)="download.emit({ activityId: item.activity.id, fieldId: $event })"
+        />
+      </article>
+    }
+  </div>
+</section>

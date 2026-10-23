@@ -1,32 +1,23 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, map, tap, throwError } from 'rxjs';
 
-import {
-  Credenciais,
-  NovoUsuario,
-  RespostaAutenticacao,
-  RespostaCadastro,
-  Usuario,
-  ehDesafio,
-} from '../models';
-import { UsuarioService } from './usuario.service';
+import { AuthResult, Credentials, MessageResponse, NewUser, User, isNewPasswordChallenge } from '../models';
+import { UserService } from './user.service';
 
-const CHAVE_SESSAO = 'athena.sessao';
+/** Stored as `{ usuario, token }`; renaming the fields would sign everyone out. */
+const SESSION_KEY = 'athena.sessao';
 
-interface Sessao {
-  usuario: Usuario;
+interface Session {
+  usuario: User;
   token: string;
 }
 
-/**
- * Lê o `exp` do JWT (sem validar assinatura — quem valida é o API Gateway).
- * Token ilegível conta como expirado. Tokens do mock (não-JWT) nunca expiram.
- */
-function tokenExpirado(token: string): boolean {
-  const partes = token.split('.');
-  if (partes.length !== 3) return false;
+/** Reads the JWT `exp` without checking the signature (API Gateway does). */
+function tokenExpired(token: string): boolean {
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
   try {
-    const base64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     const { exp } = JSON.parse(atob(base64)) as { exp?: number };
     return typeof exp === 'number' && exp * 1000 <= Date.now();
   } catch {
@@ -34,133 +25,112 @@ function tokenExpirado(token: string): boolean {
   }
 }
 
-
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly usuarios = inject(UsuarioService);
+  private readonly users = inject(UserService);
 
-  private readonly _sessao = signal<Sessao | null>(this.restaurarSessao());
+  private readonly session = signal<Session | null>(this.restoreSession());
 
-  readonly usuario = computed(() => this._sessao()?.usuario ?? null);
-  readonly token = computed(() => this._sessao()?.token ?? null);
-  readonly autenticado = computed(() => this._sessao() !== null);
+  readonly user = computed(() => this.session()?.usuario ?? null);
+  readonly token = computed(() => this.session()?.token ?? null);
+  readonly authenticated = computed(() => this.session() !== null);
+  readonly role = computed(() => this.session()?.usuario.perfil ?? null);
+  readonly firstName = computed(() => this.session()?.usuario.nome.split(' ').at(0) ?? '');
 
-  readonly perfil = computed(() => this._sessao()?.usuario.perfil ?? null);
+  /** The pending password change of the last sign-in. */
+  private readonly challenge = signal<{ email: string; session: string } | null>(null);
+  readonly hasPendingChallenge = computed(() => this.challenge() !== null);
+  readonly challengeEmail = computed(() => this.challenge()?.email ?? '');
 
-  readonly primeiroNome = computed(
-    () => this._sessao()?.usuario.nome.split(' ').at(0) ?? '',
-  );
-
-  /** Troca de senha pendente do último login (conta criada pela coordenação). */
-  private readonly _desafio = signal<{ email: string; sessao: string } | null>(null);
-  readonly desafioPendente = computed(() => this._desafio() !== null);
-  readonly emailDoDesafio = computed(() => this._desafio()?.email ?? '');
-
-  /** `'nova-senha'` quando a pessoa precisa trocar a senha temporária. */
-  entrar(credenciais: Credenciais): Observable<'entrou' | 'nova-senha'> {
-    this._desafio.set(null);
-    return this.usuarios.autenticar(credenciais).pipe(
-      map((resposta) => {
-        if (ehDesafio(resposta)) {
-          this._desafio.set({ email: credenciais.email.trim(), sessao: resposta.sessao });
-          return 'nova-senha' as const;
+  /** `'new-password'` when the temporary password must be replaced first. */
+  signIn(credentials: Credentials): Observable<'signed-in' | 'new-password'> {
+    this.challenge.set(null);
+    return this.users.login(credentials).pipe(
+      map((result) => {
+        if (isNewPasswordChallenge(result)) {
+          this.challenge.set({ email: credentials.email.trim(), session: result.sessao });
+          return 'new-password' as const;
         }
-        this.iniciarSessao(resposta);
-        return 'entrou' as const;
+        this.startSession(result);
+        return 'signed-in' as const;
       }),
     );
   }
 
-  definirNovaSenha(senha: string): Observable<void> {
-    const desafio = this._desafio();
-    if (!desafio) {
+  setNewPassword(password: string): Observable<void> {
+    const challenge = this.challenge();
+    if (!challenge) {
       return throwError(() => new Error('Entre de novo com a senha temporária do e-mail.'));
     }
-    return this.usuarios.definirNovaSenha(desafio.email, desafio.sessao, senha).pipe(
-      tap((resposta) => {
-        this._desafio.set(null);
-        this.iniciarSessao(resposta);
+    return this.users.setNewPassword(challenge.email, challenge.session, password).pipe(
+      tap((result) => {
+        this.challenge.set(null);
+        this.startSession(result);
       }),
       map(() => undefined),
     );
   }
 
-  esqueciSenha(email: string): Observable<RespostaCadastro> {
-    return this.usuarios.esqueciSenha(email);
+  forgotPassword(email: string): Observable<MessageResponse> {
+    return this.users.forgotPassword(email);
   }
 
-  redefinirSenha(email: string, codigo: string, senha: string): Observable<RespostaCadastro> {
-    return this.usuarios.redefinirSenha(email, codigo, senha);
+  resetPassword(email: string, code: string, password: string): Observable<MessageResponse> {
+    return this.users.resetPassword(email, code, password);
   }
 
-  /**
-   * Lê o usuário de novo no backend: o aluno pré-autorizado depois de entrar
-   * passa a ver a turma sem sair e entrar de novo.
-   */
-  atualizarUsuario(): Observable<Usuario> {
-    return this.usuarios.eu().pipe(
-      tap((usuario) => {
-        const sessao = this._sessao();
-        if (sessao) {
-          this.iniciarSessao({ usuario: { ...sessao.usuario, ...usuario }, token: sessao.token });
+  /** Reads the user again, so a student enrolled after signing in sees the cohort. */
+  refreshUser(): Observable<User> {
+    return this.users.me().pipe(
+      tap((user) => {
+        const session = this.session();
+        if (session) {
+          this.startSession({ usuario: { ...session.usuario, ...user }, token: session.token });
         }
       }),
     );
   }
 
-  /** Cadastro self-service do aluno. Não inicia sessão — ver confirmação por e-mail. */
-  cadastrar(novo: NovoUsuario): Observable<RespostaCadastro> {
-    return this.usuarios.criar(novo);
+  /** Does not sign in: the e-mail must be confirmed first. */
+  signUp(user: NewUser): Observable<MessageResponse> {
+    return this.users.register(user);
   }
 
-  confirmar(email: string, codigo: string): Observable<RespostaCadastro> {
-    return this.usuarios.confirmar(email, codigo);
+  confirm(email: string, code: string): Observable<MessageResponse> {
+    return this.users.confirm(email, code);
   }
 
-  reenviarCodigo(email: string): Observable<RespostaCadastro> {
-    return this.usuarios.reenviarCodigo(email);
+  resendCode(email: string): Observable<MessageResponse> {
+    return this.users.resendCode(email);
   }
 
-  sair(): void {
-    this._sessao.set(null);
-    this.limparSessao();
-  }
-
-  private iniciarSessao({ usuario, token }: RespostaAutenticacao): void {
-    this._sessao.set({ usuario, token });
-    this.persistirSessao(usuario, token);
-  }
-
-  /* ------------------------- persistência local ------------------------- */
-
-  private restaurarSessao(): Sessao | null {
+  signOut(): void {
+    this.session.set(null);
     try {
-      const bruto = localStorage.getItem(CHAVE_SESSAO);
-      if (!bruto) return null;
-      const sessao = JSON.parse(bruto) as Sessao;
-      // Sessão salva com token já vencido: descarta em vez de abrir o app
-      // "logado" e tomar 401 em todas as chamadas.
-      if (tokenExpirado(sessao.token)) {
-        localStorage.removeItem(CHAVE_SESSAO);
+      localStorage.removeItem(SESSION_KEY);
+    } catch {}
+  }
+
+  private startSession({ usuario, token }: AuthResult): void {
+    this.session.set({ usuario, token });
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify({ usuario, token }));
+    } catch {}
+  }
+
+  /** An expired saved session is dropped instead of opening the app to a wall of 401s. */
+  private restoreSession(): Session | null {
+    try {
+      const raw = localStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const session = JSON.parse(raw) as Session;
+      if (tokenExpired(session.token)) {
+        localStorage.removeItem(SESSION_KEY);
         return null;
       }
-      return sessao;
+      return session;
     } catch {
       return null;
-    }
-  }
-
-  private persistirSessao(usuario: Usuario, token: string): void {
-    try {
-      localStorage.setItem(CHAVE_SESSAO, JSON.stringify({ usuario, token }));
-    } catch {
-    }
-  }
-
-  private limparSessao(): void {
-    try {
-      localStorage.removeItem(CHAVE_SESSAO);
-    } catch {
     }
   }
 }

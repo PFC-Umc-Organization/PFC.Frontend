@@ -1,0 +1,26 @@
+@if (error()) {
+  <p class="alert" role="alert">
+    <app-icon name="alert" />
+    <span>{{ error() }}</span>
+  </p>
+}
+
+<form class="form-grid form-grid--2 editor" [formGroup]="form" (ngSubmit)="save()">
+  <app-activity-fields [form]="form" [idPrefix]="'edit-activity-' + activity().id" />
+
+  <app-field-list
+    [fields]="activity().campos"
+    [hint]="activity().campos.length <= 1 ? 'A atividade precisa de ao menos um campo de entrega.' : ''"
+    (remove)="removeField($event)"
+  >
+    @if (fieldError()) {
+      <p class="field-error">{{ fieldError() }}</p>
+    }
+    <app-field-adder (added)="addField($event)" />
+  </app-field-list>
+
+  <div class="form-grid__full row">
+    <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
+    <button type="button" class="btn btn--outline btn--sm" (click)="closed.emit()">Cancelar</button>
+  </div>
+</form>

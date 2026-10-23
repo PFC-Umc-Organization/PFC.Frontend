@@ -1,0 +1,23 @@
+:host {
+  display: contents;
+}
+
+.editor {
+  padding: 0.5rem 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.filter {
+  min-width: 14rem;
+}
+
+.badge {
+  margin-left: 0.5rem;
+}

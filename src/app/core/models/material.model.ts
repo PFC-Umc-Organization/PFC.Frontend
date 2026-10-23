@@ -1,35 +1,34 @@
-export type TipoMaterial = 'DOCUMENTO' | 'MODELO' | 'VIDEO' | 'LINK';
+export type MaterialKind = 'DOCUMENTO' | 'MODELO' | 'VIDEO' | 'LINK';
 
 /**
- * Material de apoio: um link (`url`) ou um arquivo enviado (`arquivo` é o
- * nome; baixa por `GET /materiais/:id/arquivo`). `cursoId` é a turma; `null`
- * vale para todas.
+ * A link (`url`) or an uploaded file (`arquivo` is its name, downloaded from
+ * `GET /materiais/:id/arquivo`). `cursoId` is the cohort; `null` means all.
  */
 export interface Material {
   id: string;
   titulo: string;
   descricao: string;
-  tipo: TipoMaterial;
+  tipo: MaterialKind;
   url?: string;
   arquivo?: string;
   cursoId: string | null;
   publicadoEm: string;
   publicadoPor: string;
-  /** Sub de quem publicou: o orientador só remove os próprios. */
+  /** Publisher's sub: an advisor removes only their own. */
   autorId: string;
 }
 
-/** `arquivo` é a chave devolvida pelo envio; informe ele ou `url`. */
-export interface NovoMaterial {
+/** Either `url` or `arquivo` (the key returned by the upload). */
+export interface NewMaterial {
   titulo: string;
   descricao: string;
-  tipo: TipoMaterial;
+  tipo: MaterialKind;
   url?: string;
   arquivo?: string;
   cursoId: string | null;
 }
 
-export const ROTULO_TIPO_MATERIAL: Record<TipoMaterial, string> = {
+export const MATERIAL_KIND_LABEL: Record<MaterialKind, string> = {
   DOCUMENTO: 'Documento',
   MODELO: 'Modelo',
   VIDEO: 'Vídeo',

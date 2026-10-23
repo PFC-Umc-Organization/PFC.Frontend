@@ -1,0 +1,66 @@
+<section class="card card--flush">
+  <div class="card__head row--between head">
+    <div class="row">
+      <app-icon name="book" class="card__head-icon" />
+      <h2 class="section-title">
+        Referências {{ projectName() ? 'do projeto ' + projectName() : '' }} ({{ references().length }})
+      </h2>
+    </div>
+    @if (references().length > 0) {
+      <button type="button" class="btn btn--outline btn--sm" (click)="copyAll()">
+        {{ copied() === 'all' ? 'Copiado!' : 'Copiar todas (ABNT)' }}
+      </button>
+    }
+  </div>
+
+  @if (warning()) {
+    <p class="list__warning" role="alert">{{ warning() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="list__empty">Carregando referências…</p>
+  } @else if (error()) {
+    <p class="list__empty list__error">{{ error() }}</p>
+  } @else {
+    <ol class="list">
+      @for (r of references(); track r.id) {
+        <li class="reference">
+          <p class="reference__abnt" [innerHTML]="r.abntHtml"></p>
+          <div class="reference__bottom">
+            <span class="text-xs muted">
+              @if (r.adicionadaPor) {
+                adicionada por {{ r.adicionadaPor }} ·
+              }
+              {{ r.adicionadaEm | deadline: true }}
+            </span>
+            <div class="row">
+              <button type="button" class="btn btn--ghost btn--sm" (click)="copy(r)">
+                {{ copied() === r.id ? 'Copiado!' : 'Copiar' }}
+              </button>
+              @if (editable()) {
+                <button
+                  type="button"
+                  class="btn btn--ghost btn--sm reference__remove"
+                  [disabled]="removingId() === r.id"
+                  (click)="remove(r)"
+                  [attr.aria-label]="'Remover ' + r.titulo"
+                >
+                  <app-icon name="trash" class="btn__icon" />
+                  Remover
+                </button>
+              }
+            </div>
+          </div>
+        </li>
+      } @empty {
+        <li class="list__empty">
+          {{
+            editable()
+              ? 'Nenhuma referência ainda. Busque um artigo acima e clique em "Adicionar".'
+              : 'Este grupo ainda não adicionou referências.'
+          }}
+        </li>
+      }
+    </ol>
+  }
+</section>

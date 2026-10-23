@@ -1,0 +1,27 @@
+<label class="field__label" [attr.for]="inputId">
+  {{ field().rotulo }}
+  @if (!field().obrigatorio) {
+    <span class="optional">(opcional)</span>
+  }
+</label>
+
+@switch (field().tipo) {
+  @case ('ARQUIVO') {
+    <app-file-picker
+      [inputId]="inputId"
+      [fileName]="value() ? fileNameOf(value()!) : ''"
+      [progress]="progress()"
+      [error]="error()"
+      (picked)="upload($event)"
+    />
+  }
+  @case ('TEXTO_LONGO') {
+    <textarea [id]="inputId" class="control control--textarea" [value]="value() ?? ''" (input)="type($event)"></textarea>
+  }
+  @case ('LINK') {
+    <input [id]="inputId" class="control" type="url" placeholder="https://" [value]="value() ?? ''" (input)="type($event)" />
+  }
+  @default {
+    <input [id]="inputId" class="control" type="text" [value]="value() ?? ''" (input)="type($event)" />
+  }
+}

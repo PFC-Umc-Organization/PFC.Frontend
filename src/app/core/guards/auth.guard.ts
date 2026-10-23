@@ -3,24 +3,13 @@ import { CanActivateFn, Router } from '@angular/router';
 
 import { AuthService } from '../services/auth.service';
 
-
-export const authGuard: CanActivateFn = (_rota, estado) => {
+export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthService);
-  const router = inject(Router);
-
-  if (auth.autenticado()) {
+  if (auth.authenticated()) {
     return true;
   }
-
-  return router.createUrlTree(['/entrar'], {
-    queryParams: { retorno: estado.url },
-  });
+  return inject(Router).createUrlTree(['/entrar'], { queryParams: { retorno: state.url } });
 };
 
-
-export const visitanteGuard: CanActivateFn = () => {
-  const auth = inject(AuthService);
-  const router = inject(Router);
-
-  return auth.autenticado() ? router.createUrlTree(['/']) : true;
-};
+export const guestGuard: CanActivateFn = () =>
+  inject(AuthService).authenticated() ? inject(Router).createUrlTree(['/']) : true;

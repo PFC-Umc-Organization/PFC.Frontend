@@ -1,0 +1,6 @@
+<label class="sr-only" for="cohort">Turma</label>
+<select id="cohort" class="control" [value]="store.cohortId()" (change)="choose($event)">
+  @for (c of store.cohorts(); track c.id) {
+    <option [value]="c.id" [selected]="c.id === store.cohortId()">{{ cohortLabel(c) }}</option>
+  }
+</select>

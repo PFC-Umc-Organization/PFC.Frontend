@@ -1,0 +1,56 @@
+<section class="card">
+  <div class="card__body">
+    <h2 class="section-title">Enviar entrega</h2>
+
+    @if (!project()) {
+      <p class="empty-state mt-6">
+        Você ainda não faz parte de um PFC, e a entrega é feita pelo grupo.
+        <a routerLink="/meu-pfc">Crie o PFC ou aceite um convite</a>.
+      </p>
+    } @else if (available().length === 0) {
+      <p class="empty-state mt-6">Nenhuma atividade aberta para entrega: os prazos das que faltam encerraram.</p>
+    } @else {
+      <div class="form-grid form-grid--2 mt-6">
+        <div class="field">
+          <label class="field__label" for="activity">Atividade</label>
+          <select id="activity" class="control" [value]="activityId()" (change)="choose($event)">
+            <option value="" [selected]="!activityId()">Selecione…</option>
+            @for (item of available(); track item.activityId) {
+              <option [value]="item.activityId" [selected]="item.activityId === activityId()">
+                {{ item.title }} — entrega até {{ item.deadline | deadline }}
+                @if (item.status !== 'PENDENTE') {
+                  (já entregue — editar)
+                }
+              </option>
+            }
+          </select>
+        </div>
+
+        @for (f of fields(); track f.id) {
+          <app-answer-field
+            [class.form-grid__full]="f.tipo === 'TEXTO_LONGO'"
+            [field]="f"
+            [value]="answers()[f.id]"
+            [projectId]="project()!.id"
+            [activityId]="activityId()"
+            (changed)="setAnswer(f.id, $event)"
+            (uploading)="setUploading(f.id, $event)"
+          />
+        }
+
+        <div class="form-grid__full">
+          <button type="button" class="btn btn--primary" [disabled]="!canSend()" (click)="send()">
+            <app-icon name="plus" class="btn__icon" />
+            {{ editing() ? 'Salvar alterações' : 'Enviar entrega' }}
+          </button>
+          @if (message()) {
+            <p class="result">{{ message() }}</p>
+          }
+          @if (error()) {
+            <p class="result result--error">{{ error() }}</p>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</section>

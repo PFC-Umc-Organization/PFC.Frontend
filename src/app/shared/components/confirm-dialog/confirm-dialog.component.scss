@@ -1,0 +1,59 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in oklch, black 45%, transparent);
+  z-index: 1000;
+}
+
+.box {
+  width: 100%;
+  max-width: 26rem;
+  padding: 1.5rem;
+  background: var(--card);
+  border: 1px solid color-mix(in oklch, var(--primary) 15%, transparent);
+  box-shadow: 0 1.5rem 3rem -1rem rgba(0, 0, 0, 0.35);
+}
+
+.box__head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--primary);
+}
+
+.box__head--danger {
+  color: var(--destructive);
+}
+
+.box__title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.box__message {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--muted-foreground);
+}
+
+.box__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.btn--danger {
+  color: white;
+  background: var(--destructive);
+  border-color: var(--destructive);
+}
+
+.btn--danger:hover {
+  background: color-mix(in oklch, var(--destructive) 85%, black);
+}

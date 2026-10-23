@@ -1,0 +1,38 @@
+<div class="field">
+  <label class="field__label" [for]="idPrefix() + '-title'">Título da atividade</label>
+  <input
+    [id]="idPrefix() + '-title'"
+    type="text"
+    class="control"
+    [placeholder]="titlePlaceholder()"
+    [formControl]="form().controls.titulo"
+    [class.control--invalid]="invalid('titulo')"
+  />
+  @if (invalid('titulo')) {
+    <span class="field__error">Informe o título.</span>
+  }
+</div>
+
+<div class="field">
+  <label class="field__label" [for]="idPrefix() + '-deadline'">Data e hora limite</label>
+  <input
+    [id]="idPrefix() + '-deadline'"
+    type="datetime-local"
+    class="control"
+    [formControl]="form().controls.prazo"
+    [class.control--invalid]="invalid('prazo')"
+  />
+  @if (invalid('prazo')) {
+    <span class="field__error">Defina o prazo de entrega.</span>
+  }
+</div>
+
+<div class="field form-grid__full">
+  <label class="field__label" [for]="idPrefix() + '-description'">Descrição / Instruções</label>
+  <textarea
+    [id]="idPrefix() + '-description'"
+    class="control control--textarea"
+    placeholder="O que o aluno precisa entregar, formato do arquivo, critérios de avaliação…"
+    [formControl]="form().controls.descricao"
+  ></textarea>
+</div>

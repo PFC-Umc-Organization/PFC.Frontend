@@ -1,0 +1,22 @@
+.code {
+  font-size: 1.25rem;
+  letter-spacing: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.account {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.standalone {
+  margin-top: 1.75rem;
+}

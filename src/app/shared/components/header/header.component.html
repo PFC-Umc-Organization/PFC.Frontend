@@ -1,0 +1,49 @@
+<header class="topbar">
+  <div class="shell topbar__inner">
+    <a class="brand" routerLink="/">
+      <span class="brand__seal">
+        <app-icon name="graduation-cap" class="brand__icon" />
+      </span>
+      <span class="brand__text">
+        <span class="brand__name">Athena</span>
+        <span class="brand__tagline">O Portal do PFC</span>
+      </span>
+    </a>
+
+    <button
+      type="button"
+      class="menu-toggle"
+      aria-controls="main-menu"
+      [attr.aria-expanded]="menuOpen()"
+      [attr.aria-label]="menuOpen() ? 'Fechar menu' : 'Abrir menu'"
+      (click)="menuOpen.set(!menuOpen())"
+    >
+      <app-icon [name]="menuOpen() ? 'close' : 'menu'" />
+    </button>
+
+    <div id="main-menu" class="topbar__actions" [class.topbar__actions--open]="menuOpen()">
+      <nav class="nav" aria-label="Navegação principal">
+        @for (item of navItems(); track item.route) {
+          <a
+            class="nav__item"
+            [routerLink]="item.route"
+            routerLinkActive="nav__item--active"
+            ariaCurrentWhenActive="page"
+            [routerLinkActiveOptions]="{ exact: item.route === '/' }"
+          >
+            <app-icon [name]="item.icon" />
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </nav>
+
+      <div class="session">
+        <span class="session__name">{{ auth.user()?.nome }}</span>
+        <button type="button" class="session__signout" (click)="signOut()" aria-label="Sair da conta">
+          <app-icon name="logout" />
+          <span>Sair</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>

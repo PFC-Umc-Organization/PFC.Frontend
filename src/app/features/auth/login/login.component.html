@@ -1,0 +1,55 @@
+<app-auth-card heading="Entrar">
+  <form class="form" [formGroup]="form" (ngSubmit)="signIn()">
+    @if (error()) {
+      <p class="alert" role="alert">
+        <app-icon name="alert" />
+        <span>
+          {{ error() }}
+          @if (unconfirmed()) {
+            <a routerLink="/confirmar-conta" [queryParams]="{ email: form.controls.email.value }">Confirmar agora</a>
+          }
+        </span>
+      </p>
+    }
+
+    <div class="field">
+      <label class="field__label" for="email">E-mail</label>
+      <div class="control-wrap">
+        <app-icon name="email" class="control-wrap__icon" />
+        <input
+          id="email"
+          type="email"
+          class="control"
+          placeholder="Seu email UMC"
+          autocomplete="username"
+          formControlName="email"
+          [class.control--invalid]="invalid('email')"
+        />
+      </div>
+      @if (invalid('email')) {
+        <span class="field__error">Informe um e-mail válido.</span>
+      }
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="password">Senha</label>
+      <app-password-field fieldId="password" [control]="form.controls.senha" [invalid]="invalid('senha')" [withIcon]="true" />
+      @if (invalid('senha')) {
+        <span class="field__error">Informe sua senha.</span>
+      }
+    </div>
+
+    <a class="link-button forgot" routerLink="/esqueci-senha" [queryParams]="{ email: form.controls.email.value || null }">
+      Esqueci minha senha
+    </a>
+
+    <button type="submit" class="btn btn--primary btn--block" [disabled]="loading()">
+      {{ loading() ? 'Entrando…' : 'Entrar' }}
+    </button>
+
+    <p class="auth-switch">
+      Não tem uma conta?
+      <a routerLink="/criar-conta">Criar conta</a>
+    </p>
+  </form>
+</app-auth-card>

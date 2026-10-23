@@ -1,0 +1,15 @@
+.cell {
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.cell:hover,
+.cell--active {
+  border-color: var(--primary);
+}
+
+.alert {
+  margin: 0 1.25rem 1rem;
+}

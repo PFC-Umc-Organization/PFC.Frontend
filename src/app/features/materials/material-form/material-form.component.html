@@ -1,0 +1,120 @@
+<section class="card">
+  <div class="card__body">
+    <h2 class="section-title">Publicar material</h2>
+
+    <form class="form-grid form-grid--2 mt-6" [formGroup]="form" (ngSubmit)="publish()">
+      <div class="field">
+        <label class="field__label" for="material-title">Título</label>
+        <input
+          id="material-title"
+          type="text"
+          class="control"
+          placeholder="Ex.: Modelo oficial de PFC"
+          formControlName="titulo"
+          [class.control--invalid]="invalid('titulo')"
+        />
+        @if (invalid('titulo')) {
+          <span class="field__error">Informe um título de 3 a 150 caracteres.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="material-kind">Tipo</label>
+        <select id="material-kind" class="control" formControlName="tipo">
+          @for (k of kinds; track k) {
+            <option [value]="k">{{ kindLabel[k] }}</option>
+          }
+        </select>
+      </div>
+
+      <fieldset class="field source">
+        <legend class="field__label">Conteúdo</legend>
+        <div class="segmented" role="group" aria-label="Link ou arquivo">
+          <button
+            type="button"
+            class="segmented__item"
+            [attr.aria-pressed]="source() === 'link'"
+            (click)="setSource('link')"
+          >
+            Link
+          </button>
+          <button
+            type="button"
+            class="segmented__item"
+            [attr.aria-pressed]="source() === 'file'"
+            (click)="setSource('file')"
+          >
+            Arquivo
+          </button>
+        </div>
+      </fieldset>
+
+      @if (source() === 'link') {
+        <div class="field">
+          <label class="field__label" for="material-url">Link</label>
+          <input
+            id="material-url"
+            type="url"
+            class="control"
+            placeholder="https://…"
+            formControlName="url"
+            [class.control--invalid]="invalid('url')"
+          />
+          @if (invalid('url')) {
+            <span class="field__error">Informe um endereço que comece com https://</span>
+          }
+        </div>
+      } @else {
+        <div class="field">
+          <span class="field__label">Arquivo</span>
+          <app-file-picker
+            inputId="material-file"
+            [fileName]="file()?.name"
+            [progress]="progress()"
+            [error]="fileError()"
+            (picked)="upload($event)"
+          />
+        </div>
+      }
+
+      <div class="field">
+        <label class="field__label" for="material-cohort">Turma</label>
+        <select id="material-cohort" class="control" formControlName="cursoId">
+          <option value="">Todas as turmas</option>
+          @for (c of cohorts(); track c.id) {
+            <option [value]="c.id">{{ cohortLabel(c) }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field form-grid__full">
+        <label class="field__label" for="material-description">Descrição</label>
+        <textarea
+          id="material-description"
+          class="control control--textarea"
+          placeholder="Para que serve e como usar."
+          formControlName="descricao"
+        ></textarea>
+      </div>
+
+      <div class="form-grid__full">
+        <button type="submit" class="btn btn--primary" [disabled]="!canPublish()">
+          <app-icon name="plus" class="btn__icon" />
+          {{ saving() ? 'Publicando…' : 'Publicar material' }}
+        </button>
+        @if (error()) {
+          <p class="alert mt-4" role="alert">
+            <app-icon name="alert" />
+            <span>{{ error() }}</span>
+          </p>
+        }
+        @if (published()) {
+          <p class="ok mt-4" role="status">
+            <app-icon name="check" />
+            <span>Material publicado.</span>
+          </p>
+        }
+      </div>
+    </form>
+  </div>
+</section>

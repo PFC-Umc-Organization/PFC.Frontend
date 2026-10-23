@@ -1,0 +1,21 @@
+:host {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.loading {
+  margin: 0;
+  color: var(--muted-foreground);
+}
+
+.notice {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  font-size: 0.875rem;
+}

@@ -1,0 +1,43 @@
+<section class="stack">
+  <header class="page-header">
+    <div>
+      @if (eyebrow()) {
+        <p class="eyebrow">{{ eyebrow() }}</p>
+      }
+      <h2 class="page-title mt-2">{{ heading() }}</h2>
+      @if (description()) {
+        <p class="lead mt-2">{{ description() }}</p>
+      }
+    </div>
+
+    @if (showLegend()) {
+      <div class="legend">
+        @for (l of legend; track l.text) {
+          <span class="legend__item">
+            <span class="dot" [class]="'dot--' + l.tone" aria-hidden="true"></span>
+            {{ l.text }}
+          </span>
+        }
+      </div>
+    }
+  </header>
+
+  @if (items().length === 0) {
+    <p class="empty-state">
+      Nenhuma atividade publicada ainda. Assim que o professor cadastrar a primeira entrega, ela aparece aqui.
+    </p>
+  } @else {
+    <div class="track">
+      <ol class="track__list">
+        @for (item of items(); track item.activityId; let first = $first) {
+          <li class="track__item">
+            @if (!first) {
+              <span class="connector" aria-hidden="true"></span>
+            }
+            <app-deliverable-card [item]="item" [interactive]="interactive()" />
+          </li>
+        }
+      </ol>
+    </div>
+  }
+</section>

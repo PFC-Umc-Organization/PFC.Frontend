@@ -1,0 +1,72 @@
+<form class="form-grid form-grid--2 editor" [formGroup]="form" (ngSubmit)="save()">
+  @if (error()) {
+    <p class="alert form-grid__full" role="alert">
+      <app-icon name="alert" />
+      <span>{{ error() }}</span>
+    </p>
+  }
+
+  <div class="field">
+    <label class="field__label" for="edit-name">Nome</label>
+    <input
+      id="edit-name"
+      type="text"
+      class="control"
+      formControlName="nome"
+      [class.control--invalid]="nameInvalid()"
+    />
+    @if (nameInvalid()) {
+      <span class="field__error">Informe o nome do PFC.</span>
+    }
+  </div>
+  <div class="field">
+    <label class="field__label" for="edit-description">Descrição</label>
+    <input id="edit-description" type="text" class="control" formControlName="descricao" />
+  </div>
+
+  <div class="field form-grid__full">
+    <span class="field__label">Integrantes (por RGM)</span>
+    @if (memberError()) {
+      <span class="field__error">{{ memberError() }}</span>
+    }
+    <ul class="members">
+      @for (rgm of project().integrantes; track rgm) {
+        <li class="members__item">
+          <span>{{ nameByRgm()(rgm) }}</span>
+          <button
+            type="button"
+            class="icon-action"
+            (click)="removeMember(rgm)"
+            [attr.aria-label]="'Remover integrante ' + rgm"
+          >
+            <app-icon name="trash" />
+          </button>
+        </li>
+      } @empty {
+        <li class="muted text-sm">Nenhum integrante ainda.</li>
+      }
+    </ul>
+
+    <div class="row mt-2">
+      <input
+        type="text"
+        inputmode="numeric"
+        maxlength="11"
+        class="control"
+        placeholder="RGM do aluno (11 dígitos)"
+        aria-label="RGM do novo integrante"
+        [value]="rgm()"
+        (input)="typeRgm($event)"
+      />
+      <button type="button" class="btn btn--outline btn--sm" (click)="addMember()">
+        <app-icon name="plus" class="btn__icon" />
+        Adicionar
+      </button>
+    </div>
+  </div>
+
+  <div class="form-grid__full row">
+    <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
+    <button type="button" class="btn btn--outline btn--sm" (click)="cancelled.emit()">Cancelar</button>
+  </div>
+</form>

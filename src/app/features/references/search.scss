@@ -1,0 +1,19 @@
+:host {
+  display: contents;
+}
+
+.search {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.search__field {
+  flex: 1 1 16rem;
+}
+
+.error {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--destructive);
+}

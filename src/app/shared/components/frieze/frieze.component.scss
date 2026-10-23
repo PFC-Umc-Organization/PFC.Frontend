@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  height: 1.5rem;
+  border-top: 1px solid color-mix(in oklch, var(--primary) 20%, transparent);
+  background: color-mix(in oklch, var(--primary) 6%, transparent);
+  color: var(--primary);
+}
+
+svg {
+  width: 100%;
+  height: 100%;
+}

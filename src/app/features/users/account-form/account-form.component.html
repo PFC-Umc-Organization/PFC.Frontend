@@ -1,0 +1,67 @@
+<section class="card">
+  <div class="card__body">
+    <h2 class="section-title">Cadastrar orientador ou admin</h2>
+    <p class="lead text-sm mt-1">
+      A pessoa recebe um convite por e-mail do próprio Cognito para definir a senha e entrar.
+    </p>
+
+    @if (success()) {
+      <p class="ok mt-4" role="status">
+        <app-icon name="check" />
+        <span>{{ success() }}</span>
+      </p>
+    }
+    @if (error()) {
+      <p class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <span>{{ error() }}</span>
+      </p>
+    }
+
+    <form class="form-grid form-grid--2 mt-6" [formGroup]="form" (ngSubmit)="create()">
+      <div class="field">
+        <label class="field__label" for="account-name">Nome completo</label>
+        <input
+          id="account-name"
+          type="text"
+          class="control"
+          formControlName="nome"
+          [class.control--invalid]="invalid('nome')"
+        />
+        @if (invalid('nome')) {
+          <span class="field__error">Informe o nome completo.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="account-email">E-mail</label>
+        <input
+          id="account-email"
+          type="email"
+          class="control"
+          placeholder="nome@umc.br"
+          formControlName="email"
+          [class.control--invalid]="invalid('email')"
+        />
+        @if (invalid('email')) {
+          <span class="field__error">Informe um e-mail institucional (@umc.br).</span>
+        }
+      </div>
+
+      <div class="field">
+        <label class="field__label" for="account-role">Perfil</label>
+        <select id="account-role" class="control" formControlName="perfil">
+          <option value="ORIENTADOR">Orientador</option>
+          <option value="ADMIN">Admin</option>
+        </select>
+      </div>
+
+      <div class="form-grid__full">
+        <button type="submit" class="btn btn--primary" [disabled]="saving()">
+          <app-icon name="plus" class="btn__icon" />
+          {{ saving() ? 'Cadastrando…' : 'Cadastrar' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</section>

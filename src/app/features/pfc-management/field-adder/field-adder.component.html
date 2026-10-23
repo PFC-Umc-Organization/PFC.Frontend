@@ -1,0 +1,27 @@
+<input
+  class="control"
+  type="text"
+  placeholder="Nome do campo (ex: Link do repositório)"
+  aria-label="Nome do novo campo"
+  [value]="label()"
+  (input)="label.set($any($event.target).value)"
+  (keydown.enter)="$event.preventDefault(); add()"
+/>
+<select
+  class="control"
+  aria-label="Tipo do novo campo"
+  [value]="type()"
+  (change)="type.set($any($event.target).value)"
+>
+  @for (t of types; track t) {
+    <option [value]="t">{{ typeLabel[t] }}</option>
+  }
+</select>
+<label class="required">
+  <input type="checkbox" [checked]="required()" (change)="required.set($any($event.target).checked)" />
+  Obrigatório
+</label>
+<button type="button" class="btn btn--outline btn--sm" [disabled]="!label().trim()" (click)="add()">
+  <app-icon name="plus" class="btn__icon" />
+  Adicionar campo
+</button>

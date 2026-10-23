@@ -1,0 +1,22 @@
+.editor {
+  padding: 0.5rem 0;
+}
+
+.members {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.members__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  background: var(--marble);
+  border: 1px solid color-mix(in oklch, var(--primary) 15%, transparent);
+}

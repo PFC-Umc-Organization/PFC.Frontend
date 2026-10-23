@@ -1,0 +1,58 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Apoio ao PFC</p>
+    <h1 class="page-title mt-2">Materiais de apoio</h1>
+    <p class="lead mt-2">
+      @if (staff()) {
+        Modelos, guias e gravações para os grupos. Escolha a turma ou deixe "Todas as turmas" para
+        publicar para todos.
+      } @else {
+        Modelos, guias e gravações publicados pela coordenação e pelos orientadores para a sua turma.
+      }
+    </p>
+  </header>
+
+  @if (staff()) {
+    <app-material-form [cohorts]="cohorts()" />
+  }
+
+  @if (actionError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ actionError() }}</span>
+    </p>
+  }
+
+  @switch (state().kind) {
+    @case ('loading') {
+      <p class="muted text-sm">Carregando materiais…</p>
+    }
+    @case ('error') {
+      <p class="alert" role="alert">
+        <app-icon name="alert" />
+        <span>Não foi possível carregar os materiais: {{ loadError() }}</span>
+      </p>
+    }
+    @default {
+      <div class="grid">
+        @for (m of materials(); track m.id) {
+          <app-material-card
+            [material]="m"
+            [audience]="audience(m)"
+            [removable]="canRemove(m)"
+            (removed)="remove(m)"
+            (downloaded)="download(m)"
+          />
+        } @empty {
+          <p class="empty-state">
+            @if (staff()) {
+              Nenhum material publicado ainda. Os grupos veem aqui o que for publicado.
+            } @else {
+              A coordenação ainda não publicou materiais para a sua turma.
+            }
+          </p>
+        }
+      </div>
+    }
+  }
+</div>

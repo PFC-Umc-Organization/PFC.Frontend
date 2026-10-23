@@ -1,40 +1,34 @@
 import { HttpClient, HttpEventType } from '@angular/common/http';
 import { Observable, catchError, filter, map, throwError } from 'rxjs';
 
-import { EnvioArquivo } from '../models';
+import { UploadEvent } from '../models';
 
-/** Resposta do backend ao pedir o envio de um arquivo. */
-export interface TicketArquivo {
+/** The backend's answer when asked to upload a file. */
+export interface UploadTicket {
   url: string;
   campos: Record<string, string>;
   chave: string;
 }
 
-/**
- * Manda o arquivo direto para o bucket com o formulário assinado, emitindo o
- * progresso e, no fim, a chave do arquivo.
- */
-export function enviarParaBucket(
+/** Posts the file straight to the bucket with the signed form, reporting progress. */
+export function uploadToBucket(
   http: HttpClient,
-  ticket: TicketArquivo,
-  arquivo: File,
-): Observable<EnvioArquivo> {
+  ticket: UploadTicket,
+  file: File,
+): Observable<UploadEvent> {
   const form = new FormData();
   Object.entries(ticket.campos).forEach(([k, v]) => form.append(k, v));
-  form.append('file', arquivo);
+  form.append('file', file);
   return http
     .post(ticket.url, form, { reportProgress: true, observe: 'events', responseType: 'text' })
     .pipe(
-      map((ev): EnvioArquivo | null => {
+      map((ev): UploadEvent | null => {
         if (ev.type === HttpEventType.UploadProgress) {
-          return {
-            tipo: 'progresso',
-            percentual: Math.round((100 * ev.loaded) / (ev.total || arquivo.size)),
-          };
+          return { kind: 'progress', percent: Math.round((100 * ev.loaded) / (ev.total || file.size)) };
         }
-        return ev.type === HttpEventType.Response ? { tipo: 'pronto', chave: ticket.chave } : null;
+        return ev.type === HttpEventType.Response ? { kind: 'done', key: ticket.chave } : null;
       }),
-      filter((ev): ev is EnvioArquivo => ev !== null),
+      filter((ev): ev is UploadEvent => ev !== null),
       catchError(() =>
         throwError(() => new Error('O envio do arquivo falhou — confira a conexão e tente de novo.')),
       ),

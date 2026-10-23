@@ -1,0 +1,21 @@
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.meta {
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+app-answer-list {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.alert--inline {
+  margin: 0 0 0.75rem;
+}

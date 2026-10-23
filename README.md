@@ -47,11 +47,30 @@ src/app/
 ├── core/
 │   ├── models/        # tipos de domínio e regras puras (rótulos, período, RGM)
 │   ├── services/      # um service por domínio, falando com a API
-│   ├── guards/        # authGuard, visitanteGuard, perfilGuard([...])
+│   ├── guards/        # authGuard, guestGuard, roleGuard([...])
 │   └── interceptors/  # Bearer + logout em 401; GETs idênticos em voo viram um só
-├── shared/            # header, campo de senha, ícones (SVG inline), pipes
-└── features/          # uma pasta por área (auth, inicio, aluno, professor, admin, materiais, referencias)
+├── shared/
+│   ├── components/    # header, layout, ícones, campo de senha, escolha de arquivo,
+│   │                  # respostas de uma entrega, timeline e card de entregável
+│   └── pipes/         # deadline ("20/08 às 23:59")
+└── features/          # uma pasta por tela, com uma subpasta por seção
+    ├── auth/          # login, sign-up, confirm-account, forgot-password, new-password
+    ├── home/          # início: painel do aluno e da equipe (matriz + detalhe)
+    ├── my-pfc/        # /meu-pfc: grupo, convites, criar o PFC
+    ├── deliverables/  # /entregaveis
+    ├── materials/     # /materiais
+    ├── references/    # /referencias: busca por tema, por DOI e a lista
+    ├── pfc-management/# /gestao: programas, projetos e atividades
+    ├── users/         # /usuarios
+    ├── cohorts/       # /turmas: cursos e turmas
+    └── notice/        # página não encontrada e área restrita
 ```
+
+O código é em inglês; o que o usuário vê (textos, rotas) e o que espelha a API
+(campos JSON das interfaces em `core/models`) continua em português. Cada
+componente tem `.ts`, `.html` e, quando precisa, `.scss`. Quando as seções de
+uma tela dividem dados, eles ficam num store do próprio componente
+(`pfc-management.store.ts`, `cohorts.store.ts`), provido por ele.
 
 Cada domínio tem um `abstract class XService` e a implementação `XHttpService`,
 escolhida em `app.config.ts`.
@@ -76,12 +95,13 @@ As rotas, os corpos e as regras de cada chamada estão no README do
 
 ```bash
 npm test        # Vitest: modelos, interceptors e telas (roda no pipeline)
-npm run e2e     # build + Playwright contra a API falsa de e2e/api-falsa.mjs
+npm run e2e     # build + Playwright contra a API falsa de e2e/fake-api.mjs
 ```
 
-O e2e cobre os três perfis (aluno com e sem grupo, coordenação, orientadora),
-upload e download de arquivo, materiais, senha temporária, esqueci a senha e
-as telas no celular. Precisa do Chromium uma vez: `npx playwright install
+O e2e (`e2e/flows.spec.ts`) cobre os três perfis (aluno com e sem grupo,
+coordenação, orientadora), upload e download de arquivo, prazo, materiais,
+referências, gestão (atividades, orientador, PFC), cursos e turmas, senha
+temporária, esqueci a senha e as telas no celular. Precisa do Chromium uma vez: `npx playwright install
 chromium`. Mudou uma regra do backend? Atualize a API falsa junto.
 
 ## Design system
@@ -100,12 +120,13 @@ Tipografia: **Playfair Display** nos títulos, **Inter** no corpo (Google Fonts,
 carregadas no `index.html`). Cantos retos em tudo — é decisão estética do
 protótipo, não esquecimento.
 
-Ícones são SVG inline em `shared/components/icone.component.ts`; não há
+Ícones são SVG inline em `shared/components/icon/icon.component.html`; não há
 dependência de biblioteca de ícones.
 
 Peças de interface repetidas moram no `styles.scss`, não em cada componente:
-`.alerta` (erro), `.ok` (sucesso), `.acao-remover`, `.card__head-icone`,
-`.form`/`.troca` (telas de autenticação). No componente fica só o que é dele
+`.alert` (erro), `.ok` (sucesso), `.icon-action`, `.card__head-icon`,
+`.empty-state` (lista vazia), `.text-button` (ação com cara de link),
+`.form`/`.auth-switch` (telas de autenticação). No componente fica só o que é dele
 — em geral a margem em volta.
 
 Responsivo: abaixo de 1100px a navegação vira um menu (botão no cabeçalho).
@@ -123,10 +144,10 @@ próprio template (clique, digitação). Na prática:
 - estado de tela é sempre `signal`/`computed`/`toSignal` — campo comum
   alterado dentro de um `subscribe` **não aparece na tela**;
 - `form.reset()`/`setValue()` dentro de callback funciona porque vem junto
-  de um `signal.set(...)` (o `salvando`, o `erro`) no mesmo callback.
+  de um `signal.set(...)` (o `saving`, o `error`) no mesmo callback.
 
 GETs idênticos em voo ao mesmo tempo viram uma requisição só
-(`core/interceptors/deduplicar.interceptor.ts`). Não é cache: acabou a
+(`core/interceptors/dedupe.interceptor.ts`). Não é cache: acabou a
 requisição, a próxima vai ao servidor.
 
 ## Diferenças em relação ao protótipo
@@ -134,7 +155,7 @@ requisição, a próxima vai ao servidor.
 - **Login redesenhado**: o protótipo usava um painel lateral de 390px com
   moldura de coluna dórica. Aqui a tela é branca com o cartão centralizado.
 - **Materiais de Apoio**: tela nova, não existia no protótipo. Está no escopo
-  do TCC. Para removê-la, apague `features/materiais/` e a rota `/materiais`.
+  do TCC. Para removê-la, apague `features/materials/` e a rota `/materiais`.
 - **Seletor de turma** na tela inicial do professor — o protótipo era fixo na
   Turma A.
 - **Rotas reais com guards** em vez do toggle client-side do protótipo.

@@ -1,0 +1,34 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Administração</p>
+    <h1 class="page-title mt-2">Gerenciamento de Usuários</h1>
+  </header>
+
+  <div class="segmented segmented--grid sections" role="group" aria-label="Seção da tela">
+    @for (s of sections; track s.id) {
+      <button
+        type="button"
+        class="segmented__item"
+        [attr.aria-pressed]="section() === s.id"
+        (click)="section.set(s.id)"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+
+  @switch (section()) {
+    @case ('account') {
+      <app-account-form />
+    }
+    @case ('enroll') {
+      <app-enroll-form [cohorts]="cohorts()" />
+    }
+    @case ('enrollments') {
+      <app-enrollment-list [cohorts]="cohorts()" />
+    }
+    @case ('users') {
+      <app-user-list />
+    }
+  }
+</div>

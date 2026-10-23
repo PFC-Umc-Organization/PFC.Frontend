@@ -6,32 +6,26 @@ import { catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
 
-
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  // O token vai só para a API: o S3 recusa um upload assinado que também
-  // traga Authorization.
-  const ehDaApi = req.url.startsWith(environment.apiBaseUrl);
-  const ehRotaPublica = req.url.includes('/auth/');
+  // Only the API gets the token: S3 refuses a signed upload that also has Authorization.
+  const isApi = req.url.startsWith(environment.apiBaseUrl);
+  const isPublic = req.url.includes('/auth/');
   const token = auth.token();
 
-  if (!ehDaApi || ehRotaPublica || !token) {
+  if (!isApi || isPublic || !token) {
     return next(req);
   }
 
-  return next(
-    req.clone({ setHeaders: { Authorization: `Bearer ${token}` } }),
-  ).pipe(
-    catchError((erro: unknown) => {
-      // 401 numa rota protegida = token vencido/inválido (o ID token do
-      // Cognito dura 1h). Sem isso a tela ficava "logada" com todas as
-      // chamadas falhando — encerra a sessão e manda pro login.
-      if (erro instanceof HttpErrorResponse && erro.status === 401) {
-        auth.sair();
+  return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
+    catchError((error: unknown) => {
+      // The Cognito ID token lasts 1 h; without this the app stayed "signed in" with every call failing.
+      if (error instanceof HttpErrorResponse && error.status === 401) {
+        auth.signOut();
         void router.navigate(['/entrar']);
       }
-      return throwError(() => erro);
+      return throwError(() => error);
     }),
   );
 };

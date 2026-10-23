@@ -1,0 +1,135 @@
+<section class="card card--flush">
+  <div class="card__head head">
+    <div class="row">
+      <app-icon name="landmark" class="card__head-icon" />
+      <h2 class="section-title">PFCs criados pelos alunos</h2>
+    </div>
+    <div class="field picker">
+      <app-cohort-picker />
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ error() }}</span>
+    </p>
+  }
+
+  @if (!store.program()) {
+    <p class="notice">
+      @if (store.isAdmin()) {
+        Esta turma ainda não tem programa de PFC. Crie o programa em "Criar programa de PFC" para os
+        alunos poderem criar os PFCs.
+      } @else {
+        Esta turma ainda não tem programa de PFC — a coordenação cria.
+      }
+    </p>
+  } @else {
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">PFC</th>
+            <th scope="col">Integrantes</th>
+            <th scope="col">Orientador</th>
+            <th scope="col"><span class="sr-only">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of projects(); track p.id) {
+            @if (editingId() === p.id) {
+              <tr>
+                <td colspan="4">
+                  <app-project-editor
+                    [project]="p"
+                    [nameByRgm]="nameByRgm"
+                    (saved)="saved()"
+                    (membersChanged)="reload()"
+                    (cancelled)="editingId.set(null)"
+                  />
+                </td>
+              </tr>
+            } @else {
+              <tr>
+                <td class="cell-strong">{{ p.nome }}</td>
+                <td>{{ memberNames(p) }}</td>
+                <td>
+                  @if (!store.isAdmin()) {
+                    {{ p.orientadorId ? userName(p.orientadorId) : 'Sem orientador' }}
+                  } @else if (editingAdvisorId() === p.id) {
+                    <div class="row">
+                      <select class="control advisor" [value]="p.orientadorId ?? ''" (change)="setAdvisor(p.id, $event)">
+                        <option value="">Sem orientador</option>
+                        @for (a of advisors(); track a.id) {
+                          <option [value]="a.id">{{ a.nome }}</option>
+                        }
+                      </select>
+                      <button type="button" class="btn btn--outline btn--sm" (click)="editingAdvisorId.set(null)">
+                        Cancelar
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="row">
+                      <span>{{ p.orientadorId ? userName(p.orientadorId) : 'Sem orientador' }}</span>
+                      <button
+                        type="button"
+                        class="icon-action"
+                        (click)="editingAdvisorId.set(p.id)"
+                        [attr.aria-label]="(p.orientadorId ? 'Editar' : 'Adicionar') + ' orientador de ' + p.nome"
+                      >
+                        <app-icon [name]="p.orientadorId ? 'edit' : 'plus'" />
+                      </button>
+                      @if (p.orientadorId) {
+                        <button
+                          type="button"
+                          class="icon-action"
+                          (click)="removeAdvisor(p.id)"
+                          [attr.aria-label]="'Remover orientador de ' + p.nome"
+                        >
+                          <app-icon name="trash" />
+                        </button>
+                      }
+                    </div>
+                  }
+                </td>
+                <td>
+                  @if (store.isAdmin()) {
+                    <div class="row">
+                      <button
+                        type="button"
+                        class="icon-action"
+                        (click)="editingId.set(p.id)"
+                        [attr.aria-label]="'Editar PFC ' + p.nome"
+                      >
+                        <app-icon name="edit" />
+                      </button>
+                      <button
+                        type="button"
+                        class="icon-action"
+                        (click)="remove(p.id, p.nome)"
+                        [attr.aria-label]="'Excluir PFC ' + p.nome"
+                      >
+                        <app-icon name="trash" />
+                      </button>
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          } @empty {
+            <tr>
+              <td class="table-empty" colspan="4">
+                @if (store.isAdmin()) {
+                  Nenhum PFC criado pelos alunos desta turma ainda.
+                } @else {
+                  Nenhum PFC desta turma tem você como orientador.
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

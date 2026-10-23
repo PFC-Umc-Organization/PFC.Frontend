@@ -1,0 +1,23 @@
+.sent {
+  padding: 1rem;
+  border: 1px solid var(--border);
+}
+
+.sent__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.sent__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.sent__meta {
+  margin: 0.125rem 0 0;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}

@@ -1,0 +1,31 @@
+<main class="screen">
+  <section class="panel">
+    <div class="panel__brand">
+      <span class="panel__seal">
+        <app-icon name="graduation-cap" class="panel__icon" />
+      </span>
+      <span class="panel__name">Athena</span>
+    </div>
+
+    <h1 class="panel__title">{{ heading() }}</h1>
+    @if (subtitle()) {
+      <p class="panel__subtitle">{{ subtitle() }}</p>
+    }
+
+    <ng-content />
+  </section>
+
+  <footer class="footer">
+    <span>Athena — O Portal do PFC</span>
+    <span class="footer__sep" aria-hidden="true">·</span>
+    <span>Projeto Final de Curso</span>
+    <span class="footer__sep" aria-hidden="true">·</span>
+    <a href="#" (click)="openPolicy($event)" class="footer__link">
+      Política de Privacidade e Termos de Uso
+    </a>
+  </footer>
+</main>
+
+@if (policyOpen()) {
+  <app-privacy-policy (closed)="policyOpen.set(false)" />
+}
