@@ -10,6 +10,7 @@ import { SubmissionService } from '../../../core/services/submission.service';
 import { submissionStatus } from '../../../core/services/submission-status';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { TimelineComponent } from '../../../shared/components/timeline/timeline.component';
+import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
 type State =
   | { kind: 'loading' }
@@ -24,7 +25,7 @@ type State =
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TimelineComponent, IconComponent, RouterLink],
+  imports: [TimelineComponent, IconComponent, RouterLink, DeadlinePipe],
   templateUrl: './student-home.component.html',
   styleUrl: './student-home.component.scss',
 })
@@ -70,6 +71,27 @@ export class StudentHomeComponent {
     const s = this.state();
     return s.kind === 'error' ? `Não foi possível carregar as atividades: ${s.message}` : '';
   });
+  /** The pending activity with the closest deadline. */
+  readonly next = computed(() =>
+    this.items()
+      .filter((i) => i.status === 'PENDENTE')
+      .reduce<TimelineItem | null>((best, i) => (!best || new Date(i.deadline) < new Date(best.deadline) ? i : best), null),
+  );
+  readonly pendingCount = computed(() => this.items().filter((i) => i.status === 'PENDENTE').length);
+  readonly missed = computed(() => this.items().some((i) => i.status === 'ATRASADO'));
+
+  timeLeft(deadline: string, now = new Date()): string {
+    const hours = Math.floor((new Date(deadline).getTime() - now.getTime()) / 3_600_000);
+    if (hours < 1) {
+      return 'Vence em menos de 1 hora';
+    }
+    if (hours < 24) {
+      return hours === 1 ? 'Falta 1 hora' : `Faltam ${hours} horas`;
+    }
+    const days = Math.floor(hours / 24);
+    return days === 1 ? 'Falta 1 dia' : `Faltam ${days} dias`;
+  }
+
   readonly description = computed(() => {
     const project = this.project();
     return project ? `Prazos e situação das entregas do grupo ${project.nome}.` : 'Prazos das atividades do PFC.';

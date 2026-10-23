@@ -66,12 +66,12 @@ export function parseClassmates(
   );
   const invalid = rgms.find((r) => !/^\d+$/.test(r));
   if (invalid) {
-    return { erro: `"${invalid}" não é um RGM válido — use só números.` };
+    return { erro: `"${invalid}" não é um RGM válido. Use só números.` };
   }
   const maxClassmates = PROJECT_LIMITS.integrantes - 1;
   if (rgms.length > maxClassmates) {
     return {
-      erro: `O grupo pode ter até ${PROJECT_LIMITS.integrantes} pessoas contando você — informe no máximo ${maxClassmates} colegas.`,
+      erro: `O grupo pode ter até ${PROJECT_LIMITS.integrantes} pessoas contando você. Informe no máximo ${maxClassmates} colegas.`,
     };
   }
   return { rgms };

@@ -37,7 +37,7 @@
                     class="cell"
                     [class.cell--active]="isSelected(row.project.id, c.activityId)"
                     (click)="open.emit({ projectId: row.project.id, projectName: row.project.nome, activityId: c.activityId })"
-                    [attr.aria-label]="'Ver entrega de ' + row.project.nome"
+                    [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + label(c.status)"
                   >
                     <app-status-badge [status]="c.status" />
                   </button>

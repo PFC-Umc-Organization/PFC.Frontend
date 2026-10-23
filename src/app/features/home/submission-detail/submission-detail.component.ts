@@ -8,6 +8,7 @@ import { AnswerListComponent } from '../../../shared/components/answer-list/answ
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** What a group answered for one activity; the staff can hand it back. */
+import { editedLater } from '../../../core/services/submission-status';
 @Component({
   selector: 'app-submission-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -16,6 +17,8 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
   styleUrl: './submission-detail.component.scss',
 })
 export class SubmissionDetailComponent {
+  protected readonly editedLater = editedLater;
+
   private readonly submissionService = inject(SubmissionService);
   private readonly confirmation = inject(ConfirmationService);
 

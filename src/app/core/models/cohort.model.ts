@@ -24,12 +24,12 @@ export const SHIFT_LABEL: Record<Shift, string> = {
 };
 
 export function courseShiftLabel(cohort: Cohort): string {
-  return `${cohort.nome} - ${SHIFT_LABEL[cohort.turno]}`;
+  return `${cohort.nome} (${SHIFT_LABEL[cohort.turno]})`;
 }
 
 /** With the term: tells apart the same course and shift in different semesters. */
 export function cohortLabel(cohort: Cohort): string {
-  return `${courseShiftLabel(cohort)} - ${cohort.periodo}`;
+  return `${cohort.nome} (${SHIFT_LABEL[cohort.turno]}, ${cohort.periodo})`;
 }
 
 /** The term of a date in the cohorts' format: Jan–Jun is ".1", Jul–Dec is ".2". */

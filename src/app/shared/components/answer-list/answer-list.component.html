@@ -3,7 +3,7 @@
     <dt>{{ r.label }}</dt>
     <dd>
       @if (!r.value) {
-        <span class="answers__muted">não preenchido</span>
+        <span class="answers__muted">Não preenchido</span>
       } @else if (r.type === 'ARQUIVO' && isStoredFile(r.value)) {
         <button type="button" class="text-button" (click)="download.emit(r.fieldId)">
           <app-icon name="download" />
@@ -11,7 +11,7 @@
         </button>
       } @else if (r.type === 'ARQUIVO') {
         {{ r.value }}
-        <span class="answers__muted">(enviado antes do upload — só o nome)</span>
+        <span class="answers__muted">(enviado antes do upload, só o nome)</span>
       } @else if (r.type === 'LINK') {
         <a [href]="r.value" target="_blank" rel="noopener noreferrer">{{ r.value }}</a>
       } @else {

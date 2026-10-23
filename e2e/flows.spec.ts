@@ -65,6 +65,16 @@ test.describe('student without a group', () => {
 });
 
 test.describe('student with a group', () => {
+  test('the home highlights the closest open deadline and links to it', async ({ page }) => {
+    await signIn(page, STUDENT_WITH_GROUP);
+    const next = page.locator('.next');
+    await expect(next.getByRole('heading', { name: '1º CRUD' })).toBeVisible();
+    await expect(next).toContainText('mais 1 pendente');
+    await page.screenshot({ path: 'test-results/next.png' });
+    await next.getByRole('link', { name: 'Enviar entrega' }).click();
+    await expect(page).toHaveURL(/\/entregaveis\?atividade=a2/);
+  });
+
   test('Meu PFC shows names, advisor and cohort in a single call', async ({ page, api }) => {
     await signIn(page, STUDENT_WITH_GROUP);
     await expect(page.getByText('Athena').first()).toBeVisible();
@@ -73,7 +83,7 @@ test.describe('student with a group', () => {
     await expect(page.getByText('Bia Lima').first()).toBeVisible();
     await expect(page.getByText('RGM 11231101230 (aguardando cadastro)')).toBeVisible();
     await expect(page.getByText('Orientadora Ana')).toBeVisible();
-    await expect(page.getByText('Engenharia de Software - Noite - 2026.2')).toBeVisible();
+    await expect(page.getByText('Engenharia de Software (Noite, 2026.2)')).toBeVisible();
     expect(api.calls.some((c) => c.includes('/usuarios') || (c.includes('/programas') && c.includes('/projetos')))).toBe(false);
     expect(api.failed).toEqual([]);
   });
@@ -145,7 +155,7 @@ test.describe('references', () => {
 test.describe('coordination', () => {
   test('the panel starts at this term\'s cohort and builds the grid with one submissions call', async ({ page, api }) => {
     await signIn(page, ADMIN);
-    await expect(page.locator('#cohort option:checked')).toHaveText('Engenharia de Software - Noite - 2026.2');
+    await expect(page.locator('#cohort option:checked')).toHaveText('Engenharia de Software (Noite, 2026.2)');
     await expect(page.getByText('Status de entrega por projeto (2)')).toBeVisible();
     expect(api.calls).toContain('GET /programas/p1/entregas');
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
@@ -160,7 +170,7 @@ test.describe('coordination', () => {
   test('downloads a submission file from the cell detail', async ({ page, api }) => {
     api.db.submissions.push({ atividadeId: 'a3', projetoId: 'pr2', entregueEm: '2026-10-20T12:00:00Z', entreguePor: 'Fulano', respostas: { c3: 'entregas/pr2/a3/c3/u9/tcc.pdf' } });
     await signIn(page, ADMIN);
-    await page.locator('[aria-label="Ver entrega de Web-Cursos"]').nth(1).click();
+    await page.getByRole('button', { name: 'Web-Cursos, Monografia final: Entregue' }).click();
     const [download] = await Promise.all([
       page.waitForRequest((r) => r.url().includes('fake-bucket') && r.method() === 'GET'),
       page.getByRole('button', { name: 'tcc.pdf' }).click(),
@@ -171,6 +181,7 @@ test.describe('coordination', () => {
   test('Gestão shows an orphan program as "Turma removida"', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.goto('/gestao');
+    await page.getByRole('button', { name: 'Programas de PFC' }).click();
     await expect(page.getByText('Turma removida')).toBeVisible();
   });
 
@@ -214,7 +225,7 @@ test.describe('coordination', () => {
   test('publishes a file material for every cohort', async ({ page, api }) => {
     await signIn(page, ADMIN);
     await page.goto('/materiais');
-    await expect(page.locator('.material__audience', { hasText: 'Sistemas de Informação - Manhã - 2026.2' })).toBeVisible();
+    await expect(page.locator('.material__audience', { hasText: 'Sistemas de Informação (Manhã, 2026.2)' })).toBeVisible();
     await page.fill('#material-title', 'Modelo de monografia');
     await page.getByRole('button', { name: 'Arquivo', exact: true }).click();
     await page.setInputFiles('#material-file', { name: 'modelo.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(1000, 1) });
@@ -261,7 +272,7 @@ test.describe('management', () => {
   test('sets the advisor and renames a PFC', async ({ page, api }) => {
     await signIn(page, ADMIN);
     await page.goto('/gestao');
-    await page.getByRole('button', { name: 'PFCs dos alunos' }).click();
+    await expect(page.getByRole('button', { name: 'PFCs dos alunos' })).toHaveAttribute('aria-pressed', 'true');
 
     await page.getByRole('button', { name: 'Adicionar orientador de Web-Cursos' }).click();
     await page.getByRole('row', { name: /Web-Cursos/ }).getByRole('combobox').selectOption({ label: 'Orientadora Ana' });
@@ -284,7 +295,7 @@ test.describe('advisor', () => {
 
     await page.goto('/gestao');
     await expect(page.getByRole('button', { name: 'Meus orientandos' })).toBeVisible();
-    await expect(page.getByText('Criar programa de PFC')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Programas de PFC' })).toHaveCount(0);
     await expect(page.getByText('Web-Cursos')).toHaveCount(0);
     await expect(page.locator('[aria-label^="Excluir PFC"], [aria-label^="Editar PFC"]')).toHaveCount(0);
 

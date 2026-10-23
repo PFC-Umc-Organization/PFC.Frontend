@@ -1,5 +1,5 @@
 import { Activity } from '../models';
-import { submissionStatus, submittedFileName } from './submission-status';
+import { editedLater, submissionStatus, submittedFileName } from './submission-status';
 
 describe('submissionStatus', () => {
   const deadline = '2026-10-15T23:59';
@@ -31,5 +31,19 @@ describe('submittedFileName', () => {
   it('has no name without an answer', () => {
     expect(submittedFileName(activity, { c1: 'https://x' })).toBeUndefined();
     expect(submittedFileName(activity, undefined)).toBeUndefined();
+  });
+});
+
+describe('editedLater', () => {
+  it('ignores an edit in the same minute as the submission', () => {
+    expect(editedLater({ entregueEm: '2026-10-23T17:47:02Z', atualizadaEm: '2026-10-23T17:47:40Z' })).toBe(false);
+  });
+
+  it('shows a later edit', () => {
+    expect(editedLater({ entregueEm: '2026-10-23T17:47:02Z', atualizadaEm: '2026-10-23T17:52:00Z' })).toBe(true);
+  });
+
+  it('has nothing to show without an edit', () => {
+    expect(editedLater({ entregueEm: '2026-10-23T17:47:02Z' })).toBe(false);
   });
 });

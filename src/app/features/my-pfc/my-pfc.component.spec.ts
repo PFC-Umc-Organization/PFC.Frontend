@@ -43,7 +43,7 @@ describe('MyPfcComponent', () => {
     expect(text).toContain('Ana');
     expect(text).toContain('RGM 222 (aguardando cadastro)');
     expect(text).toContain('Prof. Bia');
-    expect(text).toContain('Engenharia de Software - Noite - 2026.2');
+    expect(text).toContain('Engenharia de Software (Noite, 2026.2)');
   });
 
   it('without a cohort, explains the missing pre-authorization instead of the form', async () => {

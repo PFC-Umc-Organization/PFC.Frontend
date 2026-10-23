@@ -62,14 +62,14 @@ export class HeaderComponent {
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];
 
-  /** Only the coordination manages users and cohorts. */
+  /** Only the coordination manages users and cohorts; in the order they are set up. */
   private readonly adminNav: NavItem[] = [
     { label: 'Início', route: '/', icon: 'dashboard' },
-    { label: 'Gestão de PFC', route: '/gestao', icon: 'landmark' },
+    { label: 'Turmas', route: '/turmas', icon: 'calendar' },
     { label: 'Usuários', route: '/usuarios', icon: 'users' },
+    { label: 'Gestão de PFC', route: '/gestao', icon: 'landmark' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },
-    { label: 'Turmas', route: '/turmas', icon: 'calendar' },
   ];
 
   readonly navItems = computed(() => {

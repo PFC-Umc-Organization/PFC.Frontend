@@ -1,4 +1,4 @@
-import { Activity, SubmissionStatus, fileNameOf } from '../models';
+import { Activity, Submission, SubmissionStatus, fileNameOf } from '../models';
 
 export function submissionStatus(
   deadline: string,
@@ -20,4 +20,13 @@ export function submittedFileName(
   const field = activity.campos.find((c) => c.tipo === 'ARQUIVO');
   const answer = field ? answers?.[field.id] : undefined;
   return answer ? fileNameOf(answer) : undefined;
+}
+
+/** An edit in the same minute as the submission is not worth showing. */
+export function editedLater(s: Pick<Submission, 'entregueEm' | 'atualizadaEm'>): boolean {
+  if (!s.atualizadaEm || !s.entregueEm) {
+    return !!s.atualizadaEm;
+  }
+  const minute = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
+  return minute(s.atualizadaEm) !== minute(s.entregueEm);
 }

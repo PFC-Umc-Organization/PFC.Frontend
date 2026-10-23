@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { catchError, of, switchMap, tap } from 'rxjs';
 
 import { Project, Reference, isStaff } from '../../core/models';
@@ -20,7 +21,7 @@ type Mode = 'topic' | 'doi';
 @Component({
   selector: 'app-references',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TopicSearchComponent, DoiLookupComponent, ReferenceListComponent],
+  imports: [TopicSearchComponent, DoiLookupComponent, ReferenceListComponent, RouterLink],
   templateUrl: './references.component.html',
   styleUrl: './references.component.scss',
 })

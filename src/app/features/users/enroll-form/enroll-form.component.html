@@ -2,18 +2,17 @@
   <div class="card__body">
     <h2 class="section-title">Pré-autorizar alunos por RGM</h2>
     <p class="lead text-sm mt-1">
-      O aluno cria a própria conta em "Criar conta" — o RGM aqui só libera o cadastro dele. Nome e
+      O aluno cria a própria conta em "Criar conta". O RGM aqui só libera o cadastro dele. Nome e
       e-mail são preenchidos pelo próprio aluno na hora.
     </p>
 
     @if (result(); as r) {
       <p class="ok mt-4" role="status">
         <app-icon name="check" />
-        {{ r.processados }} RGM(s) pré-autorizado(s)
+        {{ r.processados === 1 ? '1 RGM pré-autorizado.' : r.processados + ' RGMs pré-autorizados.' }}
         @if (r.falhas.length > 0) {
-          — {{ r.falhas.length }} falharam
+          {{ r.falhas.length === 1 ? '1 falhou.' : r.falhas.length + ' falharam.' }}
         }
-        .
       </p>
     }
     @if (error()) {
@@ -27,7 +26,7 @@
       <p class="alert mt-4" role="alert">
         <app-icon name="alert" />
         <span>
-          Nenhuma turma do semestre {{ term }} cadastrada — cadastre a turma deste semestre antes de
+          Nenhuma turma do semestre {{ term }} cadastrada. Cadastre a turma deste semestre antes de
           pré-autorizar RGMs.
           <a routerLink="/turmas">Ir para Turmas</a>
         </span>
@@ -57,12 +56,12 @@
           <textarea
             id="rgms"
             class="control control--textarea"
-            placeholder="Um RGM por linha — ex.: 20260009"
+            placeholder="Um RGM por linha. Ex.: 11231101228"
             formControlName="rgms"
             [class.control--invalid]="invalid('rgms')"
           ></textarea>
           <span class="field__hint">
-            Aceita vários RGMs de uma vez — separados por linha ou vírgula. Todos entram
+            Aceita vários RGMs de uma vez, separados por linha ou vírgula. Todos entram
             pré-autorizados na turma selecionada.
           </span>
           @if (invalid('rgms')) {

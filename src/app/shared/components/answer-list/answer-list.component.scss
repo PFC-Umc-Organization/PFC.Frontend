@@ -1,8 +1,19 @@
 .answers {
   display: grid;
-  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
   gap: 0.5rem 1rem;
   margin: 0.75rem 0 0;
+}
+
+@media (max-width: 600px) {
+  .answers {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.125rem;
+  }
+
+  .answers dd + dt {
+    margin-top: 0.625rem;
+  }
 }
 
 .answers dt {

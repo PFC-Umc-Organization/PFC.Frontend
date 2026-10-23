@@ -22,14 +22,14 @@
     }
   </header>
 
-  @if (items().length === 0) {
+  @if (sorted().length === 0) {
     <p class="empty-state">
       Nenhuma atividade publicada ainda. Assim que o professor cadastrar a primeira entrega, ela aparece aqui.
     </p>
   } @else {
     <div class="track">
       <ol class="track__list">
-        @for (item of items(); track item.activityId; let first = $first) {
+        @for (item of sorted(); track item.activityId; let first = $first) {
           <li class="track__item">
             @if (!first) {
               <span class="connector" aria-hidden="true"></span>

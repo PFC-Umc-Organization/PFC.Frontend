@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+
+import { STATUS_SHORT_LABEL, SubmissionStatus } from '../../../core/models';
 
 import { StatusGrid } from '../../../core/services/submission.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -26,6 +28,16 @@ export class StatusGridComponent {
   /** What the empty table says. */
   readonly emptyText = input.required<string>();
   readonly open = output<CellRef>();
+
+  private readonly titles = computed(() => new Map(this.grid().activities.map((a) => [a.id, a.titulo])));
+
+  titleOf(activityId: string): string {
+    return this.titles().get(activityId) ?? '';
+  }
+
+  label(status: SubmissionStatus): string {
+    return STATUS_SHORT_LABEL[status];
+  }
 
   isSelected(projectId: string, activityId: string): boolean {
     const s = this.selected();

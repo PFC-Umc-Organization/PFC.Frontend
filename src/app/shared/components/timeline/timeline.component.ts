@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
 import { STATUS_LEGEND, TimelineItem } from '../../../core/models';
 import { DeliverableCardComponent } from '../deliverable-card/deliverable-card.component';
@@ -20,4 +20,7 @@ export class TimelineComponent {
   readonly showLegend = input(true);
 
   protected readonly legend = STATUS_LEGEND;
+  protected readonly sorted = computed(() =>
+    [...this.items()].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()),
+  );
 }

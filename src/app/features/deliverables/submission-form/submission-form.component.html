@@ -17,9 +17,9 @@
             <option value="" [selected]="!activityId()">Selecione…</option>
             @for (item of available(); track item.activityId) {
               <option [value]="item.activityId" [selected]="item.activityId === activityId()">
-                {{ item.title }} — entrega até {{ item.deadline | deadline }}
+                {{ item.title }} (até {{ item.deadline | deadline }})
                 @if (item.status !== 'PENDENTE') {
-                  (já entregue — editar)
+                  · já entregue, editar
                 }
               </option>
             }

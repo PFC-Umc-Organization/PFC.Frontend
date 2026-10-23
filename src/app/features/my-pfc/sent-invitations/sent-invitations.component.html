@@ -10,7 +10,7 @@
           <li class="invitation">
             <span class="invitation__text">
               <span class="cell-strong">RGM {{ i.rgm }}</span>
-              <span class="muted text-sm">convidado em {{ i.criadoEm | date: 'dd/MM/yyyy' }}</span>
+              <span class="muted text-sm">Convidado em {{ i.criadoEm | date: 'dd/MM/yyyy' }}</span>
             </span>
             <button type="button" class="btn btn--outline btn--sm" [disabled]="busy()" (click)="cancel(i)">
               <app-icon name="trash" class="btn__icon" />
@@ -33,7 +33,7 @@
           type="text"
           inputmode="numeric"
           class="control"
-          placeholder="Ex.: 12345678"
+          placeholder="Ex.: 11231101228"
           formControlName="rgm"
         />
       </div>

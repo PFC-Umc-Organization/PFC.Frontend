@@ -17,6 +17,28 @@
           <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
         </span>
       </p>
+    } @else if (next(); as n) {
+      <section class="next" aria-labelledby="next-title">
+        <div>
+          <p class="eyebrow">Próxima entrega</p>
+          <h2 id="next-title" class="next__title">{{ n.title }}</h2>
+          <p class="next__when">
+            <app-icon name="calendar" />
+            {{ timeLeft(n.deadline) }} · até {{ n.deadline | deadline: true }}
+            @if (pendingCount() > 1) {
+              <span class="next__more">· mais {{ pendingCount() - 1 }} pendente{{ pendingCount() > 2 ? 's' : '' }}</span>
+            }
+          </p>
+        </div>
+        <a class="btn btn--primary next__action" routerLink="/entregaveis" [queryParams]="{ atividade: n.activityId }">
+          Enviar entrega
+        </a>
+      </section>
+    } @else if (items().length > 0) {
+      <p class="notice" role="status">
+        <app-icon name="check" />
+        <span>{{ missed() ? 'Nenhuma entrega aberta no momento.' : 'Tudo em dia: nenhuma entrega pendente.' }}</span>
+      </p>
     }
     <app-timeline
       eyebrow="Entregáveis"

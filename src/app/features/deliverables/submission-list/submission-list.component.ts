@@ -10,6 +10,7 @@ export interface SentSubmission {
   submission: Submission;
 }
 
+import { editedLater } from '../../../core/services/submission-status';
 @Component({
   selector: 'app-submission-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -18,6 +19,8 @@ export interface SentSubmission {
   styleUrl: './submission-list.component.scss',
 })
 export class SubmissionListComponent {
+  protected readonly editedLater = editedLater;
+
   readonly items = input.required<SentSubmission[]>();
   readonly error = input('');
   readonly edit = output<string>();

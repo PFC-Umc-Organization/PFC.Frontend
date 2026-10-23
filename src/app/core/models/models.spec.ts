@@ -15,7 +15,7 @@ const cohort: Cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE
 
 describe('cohorts', () => {
   it('are labeled with course, shift and term', () => {
-    expect(cohortLabel(cohort)).toBe('Engenharia de Software - Noite - 2026.2');
+    expect(cohortLabel(cohort)).toBe('Engenharia de Software (Noite, 2026.2)');
   });
 
   it('put Jan–Jun in term .1 and Jul–Dec in .2', () => {
@@ -39,7 +39,7 @@ describe('parseClassmates', () => {
 
   it('refuses an RGM with letters', () => {
     expect(parseClassmates('111, 12a', '999')).toEqual({
-      erro: '"12a" não é um RGM válido — use só números.',
+      erro: '"12a" não é um RGM válido. Use só números.',
     });
   });
 

@@ -69,7 +69,7 @@ export function fileProblem(file: File): string {
   const dot = file.name.lastIndexOf('.');
   const extension = dot >= 0 ? file.name.slice(dot).toLowerCase() : '';
   if (!FILE_EXTENSIONS.includes(extension)) {
-    return 'Tipo de arquivo não aceito — envie PDF, documento do Office/LibreOffice, imagem, ZIP ou texto.';
+    return 'Tipo de arquivo não aceito. Envie PDF, documento do Office/LibreOffice, imagem, ZIP ou texto.';
   }
   if (file.size === 0) {
     return 'O arquivo está vazio.';

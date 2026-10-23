@@ -19,11 +19,11 @@ type Section = 'program' | 'projects' | 'activities';
 export class PfcManagementComponent {
   private readonly store = inject(PfcManagementStore);
 
-  /** One section at a time. Programs are the coordination's: an advisor starts at the projects. */
+  /** One section at a time. Programs are set up once per cohort and are the coordination's, so they come last. */
   readonly sections = computed<{ id: Section; label: string }[]>(() => [
-    ...(this.store.isAdmin() ? [{ id: 'program' as const, label: 'Criar programa de PFC' }] : []),
     { id: 'projects', label: this.store.isAdmin() ? 'PFCs dos alunos' : 'Meus orientandos' },
     { id: 'activities', label: 'Atividades' },
+    ...(this.store.isAdmin() ? [{ id: 'program' as const, label: 'Programas de PFC' }] : []),
   ]);
-  readonly section = signal<Section>(this.store.isAdmin() ? 'program' : 'projects');
+  readonly section = signal<Section>('projects');
 }

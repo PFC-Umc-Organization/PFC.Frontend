@@ -22,7 +22,7 @@
               @if (item.submission.entreguePor) {
                 por {{ item.submission.entreguePor }}
               }
-              @if (item.submission.atualizadaEm) {
+              @if (editedLater(item.submission)) {
                 · editada em {{ item.submission.atualizadaEm | date: 'dd/MM/yyyy HH:mm' }}
                 @if (item.submission.atualizadaPor) {
                   por {{ item.submission.atualizadaPor }}
