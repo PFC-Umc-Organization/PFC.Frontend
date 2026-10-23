@@ -179,7 +179,7 @@ export function fakeApi() {
     if ((mm = p.match(/^\/projetos\/([^/]+)\/entregas\/([^/]+)$/)) && m === 'PUT') {
       const previous = db.submissions.find((x) => x.projetoId === mm[1] && x.atividadeId === mm[2]);
       const due = db.activities.find((a) => a.id === mm[2]).prazo;
-      if (!previous && new Date(due) < new Date()) return json(409, { erro: 'O prazo desta atividade acabou: só quem entregou no prazo pode editar a entrega' });
+      if (!previous && new Date(due) < new Date()) return json(409, { erro: 'O prazo desta atividade acabou e ela não recebe mais entregas' });
       const now = new Date().toISOString();
       const e = previous
         ? { ...previous, atualizadaEm: now, atualizadaPor: me.name, respostas: body.respostas }
