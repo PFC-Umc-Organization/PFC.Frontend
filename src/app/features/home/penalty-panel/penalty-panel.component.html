@@ -1,0 +1,52 @@
+<section class="card" aria-live="polite">
+  <div class="card__body body">
+    <div class="top">
+      <div>
+        <h2 class="section-title">Penalidades</h2>
+        <p class="meta">Projeto {{ projectName() }}</p>
+      </div>
+      <button type="button" class="btn btn--outline btn--sm" (click)="closed.emit()">Fechar</button>
+    </div>
+
+    <app-penalty-counter [penalties]="penalties()" />
+    @if (penalties().reprovado) {
+      <p class="meta">
+        O grupo não entrega mais. Perdoe uma penalidade para ele ficar abaixo de {{ penalties().limite }} e voltar a
+        entregar.
+      </p>
+    }
+
+    <app-penalty-list [penalties]="penalties().penalidades" [projectId]="penalties().projetoId" [manageable]="true" />
+
+    <form class="form-grid form-grid--2 apply" [formGroup]="form" (ngSubmit)="apply()">
+      <h3 class="form-grid__full apply__title">Aplicar penalidade</h3>
+      <div class="field">
+        <label class="field__label" for="penalty-reason">Motivo</label>
+        <input
+          id="penalty-reason"
+          class="control"
+          maxlength="500"
+          placeholder="Ex.: entrega não validada pelo orientador"
+          formControlName="motivo"
+        />
+      </div>
+      <div class="field">
+        <label class="field__label" for="penalty-activity">Atividade (opcional)</label>
+        <select id="penalty-activity" class="control" formControlName="atividadeId">
+          <option value="">Nenhuma específica</option>
+          @for (a of activities(); track a.id) {
+            <option [value]="a.id">{{ a.titulo }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-grid__full">
+        <button type="submit" class="btn btn--primary btn--sm" [disabled]="applying()">
+          {{ applying() ? 'Aplicando…' : 'Aplicar penalidade' }}
+        </button>
+      </div>
+    </form>
+    @if (error()) {
+      <p class="alert alert--inline" role="alert">{{ error() }}</p>
+    }
+  </div>
+</section>

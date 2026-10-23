@@ -3,8 +3,9 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, catchError, of, switchMap } from 'rxjs';
 
-import { Activity, Project, Submission, TimelineItem } from '../../core/models';
+import { Activity, Project, ProjectPenalties, Submission, TimelineItem } from '../../core/models';
 import { ActivityService } from '../../core/services/activity.service';
+import { PenaltyService } from '../../core/services/penalty.service';
 import { ProjectService } from '../../core/services/project.service';
 import { SubmissionService } from '../../core/services/submission.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
@@ -21,6 +22,7 @@ import { SubmissionFormComponent } from './submission-form/submission-form.compo
 })
 export class DeliverablesComponent {
   private readonly submissionService = inject(SubmissionService);
+  private readonly penaltyService = inject(PenaltyService);
 
   /** Shown instead of misleading empty lists. */
   readonly loadError = signal('');
@@ -47,6 +49,16 @@ export class DeliverablesComponent {
     ),
     { initialValue: [] as TimelineItem[] },
   );
+
+  /** A failed group can no longer submit; the backend refuses it too. */
+  readonly penalties = toSignal(
+    toObservable(this.project).pipe(
+      switchMap((p) => (p ? this.penaltyService.ofProject(p.id) : of(null))),
+      catchError(() => of(null as ProjectPenalties | null)),
+    ),
+    { initialValue: null as ProjectPenalties | null },
+  );
+  readonly failed = computed(() => this.penalties()?.reprovado ?? false);
 
   readonly activities = toSignal(inject(ActivityService).list().pipe(this.orEmpty([] as Activity[])), {
     initialValue: [] as Activity[],

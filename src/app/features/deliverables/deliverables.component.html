@@ -15,18 +15,29 @@
     </p>
   }
 
-  <app-submission-form
+  @if (failed()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>
+        O grupo foi reprovado: chegou a {{ penalties()!.limite }} penalidades e não pode mais entregar. Se alguma foi
+        aplicada por engano, fale com o orientador ou com a coordenação.
+      </span>
+    </p>
+  } @else {
+    <app-submission-form
     [project]="project()"
     [available]="available()"
     [activities]="activities()"
     [submissions]="submissions()"
     [(activityId)]="selected"
-  />
+    />
+  }
 
   @if (sent().length > 0) {
     <app-submission-list
       [items]="sent()"
       [error]="downloadError()"
+      [editable]="!failed()"
       (edit)="edit($event)"
       (download)="download($event)"
     />

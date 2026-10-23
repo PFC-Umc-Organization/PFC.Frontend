@@ -1,0 +1,8 @@
+<span class="counter" [class.counter--failed]="penalties().reprovado" [class.counter--compact]="compact()">
+  <span class="counter__marks" aria-hidden="true">
+    @for (on of marks(); track $index) {
+      <span class="mark" [class.mark--on]="on"></span>
+    }
+  </span>
+  <span class="counter__text">{{ text() }}</span>
+</span>

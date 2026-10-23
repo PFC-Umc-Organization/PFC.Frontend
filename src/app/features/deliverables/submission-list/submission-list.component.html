@@ -30,7 +30,9 @@
               }
             </p>
           </div>
-          <button type="button" class="btn btn--outline btn--sm" (click)="edit.emit(item.activity.id)">Editar</button>
+          @if (editable()) {
+            <button type="button" class="btn btn--outline btn--sm" (click)="edit.emit(item.activity.id)">Editar</button>
+          }
         </header>
         <app-answer-list
           [activity]="item.activity"

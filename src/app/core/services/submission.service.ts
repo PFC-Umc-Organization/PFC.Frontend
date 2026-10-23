@@ -33,6 +33,8 @@ export abstract class SubmissionService {
   abstract uploadFile(projectId: string, activityId: string, fieldId: string, file: File): Observable<UploadEvent>;
   /** A download link valid for 5 minutes. */
   abstract fileLink(projectId: string, activityId: string, fieldId: string): Observable<{ url: string; nome: string }>;
+  /** Emits now and after every submit and removal. */
+  abstract changes(): Observable<void>;
 }
 
 @Injectable()
@@ -112,6 +114,10 @@ export class SubmissionHttpService extends SubmissionService {
     return this.http
       .get<{ url: string; nome: string }>(`${this.base}/${projectId}/entregas/${activityId}/arquivos/${fieldId}`)
       .pipe(catchError(toApiError));
+  }
+
+  override changes(): Observable<void> {
+    return this.reload$.asObservable();
   }
 
   override remove(projectId: string, activityId: string): Observable<void> {

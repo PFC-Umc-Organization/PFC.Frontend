@@ -28,6 +28,7 @@ export function fakeApi() {
       { id: 'm2', titulo: 'Aula da turma t2', descricao: '', tipo: 'VIDEO', url: 'https://youtu.be/x', cursoId: 't2', publicadoEm: '2026-10-02T12:00:00Z', publicadoPor: 'Orientadora Ana', autorId: 'u-ana' },
     ],
     references: [],
+    penalties: [],
     submissions: [{ atividadeId: 'a1', projetoId: 'pr1', entregueEm: '2026-10-09T12:00:00Z', entreguePor: 'Bia Lima', respostas: { c1: 'monografia.pdf' } }],
     activities: [
       { id: 'a1', titulo: 'Monografia', descricao: '', prazo: '2026-10-10T23:59', publicadaEm: '2026-10-01T00:00:00Z', campos: [{ id: 'c1', rotulo: 'Arquivo', tipo: 'ARQUIVO', obrigatorio: true }] },
@@ -207,6 +208,39 @@ export function fakeApi() {
       return json(201, r);
     }
     if ((mm = p.match(/^\/projetos\/([^/]+)\/referencias$/))) return json(200, db.references.filter((r) => r.projetoId === mm[1]));
+    const penaltiesOf = (pid) => {
+      const due = (a) => new Date(a.prazo) < new Date() && !db.submissions.some((e) => e.projetoId === pid && e.atividadeId === a.id);
+      const records = db.penalties.filter((x) => x.projetoId === pid);
+      const items = [
+        ...db.activities.filter(due).map((a) => ({ id: `prazo-${a.id}`, origem: 'PRAZO', atividadeId: a.id, atividadeTitulo: a.titulo, aplicadaEm: new Date(a.prazo).toISOString(), perdao: records.find((r) => r.id === `prazo-${a.id}`)?.perdao ?? null })),
+        ...records.filter((r) => r.id.startsWith('manual-')).map((r) => ({ origem: 'MANUAL', atividadeTitulo: activity(r.atividadeId)?.titulo, ...r, projetoId: undefined })),
+      ].sort((a, b) => a.aplicadaEm.localeCompare(b.aplicadaEm));
+      const ativas = items.filter((i) => !i.perdao).length;
+      return { projetoId: pid, ativas, limite: 3, reprovado: ativas >= 3, penalidades: items };
+    };
+    if ((mm = p.match(/^\/programas\/([^/]+)\/penalidades$/))) return staff ? json(200, visible(mm[1]).map((x) => penaltiesOf(x.id))) : forbidden();
+    if ((mm = p.match(/^\/projetos\/([^/]+)\/penalidades$/))) {
+      const pr = project(mm[1]);
+      if (!pr || !canView(pr)) return json(403, { erro: 'Acesso restrito' });
+      if (m === 'GET') return json(200, penaltiesOf(pr.id));
+      if (!staff) return forbidden();
+      if (!body.motivo?.trim()) return json(400, { erro: 'Informe o motivo' });
+      db.penalties.push({ projetoId: pr.id, id: `manual-${db.penalties.length + 1}`, motivo: body.motivo.trim(), atividadeId: body.atividadeId, aplicadaEm: new Date().toISOString(), aplicadaPor: me.name, perdao: null });
+      return json(201, penaltiesOf(pr.id));
+    }
+    if ((mm = p.match(/^\/projetos\/([^/]+)\/penalidades\/([^/]+)\/perdao$/))) {
+      const pr = project(mm[1]);
+      if (!pr || !canView(pr) || !staff) return json(403, { erro: 'Apenas a coordenação e o orientador do projeto podem administrar penalidades' });
+      if (!body.motivo?.trim()) return json(400, { erro: 'Informe o motivo' });
+      const current = penaltiesOf(pr.id).penalidades.find((x) => x.id === mm[2]);
+      if (!current) return json(404, { erro: 'Penalidade não encontrada' });
+      if (current.perdao) return json(409, { erro: 'Esta penalidade já foi perdoada' });
+      const perdao = { motivo: body.motivo.trim(), por: me.name, em: new Date().toISOString() };
+      const record = db.penalties.find((r) => r.projetoId === pr.id && r.id === mm[2]);
+      if (record) record.perdao = perdao;
+      else db.penalties.push({ projetoId: pr.id, id: mm[2], perdao });
+      return json(200, penaltiesOf(pr.id));
+    }
     if (p === '/meus-convites') return json(200, []);
     if (p === '/usuarios' && !staff) return forbidden();
     if (p === '/usuarios') return json(200, Object.values(db.users).map((u) => ({ id: u.id, nome: u.nome, email: staff ? u.email : undefined, perfil: u.perfil, status: 'ATIVO', confirmado: !u.temporaria, cursoIds: [], rgm: u.rgm })));

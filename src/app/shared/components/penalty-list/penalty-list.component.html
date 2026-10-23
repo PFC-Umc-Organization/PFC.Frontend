@@ -1,0 +1,50 @@
+@if (penalties().length) {
+  <ul class="penalties">
+    @for (p of penalties(); track p.id) {
+      <li class="penalty" [class.penalty--waived]="p.perdao">
+        <div class="penalty__row">
+          <div class="penalty__text">
+            <span class="penalty__title">{{ title(p) }}</span>
+            <span class="penalty__meta">
+              {{ p.origem === 'PRAZO' ? 'Prazo encerrado em' : 'Aplicada em' }} {{ p.aplicadaEm | date: 'dd/MM/yyyy' }}
+              @if (p.aplicadaPor) {
+                por {{ p.aplicadaPor }}
+              }
+            </span>
+            @if (p.perdao; as w) {
+              <span class="penalty__waiver">
+                Perdoada em {{ w.em | date: 'dd/MM/yyyy' }} por {{ w.por }}: {{ w.motivo }}
+              </span>
+            }
+          </div>
+          @if (manageable() && !p.perdao && waiving() !== p.id) {
+            <button type="button" class="btn btn--outline btn--sm" (click)="start(p)">Perdoar</button>
+          }
+        </div>
+        @if (waiving() === p.id) {
+          <form class="waive" (submit)="$event.preventDefault(); waive(p)">
+            <div class="field waive__field">
+              <label class="field__label" [for]="'waive-' + p.id">Motivo do perdão</label>
+              <input
+                [id]="'waive-' + p.id"
+                class="control"
+                maxlength="500"
+                placeholder="Ex.: atestado médico"
+                [formControl]="reason"
+              />
+            </div>
+            <button type="submit" class="btn btn--primary btn--sm" [disabled]="busy()">
+              {{ busy() ? 'Perdoando…' : 'Confirmar perdão' }}
+            </button>
+            <button type="button" class="btn btn--outline btn--sm" (click)="waiving.set(null)">Cancelar</button>
+          </form>
+          @if (error()) {
+            <p class="field__error" role="alert">{{ error() }}</p>
+          }
+        }
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="muted text-sm">Nenhuma penalidade.</p>
+}

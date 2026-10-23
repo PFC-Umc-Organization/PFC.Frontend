@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 import { Activity, Submission } from '../../../core/models';
+import { editedLater } from '../../../core/services/submission-status';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
@@ -10,7 +11,6 @@ export interface SentSubmission {
   submission: Submission;
 }
 
-import { editedLater } from '../../../core/services/submission-status';
 @Component({
   selector: 'app-submission-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +23,7 @@ export class SubmissionListComponent {
 
   readonly items = input.required<SentSubmission[]>();
   readonly error = input('');
+  readonly editable = input(true);
   readonly edit = output<string>();
   readonly download = output<{ activityId: string; fieldId: string }>();
 }

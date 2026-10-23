@@ -20,7 +20,10 @@
   [error]="error()"
   [selected]="selected()"
   [emptyText]="emptyText()"
-  (open)="selected.set($event)"
+  [penalties]="penalties()"
+  [selectedPenalties]="penaltiesOf()?.projectId ?? null"
+  (open)="openCell($event)"
+  (openPenalties)="openPenalties($event)"
 />
 
 @if (detail(); as d) {
@@ -30,5 +33,14 @@
     [activity]="d.activity"
     [submission]="d.submission"
     (closed)="selected.set(null)"
+  />
+}
+
+@if (penaltyDetail(); as d) {
+  <app-penalty-panel
+    [projectName]="d.projectName"
+    [penalties]="d.penalties"
+    [activities]="grid().activities"
+    (closed)="penaltiesOf.set(null)"
   />
 }

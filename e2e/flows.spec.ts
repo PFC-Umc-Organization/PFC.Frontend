@@ -163,7 +163,7 @@ test.describe('coordination', () => {
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
 
     const before = api.calls.length;
-    await page.locator('button.cell').first().click();
+    await page.getByRole('button', { name: 'Athena, Monografia: Entregue' }).click();
     await expect(page.getByText('monografia.pdf')).toBeVisible();
     expect(api.calls.length).toBe(before);
     expect(api.failed).toEqual([]);
@@ -343,6 +343,48 @@ test.describe('passwords', () => {
     await page.fill('#password', 'Outra#1234');
     await page.click('button[type=submit]');
     await expect(page).toHaveURL(/\/referencias$/);
+  });
+});
+
+test.describe('penalties', () => {
+  const seed = (api: Api, n: number) => {
+    for (let i = 1; i <= n; i++) {
+      api.db.penalties.push({ projetoId: 'pr1', id: `manual-${i}`, motivo: `Motivo ${i}`, aplicadaEm: `2026-10-0${i}T12:00:00Z`, aplicadaPor: 'Orientadora Ana', perdao: null });
+    }
+  };
+
+  test('the student home counts penalties and, at three, shows REPROVADO and closes submissions', async ({ page, api }) => {
+    await signIn(page, STUDENT_WITH_GROUP);
+    await expect(page.getByText('0 de 3 penalidades')).toBeVisible();
+    seed(api, 3);
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Reprovado' })).toBeVisible();
+    await expect(page.getByText('Motivo 3')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Enviar entrega' })).toHaveCount(0);
+    await page.goto('/entregaveis');
+    await expect(page.getByRole('alert')).toContainText('O grupo foi reprovado');
+    await expect(page.locator('#activity')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0);
+  });
+
+  test('the advisor waives one from the panel and applies another, with a reason', async ({ page, api }) => {
+    seed(api, 3);
+    await signIn(page, ADVISOR);
+    await page.getByRole('button', { name: 'Athena, penalidades: reprovado' }).click();
+    await page.getByRole('button', { name: 'Perdoar' }).first().click();
+    await page.getByRole('button', { name: 'Confirmar perdão' }).click();
+    await expect(page.getByText('Informe o motivo do perdão.')).toBeVisible();
+    await page.getByLabel('Motivo do perdão').fill('Atestado médico');
+    await page.getByRole('button', { name: 'Confirmar perdão' }).click();
+    await expect(page.getByText('Perdoada em')).toContainText('Orientadora Ana: Atestado médico');
+    await expect(page.getByRole('button', { name: 'Athena, penalidades: 2 de 3' })).toBeVisible();
+
+    await page.getByLabel('Motivo', { exact: true }).fill('Entrega não validada');
+    await page.getByLabel('Atividade (opcional)').selectOption({ label: 'Monografia' });
+    await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
+    await expect(page.getByText('Entrega não validada (Monografia)')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Athena, penalidades: reprovado' })).toBeVisible();
+    expect(api.db.penalties.at(-1)).toMatchObject({ projetoId: 'pr1', motivo: 'Entrega não validada', atividadeId: 'a1' });
   });
 });
 

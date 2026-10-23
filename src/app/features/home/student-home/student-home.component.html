@@ -17,6 +17,15 @@
           <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
         </span>
       </p>
+    } @else if (failed()) {
+      <section class="failed" role="alert" aria-labelledby="failed-title">
+        <p class="eyebrow">Situação do grupo</p>
+        <h2 id="failed-title" class="failed__title">Reprovado</h2>
+        <p class="failed__text">
+          O grupo {{ project()!.nome }} chegou a {{ penalties()!.limite }} penalidades e não pode mais entregar. Se
+          alguma foi aplicada por engano, fale com o orientador ou com a coordenação.
+        </p>
+      </section>
     } @else if (next(); as n) {
       <section class="next" aria-labelledby="next-title">
         <div>
@@ -40,13 +49,30 @@
         <span>{{ missed() ? 'Nenhuma entrega aberta no momento.' : 'Tudo em dia: nenhuma entrega pendente.' }}</span>
       </p>
     }
+    @if (penalties(); as p) {
+      <section class="card penalties" aria-labelledby="penalties-title">
+        <div class="card__body penalties__body">
+          <div class="penalties__head">
+            <h2 id="penalties-title" class="section-title">Penalidades</h2>
+            <app-penalty-counter [penalties]="p" />
+          </div>
+          <p class="muted text-sm">
+            Cada atividade que passa do prazo sem entrega do grupo conta uma penalidade; o orientador e a coordenação
+            também podem aplicar ou perdoar. Com {{ p.limite }}, o grupo é reprovado.
+          </p>
+          @if (p.penalidades.length) {
+            <app-penalty-list [penalties]="p.penalidades" />
+          }
+        </div>
+      </section>
+    }
     <app-timeline
       eyebrow="Entregáveis"
       heading="Cronograma de entregas"
       [description]="description()"
       [items]="items()"
       [showLegend]="items().length > 0"
-      [interactive]="!!project()"
+      [interactive]="!!project() && !failed()"
     />
   }
 }

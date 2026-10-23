@@ -3,12 +3,12 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
 
 import { Activity, Submission } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
+import { editedLater } from '../../../core/services/submission-status';
 import { SubmissionService } from '../../../core/services/submission.service';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** What a group answered for one activity; the staff can hand it back. */
-import { editedLater } from '../../../core/services/submission-status';
 @Component({
   selector: 'app-submission-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,

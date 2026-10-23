@@ -1,0 +1,41 @@
+.counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.counter__marks {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.mark {
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1px solid color-mix(in oklch, var(--destructive) 45%, transparent);
+}
+
+.mark--on {
+  background: var(--destructive);
+  border-color: var(--destructive);
+}
+
+.counter--failed .counter__text {
+  color: var(--destructive);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.counter--compact {
+  gap: 0.375rem;
+  font-size: 0.75rem;
+}
+
+.counter--compact .mark {
+  width: 0.5rem;
+  height: 0.5rem;
+}

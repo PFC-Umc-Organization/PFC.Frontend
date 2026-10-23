@@ -1,12 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, switchMap, tap } from 'rxjs';
 
-import { Program, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
+import { Program, ProjectPenalties, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CohortService } from '../../../core/services/cohort.service';
+import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
+import { PenaltyPanelComponent } from '../penalty-panel/penalty-panel.component';
 import { CellRef, StatusGridComponent } from '../status-grid/status-grid.component';
 import { SubmissionDetailComponent } from '../submission-detail/submission-detail.component';
 
@@ -16,12 +18,13 @@ const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
 @Component({
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, SubmissionDetailComponent],
+  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent],
   templateUrl: './staff-home.component.html',
   styleUrl: './staff-home.component.scss',
 })
 export class StaffHomeComponent {
   private readonly submissionService = inject(SubmissionService);
+  private readonly penaltyService = inject(PenaltyService);
   private readonly auth = inject(AuthService);
   private readonly isAdvisor = computed(() => this.auth.role() === 'ORIENTADOR');
 
@@ -77,7 +80,36 @@ export class StaffHomeComponent {
     return this.isAdvisor() ? 'Nenhum projeto desta turma tem você como orientador.' : 'Nenhum projeto cadastrado nesta turma.';
   });
 
+  /** A failed load leaves the counters out; the grid still works. */
+  readonly penalties = toSignal(
+    toObservable(this.programId).pipe(
+      switchMap((programId) =>
+        programId
+          ? this.penaltyService.ofProgram(programId).pipe(catchError(() => of([] as ProjectPenalties[])))
+          : of([] as ProjectPenalties[]),
+      ),
+      map((list) => new Map(list.map((p) => [p.projetoId, p]))),
+    ),
+    { initialValue: new Map<string, ProjectPenalties>() },
+  );
+
   readonly selected = signal<CellRef | null>(null);
+  readonly penaltiesOf = signal<{ projectId: string; projectName: string } | null>(null);
+  readonly penaltyDetail = computed(() => {
+    const chosen = this.penaltiesOf();
+    const penalties = chosen && this.penalties().get(chosen.projectId);
+    return chosen && penalties ? { ...chosen, penalties } : null;
+  });
+
+  openCell(cell: CellRef): void {
+    this.penaltiesOf.set(null);
+    this.selected.set(cell);
+  }
+
+  openPenalties(project: { projectId: string; projectName: string }): void {
+    this.selected.set(null);
+    this.penaltiesOf.set(project);
+  }
 
   /** Taken from the grid: opening a cell makes no call. */
   readonly detail = computed(() => {

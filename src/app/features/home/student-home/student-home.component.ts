@@ -1,14 +1,17 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { catchError, map, of, startWith, switchMap } from 'rxjs';
 
-import { Project, TimelineItem } from '../../../core/models';
+import { Project, ProjectPenalties, TimelineItem } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
+import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { SubmissionService } from '../../../core/services/submission.service';
 import { submissionStatus } from '../../../core/services/submission-status';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
+import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
 import { TimelineComponent } from '../../../shared/components/timeline/timeline.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
@@ -25,13 +28,14 @@ type State =
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TimelineComponent, IconComponent, RouterLink, DeadlinePipe],
+  imports: [TimelineComponent, IconComponent, RouterLink, DeadlinePipe, PenaltyCounterComponent, PenaltyListComponent],
   templateUrl: './student-home.component.html',
   styleUrl: './student-home.component.scss',
 })
 export class StudentHomeComponent {
   private readonly submissionService = inject(SubmissionService);
   private readonly activityService = inject(ActivityService);
+  private readonly penaltyService = inject(PenaltyService);
 
   readonly state = toSignal(
     inject(ProjectService)
@@ -63,6 +67,19 @@ export class StudentHomeComponent {
     const s = this.state();
     return s.kind === 'ready' ? s.project : null;
   });
+  /** Null without a group or when the load fails; the schedule still shows. */
+  readonly penalties = toSignal(
+    toObservable(this.project).pipe(
+      switchMap((project) =>
+        project
+          ? this.penaltyService.ofProject(project.id).pipe(catchError(() => of(null)))
+          : of(null as ProjectPenalties | null),
+      ),
+    ),
+    { initialValue: null as ProjectPenalties | null },
+  );
+  readonly failed = computed(() => this.penalties()?.reprovado ?? false);
+
   readonly items = computed(() => {
     const s = this.state();
     return s.kind === 'ready' ? s.items : [];

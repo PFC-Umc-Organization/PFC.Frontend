@@ -16,6 +16,7 @@
       <thead>
         <tr>
           <th scope="col">Projeto</th>
+          <th scope="col">Penalidades</th>
           @for (a of grid().activities; track a.id) {
             <th scope="col">{{ a.titulo }}</th>
           }
@@ -24,12 +25,25 @@
       <tbody>
         @if (loading()) {
           <tr>
-            <td class="table-empty" [attr.colspan]="grid().activities.length + 1">Carregando projetos…</td>
+            <td class="table-empty" [attr.colspan]="grid().activities.length + 2">Carregando projetos…</td>
           </tr>
         } @else {
           @for (row of grid().rows; track row.project.id) {
             <tr>
               <td class="cell-strong">{{ row.project.nome }}</td>
+              <td>
+                @if (penalties().get(row.project.id); as p) {
+                  <button
+                    type="button"
+                    class="cell"
+                    [class.cell--active]="selectedPenalties() === row.project.id"
+                    (click)="openPenalties.emit({ projectId: row.project.id, projectName: row.project.nome })"
+                    [attr.aria-label]="row.project.nome + ', penalidades: ' + (p.reprovado ? 'reprovado' : p.ativas + ' de ' + p.limite)"
+                  >
+                    <app-penalty-counter [penalties]="p" [compact]="true" />
+                  </button>
+                }
+              </td>
               @for (c of row.cells; track c.activityId) {
                 <td>
                   <button
@@ -46,7 +60,7 @@
             </tr>
           } @empty {
             <tr>
-              <td class="table-empty" [attr.colspan]="grid().activities.length + 1">{{ emptyText() }}</td>
+              <td class="table-empty" [attr.colspan]="grid().activities.length + 2">{{ emptyText() }}</td>
             </tr>
           }
         }

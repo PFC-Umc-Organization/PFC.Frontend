@@ -1,0 +1,66 @@
+.penalties {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.penalty {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--destructive);
+  background: color-mix(in oklch, var(--destructive) 4%, transparent);
+}
+
+.penalty--waived {
+  border-left-color: var(--border);
+  background: var(--muted);
+}
+
+.penalty__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.penalty__text {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.penalty__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.penalty--waived .penalty__title {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+
+.penalty__meta,
+.penalty__waiver {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.penalty__waiver {
+  color: var(--success);
+}
+
+.waive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.waive__field {
+  flex: 1 1 16rem;
+}
