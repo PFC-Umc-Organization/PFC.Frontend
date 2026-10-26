@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, map, of, switchMap, tap } from 'rxjs';
+import { catchError, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { Program, ProjectPenalties, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
@@ -89,15 +89,16 @@ export class StaffHomeComponent {
           : of([] as ProjectPenalties[]),
       ),
       map((list) => new Map(list.map((p) => [p.projetoId, p]))),
+      startWith(undefined),
     ),
-    { initialValue: new Map<string, ProjectPenalties>() },
+    { initialValue: undefined as Map<string, ProjectPenalties> | undefined },
   );
 
   readonly selected = signal<CellRef | null>(null);
   readonly penaltiesOf = signal<{ projectId: string; projectName: string } | null>(null);
   readonly penaltyDetail = computed(() => {
     const chosen = this.penaltiesOf();
-    const penalties = chosen && this.penalties().get(chosen.projectId);
+    const penalties = chosen && this.penalties()?.get(chosen.projectId);
     return chosen && penalties ? { ...chosen, penalties } : null;
   });
 

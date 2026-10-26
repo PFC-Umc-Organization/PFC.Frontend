@@ -1,37 +1,42 @@
-<section class="card">
-  <div class="card__body">
-    <p class="eyebrow">Projeto cadastrado</p>
-    <h2 class="page-title mt-2">{{ detail().projeto.nome }}</h2>
-    <p class="lead mt-2">{{ detail().projeto.descricao }}</p>
-    @if (detail().turma; as cohort) {
-      <p class="text-sm mt-4"><span class="cell-strong">Turma: </span>{{ cohortLabel(cohort) }}</p>
-    }
-    <p class="text-sm mt-2">
-      <span class="cell-strong">Orientador: </span>
-      @if (detail().orientador; as advisor) {
-        {{ advisor.nome }}
-      } @else {
-        <span class="muted">Ainda não definido pelo coordenador de PFC.</span>
-      }
-    </p>
-  </div>
-</section>
-
-<section class="card card--flush">
-  <div class="card__head">
-    <app-icon name="users" class="card__head-icon" />
-    <h2 class="section-title">Integrantes do grupo</h2>
-  </div>
-  <ul class="members">
-    @for (m of detail().integrantes; track m.rgm) {
-      <li class="member">
-        <app-icon name="users" class="member__icon" />
-        @if (m.nome) {
-          <span class="cell-strong">{{ m.nome }}</span>
+<section class="card group" aria-label="Dados do grupo">
+  <dl class="facts">
+    <div class="fact">
+      <dt>Turma</dt>
+      <dd>{{ detail().turma ? cohortLabel(detail().turma!) : 'Não informada' }}</dd>
+    </div>
+    <div class="fact">
+      <dt>Orientador</dt>
+      <dd>
+        @if (detail().orientador; as advisor) {
+          {{ advisor.nome }}
         } @else {
-          <span class="cell-strong muted">RGM {{ m.rgm }} (aguardando cadastro)</span>
+          <span class="muted">A coordenação ainda vai definir</span>
         }
-      </li>
-    }
-  </ul>
+      </dd>
+    </div>
+  </dl>
+
+  <div class="members">
+    <h2 class="members__title">
+      Integrantes
+      <span class="card__count">{{ detail().integrantes.length }}</span>
+    </h2>
+    <ul class="members__list">
+      @for (m of detail().integrantes; track m.rgm) {
+        <li class="member">
+          <span class="member__name">
+            @if (m.nome) {
+              {{ m.nome }}
+            } @else {
+              <span class="muted">Aguardando cadastro</span>
+            }
+            @if (m.rgm === myRgm()) {
+              <span class="member__me">você</span>
+            }
+          </span>
+          <span class="member__rgm">RGM {{ m.rgm }}</span>
+        </li>
+      }
+    </ul>
+  </div>
 </section>

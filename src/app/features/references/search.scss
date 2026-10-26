@@ -17,3 +17,9 @@
   font-weight: 600;
   color: var(--destructive);
 }
+
+@media (max-width: 600px) {
+  .search > .btn {
+    flex: 1 1 100%;
+  }
+}

@@ -1,5 +1,6 @@
 
 :root {
+  accent-color: var(--primary);
   /* Brand */
   --primary: oklch(38% 0.14 264);
   --primary-foreground: oklch(99% 0 0);
@@ -51,6 +52,11 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+}
+
+p,
+li {
+  text-wrap: pretty;
 }
 
 body {
@@ -143,6 +149,41 @@ h4 {
   color: var(--muted-foreground);
 }
 
+/* A state written as text in a table cell, with a dot when it is good news. */
+.status-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.status-text--ok {
+  color: var(--foreground);
+}
+
+.status-text--warn {
+  color: var(--bronze);
+}
+
+.status-text--bad {
+  color: var(--destructive);
+}
+
+.status-text--ok::before {
+  content: '';
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--success);
+}
+
+/* A value still loading: never show a guess in its place. */
+.pending {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
 /* -------------------------------------------------------------------------
    4. Layout
    ------------------------------------------------------------------------- */
@@ -222,6 +263,100 @@ h4 {
   color: var(--primary);
 }
 
+.card__count {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+
+/* Right side of a card head: a filter, the button that opens its form. */
+.card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+/* Neutral information: something to know or do, not an error. */
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--bronze);
+  background: color-mix(in oklch, var(--bronze) 7%, var(--card));
+  font-size: 0.875rem;
+  color: var(--foreground);
+}
+
+/* An error about a whole list, right under its head. */
+.card__alert {
+  margin: 0 1.25rem 1rem;
+}
+
+/* Title of a form card, with its Cancelar on the right. */
+.form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.card__head--wrap {
+  flex-wrap: wrap;
+  row-gap: 0.75rem;
+}
+
+/* The sections of a page. A choice inside a form stays .segmented. */
+.tabs {
+  display: flex;
+  gap: 2rem;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  scrollbar-width: none;
+}
+
+.tabs__item {
+  flex: none;
+  margin-bottom: -1px;
+  padding: 0.75rem 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tabs__item:hover {
+  color: var(--foreground);
+}
+
+.tabs__item[aria-pressed='true'] {
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.tabs__item:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+  .tabs {
+    gap: 1.5rem;
+  }
+}
+
 /* -------------------------------------------------------------------------
    6. Buttons
    ------------------------------------------------------------------------- */
@@ -244,8 +379,16 @@ h4 {
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.55;
   pointer-events: none;
+}
+
+/* A faded blue reads as broken; a disabled primary turns neutral. */
+.btn--primary:disabled {
+  opacity: 1;
+  background: var(--muted);
+  border-color: var(--border);
+  color: var(--muted-foreground);
 }
 
 .btn--primary {
@@ -334,6 +477,30 @@ h4 {
   text-decoration-color: var(--primary);
 }
 
+/* A small action next to a value in a table, such as "Trocar" an advisor. */
+.text-action {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+}
+
+.text-action:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.text-action--danger {
+  color: var(--muted-foreground);
+}
+
+.text-action--danger:hover {
+  color: var(--destructive);
+}
+
 /* -------------------------------------------------------------------------
    7. Forms
    ------------------------------------------------------------------------- */
@@ -382,10 +549,20 @@ legend.field__label {
   background: none;
   color: var(--primary);
   font: inherit;
-  text-decoration: underline;
+  text-decoration: none;
   cursor: pointer;
   overflow-wrap: anywhere;
   text-align: left;
+}
+
+.text-button__label {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--primary) 35%, transparent);
+  text-underline-offset: 4px;
+}
+
+.text-button:hover .text-button__label {
+  text-decoration-color: var(--primary);
 }
 
 .field__hint {
@@ -512,13 +689,14 @@ select.control {
 }
 
 /* -------------------------------------------------------------------------
-   8. Segmented control (section tabs)
+   8. Segmented control (a choice inside a form)
    ------------------------------------------------------------------------- */
 .segmented {
   display: inline-flex;
-  border: 1px solid color-mix(in oklch, var(--primary) 20%, transparent);
-  background: color-mix(in oklch, var(--marble) 70%, transparent);
+  gap: 0.25rem;
   padding: 0.25rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
 }
 
 .segmented--grid {
@@ -528,19 +706,29 @@ select.control {
 }
 
 .segmented__item {
-  padding: 0.625rem 0.75rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid transparent;
+  background: none;
   font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--primary);
+  font-weight: 500;
+  color: var(--muted-foreground);
+  cursor: pointer;
   transition:
     background-color 0.15s ease,
     color 0.15s ease;
 }
 
+.segmented__item:hover {
+  color: var(--foreground);
+}
+
 .segmented__item[aria-pressed='true'],
 .segmented__item[aria-selected='true'] {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: var(--card);
+  border-color: var(--border);
+  font-weight: 600;
+  color: var(--primary);
+  box-shadow: 0 1px 2px oklch(22% 0.04 260 / 0.08);
 }
 
 /* The form of the signed-out screens. */
@@ -553,6 +741,19 @@ select.control {
 .auth-switch {
   font-size: 0.875rem;
   color: var(--muted-foreground);
+}
+
+/* Links of the signed-out screens look like .link-button. */
+.auth-switch a {
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklch, var(--primary) 30%, transparent);
+  text-underline-offset: 4px;
+}
+
+.auth-switch a:hover {
+  text-decoration-color: var(--primary);
 }
 
 /* Error (.alert) and success (.ok) messages; each screen sets the spacing around. */
@@ -677,6 +878,64 @@ select.control {
      scroll; otherwise they widened the whole page on a phone. */
   position: relative;
   overflow-x: auto;
+}
+
+/* Set by ScrollHintDirective: fade the side that still hides content. A box
+   whose first column is sticky only fades the right. */
+[data-more-right] {
+  mask-image: linear-gradient(to right, #000 calc(100% - 3rem), transparent);
+}
+
+[data-more-left]:not([data-sticky-start]) {
+  mask-image: linear-gradient(to left, #000 calc(100% - 3rem), transparent);
+}
+
+[data-more-left][data-more-right]:not([data-sticky-start]) {
+  mask-image: linear-gradient(to right, transparent, #000 3rem, #000 calc(100% - 3rem), transparent);
+}
+
+.data-table {
+  width: 100%;
+  min-width: 42.5rem;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.data-table thead {
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
+}
+
+.data-table th {
+  padding: 0.75rem 1.25rem;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+
+.data-table td {
+  padding: 1rem 1.25rem;
+  color: var(--muted-foreground);
+  vertical-align: middle;
+}
+
+.data-table tbody tr {
+  border-top: 1px solid var(--border);
+}
+
+.data-table tbody tr:hover {
+  background: color-mix(in oklch, var(--primary) 3%, transparent);
+}
+
+.data-table .cell-strong {
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.table-empty {
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  color: var(--muted-foreground);
 }
 
 .data-table {
@@ -841,5 +1100,5 @@ select.control {
   text-align: center;
   color: var(--muted-foreground);
   background: var(--card);
-  border: 1px dashed color-mix(in oklch, var(--primary) 20%, transparent);
+  border: 1px solid var(--border);
 }

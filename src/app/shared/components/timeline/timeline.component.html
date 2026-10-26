@@ -4,7 +4,7 @@
       @if (eyebrow()) {
         <p class="eyebrow">{{ eyebrow() }}</p>
       }
-      <h2 class="page-title mt-2">{{ heading() }}</h2>
+      <h2 [class]="compact() ? 'section-title' : 'page-title mt-2'">{{ heading() }}</h2>
       @if (description()) {
         <p class="lead mt-2">{{ description() }}</p>
       }
@@ -24,10 +24,10 @@
 
   @if (sorted().length === 0) {
     <p class="empty-state">
-      Nenhuma atividade publicada ainda. Assim que o professor cadastrar a primeira entrega, ela aparece aqui.
+      Nenhuma atividade publicada ainda. Assim que a coordenação publicar a primeira entrega, ela aparece aqui.
     </p>
   } @else {
-    <div class="track" #track>
+    <div class="track" #track appScrollHint>
       <ol class="track__list">
         @for (item of sorted(); track item.activityId; let first = $first) {
           <li class="track__item">

@@ -1,14 +1,11 @@
-<section class="card">
+<section class="card" aria-labelledby="new-activity-heading">
   <div class="card__body">
-    <h2 class="section-title">Nova atividade</h2>
-    <p class="lead text-sm mt-1">Informe os dados da próxima entrega.</p>
+    <div class="form-head">
+      <h2 id="new-activity-heading" class="section-title">Nova atividade</h2>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">Cancelar</button>
+    </div>
+    <p class="lead text-sm mt-1">Vale para todas as turmas: as entregas do PFC são as mesmas para todos os grupos.</p>
 
-    @if (published()) {
-      <p class="ok mt-4" role="status">
-        <app-icon name="check" />
-        Atividade publicada. Ela já aparece na timeline de todos os projetos.
-      </p>
-    }
     @if (error()) {
       <p class="alert mt-4" role="alert">
         <app-icon name="alert" />

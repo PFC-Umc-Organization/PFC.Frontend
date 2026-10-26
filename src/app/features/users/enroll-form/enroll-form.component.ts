@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -12,6 +12,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, RouterLink, IconComponent],
   templateUrl: './enroll-form.component.html',
+  styles: '.failures { margin: 0.25rem 0 0; padding-left: 1.25rem; }',
 })
 export class EnrollFormComponent {
   private readonly enrollmentService = inject(EnrollmentService);
@@ -30,6 +31,9 @@ export class EnrollFormComponent {
   readonly saving = signal(false);
   readonly result = signal<EnrollmentResult | null>(null);
   readonly error = signal('');
+  readonly closed = output();
+  /** Only when every RGM went in; with failures the form stays open to show them. */
+  readonly created = output<string>();
 
   invalid(name: 'turmaId' | 'rgms'): boolean {
     const c = this.form.controls[name];
@@ -53,8 +57,12 @@ export class EnrollFormComponent {
     this.enrollmentService.enroll(rgms, turmaId).subscribe({
       next: (result) => {
         this.saving.set(false);
-        this.result.set(result);
         this.form.reset({ turmaId: '', rgms: '' });
+        if (result.falhas.length === 0) {
+          this.created.emit(result.processados === 1 ? '1 RGM pré-autorizado.' : `${result.processados} RGMs pré-autorizados.`);
+        } else {
+          this.result.set(result);
+        }
       },
       error: (e: Error) => {
         this.saving.set(false);

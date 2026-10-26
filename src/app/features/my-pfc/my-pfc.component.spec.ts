@@ -41,7 +41,7 @@ describe('MyPfcComponent', () => {
     );
     expect(text).toContain('Athena');
     expect(text).toContain('Ana');
-    expect(text).toContain('RGM 222 (aguardando cadastro)');
+    expect(text).toContain('Aguardando cadastroRGM 222');
     expect(text).toContain('Prof. Bia');
     expect(text).toContain('Engenharia de Software (Noite, 2026.2)');
   });

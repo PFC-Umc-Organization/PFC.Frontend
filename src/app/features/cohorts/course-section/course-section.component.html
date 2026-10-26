@@ -1,46 +1,60 @@
-<section class="card">
-  <div class="card__body">
-    <h2 class="section-title">Novo curso</h2>
-
-    @if (store.coursesError()) {
-      <p class="alert mt-4" role="alert">
-        <app-icon name="alert" />
-        <span>{{ store.coursesError() }}</span>
-      </p>
-    }
-
-    <form class="form-grid form-grid--2 mt-6" [formGroup]="form" (ngSubmit)="create()">
-      <div class="field">
-        <label class="field__label" for="new-course-name">Nome do curso</label>
-        <input
-          id="new-course-name"
-          type="text"
-          class="control"
-          placeholder="Ex.: Engenharia de Software"
-          maxlength="100"
-          formControlName="nome"
-          [class.control--invalid]="invalid(name)"
-        />
-        @if (invalid(name)) {
-          <span class="field__error">Informe o nome do curso.</span>
+@if (formOpen() || store.courses().length === 0) {
+  <section class="card" aria-labelledby="new-course-title">
+    <div class="card__body">
+      <div class="form-head">
+        <h2 id="new-course-title" class="section-title">Novo curso</h2>
+        @if (store.courses().length > 0) {
+          <button type="button" class="btn btn--ghost btn--sm" (click)="formOpen.set(false)">Cancelar</button>
         }
       </div>
 
-      <div class="form-grid__full">
-        <button type="submit" class="btn btn--primary" [disabled]="creating()">
-          <app-icon name="plus" class="btn__icon" />
-          {{ creating() ? 'Criando…' : 'Criar curso' }}
-        </button>
-      </div>
-    </form>
-  </div>
-</section>
+      <form class="form-grid form-grid--2 mt-6" [formGroup]="form" (ngSubmit)="create()">
+        <div class="field">
+          <label class="field__label" for="new-course-name">Nome do curso</label>
+          <input
+            id="new-course-name"
+            type="text"
+            class="control"
+            placeholder="Ex.: Engenharia de Software"
+            maxlength="100"
+            formControlName="nome"
+            [class.control--invalid]="invalid(name)"
+          />
+          @if (invalid(name)) {
+            <span class="field__error">Informe o nome do curso.</span>
+          }
+        </div>
+
+        <div class="form-grid__full">
+          <button type="submit" class="btn btn--primary" [disabled]="creating()">
+            {{ creating() ? 'Criando…' : 'Criar curso' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+}
 
 <section class="card card--flush">
   <div class="card__head">
-    <app-icon name="book" class="card__head-icon" />
-    <h2 class="section-title">Cursos cadastrados ({{ store.courses().length }})</h2>
+    <h2 class="section-title">Cursos</h2>
+    <span class="card__count">{{ store.courses().length }} {{ store.courses().length === 1 ? 'curso' : 'cursos' }}</span>
+    @if (!formOpen() && store.courses().length > 0) {
+      <div class="card__actions">
+        <button type="button" class="btn btn--primary btn--sm" (click)="formOpen.set(true)">
+          <app-icon name="plus" class="btn__icon" />
+          Novo curso
+        </button>
+      </div>
+    }
   </div>
+
+  @if (store.coursesError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ store.coursesError() }}</span>
+    </p>
+  }
 
   <div class="table-scroll">
     <table class="data-table">

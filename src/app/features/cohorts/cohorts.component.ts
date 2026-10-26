@@ -13,7 +13,6 @@ type Section = 'courses' | 'cohorts';
   imports: [CourseSectionComponent, CohortSectionComponent],
   providers: [CohortsStore],
   templateUrl: './cohorts.component.html',
-  styles: '.sections { grid-template-columns: repeat(2, minmax(0, 1fr)); }',
 })
 export class CohortsComponent {
   readonly sections: { id: Section; label: string }[] = [

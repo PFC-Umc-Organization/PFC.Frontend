@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output, signal, viewChild } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 
 import { DEFAULT_FIELD, NewField } from '../../../core/models';
@@ -21,7 +21,8 @@ export class NewActivityComponent {
   readonly form = activityForm();
   readonly fields = signal<NewField[]>([{ ...DEFAULT_FIELD }]);
   readonly saving = signal(false);
-  readonly published = signal(false);
+  readonly closed = output();
+  readonly created = output();
   readonly error = signal('');
 
   addField(field: NewField): void {
@@ -34,7 +35,6 @@ export class NewActivityComponent {
   }
 
   publish(): void {
-    this.published.set(false);
     this.error.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -44,9 +44,9 @@ export class NewActivityComponent {
     this.activityService.create({ ...this.form.getRawValue(), campos: this.fields() }).subscribe({
       next: () => {
         this.saving.set(false);
-        this.published.set(true);
         this.form.reset();
         this.fields.set([{ ...DEFAULT_FIELD }]);
+        this.created.emit();
       },
       error: (e: Error) => {
         this.saving.set(false);

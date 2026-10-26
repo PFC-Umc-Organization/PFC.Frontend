@@ -1,48 +1,12 @@
 <section class="card card--flush">
-  <div class="card__head head">
-    <div class="row">
-      <app-icon name="landmark" class="card__head-icon" />
-      <h2 class="section-title">Criar programa de PFC</h2>
-    </div>
-    <div class="field picker">
-      <app-cohort-picker />
-    </div>
+  <div class="card__head card__head--wrap">
+    <h2 class="section-title">Programas de PFC</h2>
+    <span class="card__count">{{ withProgram() }} de {{ rows().length }} turmas com programa</span>
   </div>
-
-  @if (error()) {
-    <p class="alert" role="alert">
-      <app-icon name="alert" />
-      <span>{{ error() }}</span>
-    </p>
-  }
-
-  <div class="state">
-    @if (!store.program()) {
-      <p class="lead text-sm">
-        Esta turma ainda não tem programa de PFC. Enquanto ele não for criado, os alunos não
-        conseguem criar o PFC do grupo.
-      </p>
-      <button type="button" class="btn btn--primary btn--sm" [disabled]="creating()" (click)="create()">
-        <app-icon name="plus" class="btn__icon" />
-        {{ creating() ? 'Criando…' : 'Criar programa de PFC' }}
-      </button>
-    } @else {
-      <p class="ok" role="status">
-        <app-icon name="check" />
-        Programa de PFC criado para esta turma. Os alunos já podem criar os PFCs dos grupos.
-      </p>
-    }
-  </div>
-</section>
-
-<section class="card card--flush">
-  <div class="card__head">
-    <app-icon name="clipboard" class="card__head-icon" />
-    <h2 class="section-title">Programas criados ({{ rows().length }})</h2>
-  </div>
+  <p class="intro">Sem o programa, os alunos da turma não conseguem criar o PFC do grupo.</p>
 
   @if (store.programsError()) {
-    <p class="alert" role="alert">
+    <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ store.programsError() }}</span>
     </p>
@@ -53,34 +17,40 @@
       <thead>
         <tr>
           <th scope="col">Turma</th>
-          <th scope="col">Período</th>
-          <th scope="col">PFCs criados pelos alunos</th>
+          <th scope="col">Programa</th>
+          <th scope="col">PFCs dos alunos</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
       <tbody>
-        @for (p of rows(); track p.id) {
-          @if (editingId() === p.id) {
+        @for (r of rows(); track r.key) {
+          @if (r.programId && editingId() === r.programId) {
             <tr>
               <td colspan="4">
                 <div class="edit">
                   <div class="field">
-                    <label class="field__label" for="program-cohort">Turma do programa</label>
+                    <label class="field__label" for="program-cohort">Mover o programa para a turma</label>
                     <select
                       id="program-cohort"
                       class="control"
                       [value]="newCohortId()"
                       (change)="newCohortId.set($any($event.target).value)"
                     >
-                      @for (c of store.cohorts(); track c.id) {
-                        <option [value]="c.id">{{ courseShiftLabel(c) }} - {{ c.periodo }}</option>
+                      <option value="" disabled>Escolha a turma</option>
+                      @for (c of freeCohorts(); track c.id) {
+                        <option [value]="c.id">{{ cohortLabel(c) }}</option>
                       }
                     </select>
                   </div>
                   <div class="row">
-                    <button type="button" class="btn btn--primary btn--sm" (click)="saveEdit(p.id)">Salvar</button>
-                    <button type="button" class="btn btn--outline btn--sm" (click)="editingId.set(null)">
-                      Cancelar
+                    <button type="button" class="btn btn--ghost btn--sm" (click)="editingId.set(null)">Cancelar</button>
+                    <button
+                      type="button"
+                      class="btn btn--primary btn--sm"
+                      [disabled]="!newCohortId()"
+                      (click)="saveEdit(r.programId)"
+                    >
+                      Mover
                     </button>
                   </div>
                 </div>
@@ -88,38 +58,63 @@
             </tr>
           } @else {
             <tr>
-              <td class="cell-strong">{{ p.cohort }}</td>
-              <td>{{ p.term }}</td>
-              <td>{{ p.projects }}</td>
+              <td class="cell-strong">{{ r.label }}</td>
               <td>
-                <div class="row">
+                @if (r.programId) {
+                  <span class="status-text status-text--ok">Criado</span>
+                } @else {
+                  <span class="status-text">Sem programa</span>
+                }
+              </td>
+              <td>
+                @if (!r.programId) {
+                  <span class="muted">—</span>
+                } @else if (r.projects === undefined) {
+                  <span class="pending">Contando…</span>
+                } @else {
+                  {{ r.projects }}
+                }
+              </td>
+              <td class="actions">
+                @if (!r.programId) {
                   <button
                     type="button"
-                    class="icon-action"
-                    [disabled]="p.projects > 0"
-                    [attr.title]="p.projects > 0 ? 'Não dá para trocar a turma de um programa que já tem PFCs' : null"
-                    (click)="startEdit(p.id, p.cohortId)"
-                    [attr.aria-label]="'Editar programa de ' + p.cohort"
+                    class="btn btn--outline btn--sm"
+                    [disabled]="creating() === r.cohortId"
+                    (click)="create(r.cohortId)"
                   >
-                    <app-icon name="edit" />
+                    {{ creating() === r.cohortId ? 'Criando…' : 'Criar programa' }}
                   </button>
-                  <button
-                    type="button"
-                    class="icon-action"
-                    [disabled]="p.projects > 0"
-                    [attr.title]="p.projects > 0 ? 'Não dá para excluir um programa que já tem PFCs' : null"
-                    (click)="remove(p.id, p.cohort)"
-                    [attr.aria-label]="'Excluir programa de ' + p.cohort"
-                  >
-                    <app-icon name="trash" />
-                  </button>
-                </div>
+                } @else {
+                  <div class="row">
+                    <button
+                      type="button"
+                      class="icon-action"
+                      [disabled]="r.projects !== 0 || freeCohorts().length === 0"
+                      [attr.title]="(r.projects ?? 0) > 0 ? 'Não dá para mover um programa que já tem PFCs' : 'Mover para outra turma'"
+                      (click)="startEdit(r.programId, '')"
+                      [attr.aria-label]="'Mover programa de ' + r.label"
+                    >
+                      <app-icon name="edit" />
+                    </button>
+                    <button
+                      type="button"
+                      class="icon-action"
+                      [disabled]="r.projects !== 0"
+                      [attr.title]="(r.projects ?? 0) > 0 ? 'Não dá para excluir um programa que já tem PFCs' : 'Excluir programa'"
+                      (click)="remove(r.programId, r.label)"
+                      [attr.aria-label]="'Excluir programa de ' + r.label"
+                    >
+                      <app-icon name="trash" />
+                    </button>
+                  </div>
+                }
               </td>
             </tr>
           }
         } @empty {
           <tr>
-            <td class="table-empty" colspan="4">Nenhum programa de PFC criado ainda.</td>
+            <td class="table-empty" colspan="4">Nenhuma turma cadastrada. Crie as turmas em Turmas.</td>
           </tr>
         }
       </tbody>

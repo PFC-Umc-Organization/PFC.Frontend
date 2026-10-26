@@ -1,11 +1,19 @@
 <section class="card card--flush">
-  <div class="card__head">
-    <app-icon name="clipboard" class="card__head-icon" />
+  <div class="card__head card__head--wrap">
     <h2 class="section-title">RGMs pré-autorizados</h2>
+    <span class="card__count">{{ enrollments().length }} {{ enrollments().length === 1 ? 'RGM' : 'RGMs' }}</span>
+    @if (canAdd()) {
+      <div class="card__actions">
+        <button type="button" class="btn btn--primary btn--sm" (click)="add.emit()">
+          <app-icon name="plus" class="btn__icon" />
+          Pré-autorizar RGMs
+        </button>
+      </div>
+    }
   </div>
 
   @if (error()) {
-    <p class="alert" role="alert">
+    <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ error() }}</span>
     </p>
@@ -27,18 +35,18 @@
             <td class="cell-strong">{{ m.rgm }}</td>
             <td>{{ cohortName(m.turmaId) }}</td>
             <td>
-              @if (accountOf(m.rgm); as account) {
+              @if (users() === undefined) {
+                <span class="pending">Verificando…</span>
+              } @else if (accountOf(m.rgm); as account) {
                 @if (account.confirmado === false) {
-                  <span class="badge badge--muted" title="A conta existe, mas o e-mail ainda não foi confirmado">
+                  <span class="status-text status-text--warn" title="A conta existe, mas o e-mail ainda não foi confirmado">
                     Conta não confirmada
                   </span>
                 } @else {
-                  <span class="badge badge--primary">
-                    Conta criada{{ account.nome ? ': ' + account.nome : '' }}
-                  </span>
+                  <span class="status-text status-text--ok">Conta criada{{ account.nome ? ': ' + account.nome : '' }}</span>
                 }
               } @else {
-                <span class="badge badge--muted">Aguardando cadastro</span>
+                <span class="status-text">Aguardando cadastro</span>
               }
             </td>
             <td>

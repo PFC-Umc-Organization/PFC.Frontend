@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 
 import { Activity, Submission } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
@@ -7,12 +7,13 @@ import { editedLater } from '../../../core/services/submission-status';
 import { SubmissionService } from '../../../core/services/submission.service';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
 /** What a group answered for one activity; the staff can hand it back. */
 @Component({
   selector: 'app-submission-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, IconComponent, AnswerListComponent],
+  imports: [DatePipe, IconComponent, AnswerListComponent, DeadlinePipe],
   templateUrl: './submission-detail.component.html',
   styleUrl: './submission-detail.component.scss',
 })
@@ -29,6 +30,7 @@ export class SubmissionDetailComponent {
   readonly closed = output();
 
   readonly error = signal('');
+  readonly deadlinePassed = computed(() => new Date(this.activity().prazo) < new Date());
 
   download(fieldId: string): void {
     this.error.set('');

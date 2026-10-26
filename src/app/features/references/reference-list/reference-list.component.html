@@ -1,10 +1,8 @@
 <section class="card card--flush">
   <div class="card__head row--between head">
     <div class="row">
-      <app-icon name="book" class="card__head-icon" />
-      <h2 class="section-title">
-        Referências {{ projectName() ? 'do projeto ' + projectName() : '' }} ({{ references().length }})
-      </h2>
+      <h2 class="section-title">Referências {{ projectName() ? 'do projeto ' + projectName() : 'do grupo' }}</h2>
+      <span class="card__count">{{ references().length }} {{ references().length === 1 ? 'referência' : 'referências' }}</span>
     </div>
     @if (references().length > 0) {
       <button type="button" class="btn btn--outline btn--sm" (click)="copyAll()">

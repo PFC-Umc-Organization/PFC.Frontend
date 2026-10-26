@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { map } from 'rxjs';
@@ -40,7 +40,8 @@ export class MaterialFormComponent {
   readonly fileError = signal('');
   readonly saving = signal(false);
   readonly error = signal('');
-  readonly published = signal(false);
+  readonly closed = output();
+  readonly created = output();
 
   /** `url` is disabled for a file, so the form's own validity covers both sources. */
   private readonly formValid = toSignal(this.form.statusChanges.pipe(map(() => this.form.valid)), {
@@ -70,7 +71,6 @@ export class MaterialFormComponent {
 
   upload(file: File): void {
     this.fileError.set('');
-    this.published.set(false);
     this.progress.set(0);
     this.materialService.uploadFile(file).subscribe({
       next: (ev) => {
@@ -90,7 +90,6 @@ export class MaterialFormComponent {
 
   publish(): void {
     this.error.set('');
-    this.published.set(false);
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -111,9 +110,9 @@ export class MaterialFormComponent {
       .subscribe({
         next: () => {
           this.saving.set(false);
-          this.published.set(true);
           this.file.set(null);
           this.form.reset({ tipo, cursoId });
+          this.created.emit();
         },
         error: (e: Error) => {
           this.saving.set(false);

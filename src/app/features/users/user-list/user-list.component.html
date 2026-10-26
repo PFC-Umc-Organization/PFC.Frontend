@@ -1,47 +1,55 @@
-<div class="stat-grid">
-  @for (s of stats(); track s.label) {
-    <article class="stat">
-      <p class="stat__value">{{ s.value }}</p>
-      <p class="stat__label">{{ s.label }}</p>
-    </article>
-  }
-</div>
+<section class="card card--flush">
+  <div class="card__head card__head--wrap">
+    <h2 class="section-title">Contas</h2>
+    <span class="card__count">{{ stats().total }} {{ stats().total === 1 ? 'conta' : 'contas' }}</span>
+    @if (canAdd()) {
+      <div class="card__actions">
+        <button type="button" class="btn btn--primary btn--sm" (click)="add.emit()">
+          <app-icon name="plus" class="btn__icon" />
+          Nova conta da equipe
+        </button>
+      </div>
+    }
+  </div>
 
-<div class="filters">
-  <div class="field">
-    <label class="field__label" for="user-search">Buscar usuário</label>
-    <div class="control-wrap">
-      <app-icon name="search" class="control-wrap__icon" />
-      <input
-        id="user-search"
-        type="search"
-        class="control"
-        placeholder="Nome, e-mail ou RGM"
-        [value]="search()"
-        (input)="setSearch($event)"
-      />
+  <dl class="summary">
+    @for (s of stats().byRole; track s.label) {
+      <div class="summary__item">
+        <dt>{{ s.label }}</dt>
+        <dd>{{ s.value }}</dd>
+      </div>
+    }
+  </dl>
+
+  <div class="filters">
+    <div class="field">
+      <label class="field__label" for="user-search">Buscar</label>
+      <div class="control-wrap">
+        <app-icon name="search" class="control-wrap__icon" />
+        <input
+          id="user-search"
+          type="search"
+          class="control"
+          placeholder="Nome, e-mail ou RGM"
+          [value]="search()"
+          (input)="setSearch($event)"
+        />
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field__label" for="user-role">Perfil</label>
+      <select id="user-role" class="control" [value]="role()" (change)="setRole($event)">
+        <option value="TODOS">Todos</option>
+        <option value="ALUNO">Aluno</option>
+        <option value="ORIENTADOR">Orientador</option>
+        <option value="ADMIN">Coordenação</option>
+      </select>
     </div>
   </div>
 
-  <div class="field">
-    <label class="field__label" for="user-role">Filtrar por função</label>
-    <select id="user-role" class="control" [value]="role()" (change)="setRole($event)">
-      <option value="TODOS">Todos</option>
-      <option value="ORIENTADOR">Orientador</option>
-      <option value="ADMIN">Admin</option>
-      <option value="ALUNO">Aluno</option>
-    </select>
-  </div>
-</div>
-
-<section class="card card--flush">
-  <div class="card__head">
-    <app-icon name="users" class="card__head-icon" />
-    <h2 class="section-title">Usuários</h2>
-  </div>
-
   @if (error()) {
-    <p class="alert" role="alert">
+    <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ error() }}</span>
     </p>
@@ -51,11 +59,11 @@
     <table class="data-table">
       <thead>
         <tr>
-          <th scope="col">Usuário</th>
-          <th scope="col">RGM</th>
+          <th scope="col">Nome</th>
+          <th scope="col">Perfil</th>
           <th scope="col">E-mail</th>
-          <th scope="col">Função</th>
-          <th scope="col">Status</th>
+          <th scope="col">RGM</th>
+          <th scope="col">Situação</th>
         </tr>
       </thead>
       <tbody>
@@ -68,25 +76,28 @@
                 <span class="muted">Sem nome cadastrado</span>
               }
             </td>
-            <td>{{ u.rgm ?? '—' }}</td>
+            <td>{{ roleLabel[u.perfil] }}</td>
             <td>{{ u.email }}</td>
             <td>
-              <span class="badge" [class]="u.perfil === 'ALUNO' ? 'badge--muted' : 'badge--primary'">
-                {{ roleLabel[u.perfil] }}
-              </span>
+              @if (u.rgm) {
+                {{ u.rgm }}
+              } @else {
+                <span class="muted">Não se aplica</span>
+              }
             </td>
             <td>
-              <span class="badge" [class]="u.status === 'ATIVO' ? 'badge--success' : 'badge--destructive'">
-                {{ u.status === 'ATIVO' ? 'Ativo' : 'Inativo' }}
-              </span>
-              @if (u.confirmado === false) {
-                <span class="badge badge--muted">E-mail não confirmado</span>
+              @if (u.status !== 'ATIVO') {
+                <span class="status-text status-text--bad">Inativa</span>
+              } @else if (u.confirmado === false) {
+                <span class="status-text status-text--warn">E-mail não confirmado</span>
+              } @else {
+                <span class="status-text status-text--ok">Ativa</span>
               }
             </td>
           </tr>
         } @empty {
           <tr>
-            <td class="table-empty" colspan="5">Nenhum usuário encontrado com esses filtros.</td>
+            <td class="table-empty" colspan="5">Nenhuma conta encontrada com esses filtros.</td>
           </tr>
         }
       </tbody>

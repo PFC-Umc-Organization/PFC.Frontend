@@ -6,6 +6,7 @@ import { StatusGrid } from '../../../core/services/submission.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
+import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 export interface CellRef {
   projectId: string;
@@ -17,7 +18,7 @@ export interface CellRef {
 @Component({
   selector: 'app-status-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, IconComponent, StatusBadgeComponent, PenaltyCounterComponent],
+  imports: [DatePipe, IconComponent, StatusBadgeComponent, PenaltyCounterComponent, ScrollHintDirective],
   templateUrl: './status-grid.component.html',
   styleUrl: './status-grid.component.scss',
 })
@@ -29,8 +30,8 @@ export class StatusGridComponent {
   /** What the empty table says. */
   readonly emptyText = input.required<string>();
   readonly open = output<CellRef>();
-  /** By project id; a project without an entry shows no counter. */
-  readonly penalties = input<Map<string, ProjectPenalties>>(new Map());
+  /** By project id, undefined while loading; a project without an entry shows no counter. */
+  readonly penalties = input<Map<string, ProjectPenalties> | undefined>(new Map());
   readonly selectedPenalties = input<string | null>(null);
   readonly openPenalties = output<{ projectId: string; projectName: string }>();
 

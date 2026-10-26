@@ -1,15 +1,16 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of, switchMap } from 'rxjs';
 
 import { ROLE_LABEL, Role, User } from '../../../core/models';
 import { UserService } from '../../../core/services/user.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 @Component({
   selector: 'app-user-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent],
+  imports: [IconComponent, ScrollHintDirective],
   templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss',
 })
@@ -20,6 +21,8 @@ export class UserListComponent {
   readonly search = signal('');
   readonly role = signal<Role | 'TODOS'>('TODOS');
   readonly error = signal('');
+  readonly canAdd = input(true);
+  readonly add = output();
 
   /** The service caches the list, so filtering makes no new call. */
   readonly users = toSignal(
@@ -42,13 +45,15 @@ export class UserListComponent {
   });
   readonly stats = computed(() => {
     const all = this.everyone();
-    const count = (f: (u: User) => boolean) => all.filter(f).length;
-    return [
-      { label: 'Usuários ativos', value: count((u) => u.status === 'ATIVO') },
-      { label: 'Alunos', value: count((u) => u.perfil === 'ALUNO') },
-      { label: 'Orientadores', value: count((u) => u.perfil === 'ORIENTADOR') },
-      { label: 'Coordenação', value: count((u) => u.perfil === 'ADMIN') },
-    ];
+    const count = (role: Role) => all.filter((u) => u.perfil === role).length;
+    return {
+      total: all.length,
+      byRole: [
+        { label: count('ALUNO') === 1 ? 'aluno' : 'alunos', value: count('ALUNO') },
+        { label: count('ORIENTADOR') === 1 ? 'orientador' : 'orientadores', value: count('ORIENTADOR') },
+        { label: 'na coordenação', value: count('ADMIN') },
+      ],
+    };
   });
 
   setSearch(event: Event): void {

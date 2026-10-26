@@ -1,6 +1,5 @@
 <section class="card card--flush">
   <div class="card__head">
-    <app-icon name="clipboard" class="card__head-icon" />
     <h2 class="section-title">Entregas por projeto</h2>
     @if (!loading() && grid().rows.length) {
       <span class="count">{{ grid().rows.length }} {{ grid().rows.length === 1 ? 'projeto' : 'projetos' }}</span>
@@ -19,7 +18,7 @@
   } @else if (!grid().rows.length) {
     <p class="empty">{{ emptyText() }}</p>
   } @else {
-    <div class="table-scroll">
+    <div class="table-scroll" data-sticky-start>
       <table class="matrix">
         <thead>
           <tr>
@@ -38,7 +37,9 @@
             <tr>
               <th scope="row" class="matrix__project">{{ row.project.nome }}</th>
               <td class="matrix__penalties">
-                @if (penalties().get(row.project.id); as p) {
+                @if (penalties() === undefined) {
+                  <span class="pending cell-pending">Carregando…</span>
+                } @else if (penalties()!.get(row.project.id); as p) {
                   <button
                     type="button"
                     class="cell"

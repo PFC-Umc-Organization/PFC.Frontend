@@ -13,7 +13,7 @@ import { AuthCardComponent } from '../auth-card/auth-card.component';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, RouterLink, AuthCardComponent, PasswordFieldComponent, IconComponent],
   templateUrl: './login.component.html',
-  styles: '.forgot { justify-self: center; }',
+  styles: '.password-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; } .forgot { font-size: 0.8125rem; }',
 })
 export class LoginComponent {
   private readonly auth = inject(AuthService);

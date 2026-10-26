@@ -1,17 +1,25 @@
 <section class="card card--flush">
-  <div class="card__head">
-    <app-icon name="clipboard" class="card__head-icon" />
-    <h2 class="section-title">Cronograma de atividades</h2>
+  <div class="card__head card__head--wrap">
+    <h2 class="section-title">Atividades</h2>
+    <span class="card__count">{{ activities().length }} {{ activities().length === 1 ? 'atividade' : 'atividades' }}</span>
+    @if (canAdd()) {
+      <div class="card__actions">
+        <button type="button" class="btn btn--primary btn--sm" (click)="add.emit()">
+          <app-icon name="plus" class="btn__icon" />
+          Nova atividade
+        </button>
+      </div>
+    }
   </div>
 
   @if (loadError()) {
-    <p class="alert" role="alert">
+    <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>Não foi possível carregar as atividades: {{ loadError() }}</span>
     </p>
   }
   @if (removeError()) {
-    <p class="alert" role="alert">
+    <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ removeError() }}</span>
     </p>

@@ -9,3 +9,9 @@
   flex: 1 1 14rem;
   min-width: 0;
 }
+
+@media (max-width: 600px) {
+  .invite > .btn {
+    flex: 1 1 100%;
+  }
+}

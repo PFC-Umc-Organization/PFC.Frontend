@@ -14,7 +14,6 @@ type Section = 'program' | 'projects' | 'activities';
   imports: [ProgramSectionComponent, ProjectSectionComponent, NewActivityComponent, ActivityScheduleComponent],
   providers: [PfcManagementStore],
   templateUrl: './pfc-management.component.html',
-  styleUrl: './pfc-management.component.scss',
 })
 export class PfcManagementComponent {
   private readonly store = inject(PfcManagementStore);
@@ -26,4 +25,5 @@ export class PfcManagementComponent {
     ...(this.store.isAdmin() ? [{ id: 'program' as const, label: 'Programas de PFC' }] : []),
   ]);
   readonly section = signal<Section>('projects');
+  readonly activityFormOpen = signal(false);
 }

@@ -1,16 +1,14 @@
-<section class="card">
+<section class="card" aria-labelledby="account-title">
   <div class="card__body">
-    <h2 class="section-title">Cadastrar orientador ou admin</h2>
+    <div class="form-head">
+      <h2 id="account-title" class="section-title">Nova conta da equipe</h2>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">Cancelar</button>
+    </div>
     <p class="lead text-sm mt-1">
-      A pessoa recebe por e-mail uma senha temporária e define a própria senha no primeiro acesso.
+      Para orientadores e coordenação. A pessoa recebe por e-mail uma senha temporária e define a própria senha no
+      primeiro acesso.
     </p>
 
-    @if (success()) {
-      <p class="ok mt-4" role="status">
-        <app-icon name="check" />
-        <span>{{ success() }}</span>
-      </p>
-    }
     @if (error()) {
       <p class="alert mt-4" role="alert">
         <app-icon name="alert" />
@@ -52,14 +50,13 @@
         <label class="field__label" for="account-role">Perfil</label>
         <select id="account-role" class="control" formControlName="perfil">
           <option value="ORIENTADOR">Orientador</option>
-          <option value="ADMIN">Admin</option>
+          <option value="ADMIN">Coordenação</option>
         </select>
       </div>
 
       <div class="form-grid__full">
         <button type="submit" class="btn btn--primary" [disabled]="saving()">
-          <app-icon name="plus" class="btn__icon" />
-          {{ saving() ? 'Cadastrando…' : 'Cadastrar' }}
+          {{ saving() ? 'Criando…' : 'Criar conta' }}
         </button>
       </div>
     </form>

@@ -1,58 +1,67 @@
-<section class="card">
-  <div class="card__body">
-    <h2 class="section-title">Nova turma</h2>
+@if (formOpen() || store.cohorts().length === 0) {
+  <section class="card" aria-labelledby="new-cohort-title">
+    <div class="card__body">
+      <div class="form-head">
+        <h2 id="new-cohort-title" class="section-title">Nova turma</h2>
+        @if (store.cohorts().length > 0) {
+          <button type="button" class="btn btn--ghost btn--sm" (click)="formOpen.set(false)">Cancelar</button>
+        }
+      </div>
 
-    @if (store.cohortsError()) {
-      <p class="alert mt-4" role="alert">
-        <app-icon name="alert" />
-        <span>{{ store.cohortsError() }}</span>
-      </p>
-    }
-
-    @if (store.courses().length === 0) {
-      <p class="alert mt-4" role="alert">
-        <app-icon name="alert" />
-        <span>
+      @if (store.courses().length === 0) {
+        <p class="notice mt-4">
           Nenhum curso cadastrado. Cadastre o curso antes de criar a turma.
           <button type="button" class="link-button" (click)="goToCourses.emit()">Ir para Cursos</button>
-        </span>
-      </p>
-    } @else {
-      <form class="form-grid form-grid--2 mt-6" [formGroup]="newForm" (ngSubmit)="create()">
-        <app-cohort-fields [form]="newForm" [courses]="store.courses()" idPrefix="new" />
-        <div class="form-grid__full">
-          <button type="submit" class="btn btn--primary" [disabled]="creating()">
-            <app-icon name="plus" class="btn__icon" />
-            {{ creating() ? 'Criando…' : 'Criar turma' }}
-          </button>
-        </div>
-      </form>
-    }
-  </div>
-</section>
+        </p>
+      } @else {
+        <form class="form-grid form-grid--2 mt-6" [formGroup]="newForm" (ngSubmit)="create()">
+          <app-cohort-fields [form]="newForm" [courses]="store.courses()" idPrefix="new" />
+          <div class="form-grid__full">
+            <button type="submit" class="btn btn--primary" [disabled]="creating()">
+              {{ creating() ? 'Criando…' : 'Criar turma' }}
+            </button>
+          </div>
+        </form>
+      }
+    </div>
+  </section>
+}
 
 <section class="card card--flush">
-  <div class="card__head head">
-    <div class="row">
-      <app-icon name="calendar" class="card__head-icon" />
-      <h2 class="section-title">Turmas cadastradas ({{ visible().length }})</h2>
-    </div>
+  <div class="card__head card__head--wrap">
+    <h2 class="section-title">Turmas</h2>
+    <span class="card__count">{{ visible().length }} {{ visible().length === 1 ? 'turma' : 'turmas' }}</span>
 
-    <div class="field filter">
-      <label class="sr-only" for="course-filter">Curso</label>
-      <select
-        id="course-filter"
-        class="control"
-        [value]="courseFilter()"
-        (change)="courseFilter.set($any($event.target).value)"
-      >
-        <option value="">Todos os cursos</option>
-        @for (c of store.courses(); track c.id) {
-          <option [value]="c.nome">{{ c.nome }}</option>
-        }
-      </select>
+    <div class="card__actions">
+      <div class="field filter">
+        <label class="sr-only" for="course-filter">Curso</label>
+        <select
+          id="course-filter"
+          class="control"
+          [value]="courseFilter()"
+          (change)="courseFilter.set($any($event.target).value)"
+        >
+          <option value="">Todos os cursos</option>
+          @for (c of store.courses(); track c.id) {
+            <option [value]="c.nome">{{ c.nome }}</option>
+          }
+        </select>
+      </div>
+      @if (!formOpen() && store.cohorts().length > 0) {
+        <button type="button" class="btn btn--primary btn--sm" (click)="formOpen.set(true)">
+          <app-icon name="plus" class="btn__icon" />
+          Nova turma
+        </button>
+      }
     </div>
   </div>
+
+  @if (store.cohortsError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ store.cohortsError() }}</span>
+    </p>
+  }
 
   <div class="table-scroll">
     <table class="data-table">
@@ -85,7 +94,7 @@
               <td class="cell-strong">
                 {{ c.nome }}
                 @if (!store.isRegistered(c.nome)) {
-                  <span class="badge badge--muted" title="Cadastre este curso na aba Cursos para poder editar a turma">
+                  <span class="unregistered" title="Cadastre este curso na aba Cursos para poder editar a turma">
                     Curso não cadastrado
                   </span>
                 }

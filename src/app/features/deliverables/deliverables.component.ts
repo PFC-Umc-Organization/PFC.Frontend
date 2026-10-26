@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
-import { Observable, catchError, of, switchMap } from 'rxjs';
+import { Observable, catchError, of, startWith, switchMap } from 'rxjs';
 
 import { Activity, Project, ProjectPenalties, Submission, TimelineItem } from '../../core/models';
 import { ActivityService } from '../../core/services/activity.service';
@@ -50,14 +50,24 @@ export class DeliverablesComponent {
     { initialValue: [] as TimelineItem[] },
   );
 
-  /** A failed group can no longer submit; the backend refuses it too. */
+  /**
+   * A failed group can no longer submit; the backend refuses it too.
+   * Undefined while loading, so the form does not show and then vanish.
+   */
   readonly penalties = toSignal(
     toObservable(this.project).pipe(
-      switchMap((p) => (p ? this.penaltyService.ofProject(p.id) : of(null))),
-      catchError(() => of(null as ProjectPenalties | null)),
+      switchMap((p) =>
+        p
+          ? this.penaltyService.ofProject(p.id).pipe(
+              catchError(() => of(null)),
+              startWith(undefined),
+            )
+          : of(null),
+      ),
     ),
-    { initialValue: null as ProjectPenalties | null },
+    { initialValue: undefined as ProjectPenalties | null | undefined },
   );
+  readonly penaltiesReady = computed(() => this.penalties() !== undefined);
   readonly failed = computed(() => this.penalties()?.reprovado ?? false);
 
   readonly activities = toSignal(inject(ActivityService).list().pipe(this.orEmpty([] as Activity[])), {

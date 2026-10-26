@@ -1,10 +1,10 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { UserService } from '../../../core/services/user.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** An advisor or admin account; Cognito e-mails the invitation. */
+/** An advisor or coordination account; Cognito e-mails the temporary password. */
 @Component({
   selector: 'app-account-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,8 +20,10 @@ export class AccountFormComponent {
     perfil: ['ORIENTADOR' as 'ORIENTADOR' | 'ADMIN', [Validators.required]],
   });
   readonly saving = signal(false);
-  readonly success = signal('');
   readonly error = signal('');
+  readonly closed = output();
+  /** With the backend's confirmation message. */
+  readonly created = output<string>();
 
   invalid(name: 'nome' | 'email'): boolean {
     const c = this.form.controls[name];
@@ -29,7 +31,6 @@ export class AccountFormComponent {
   }
 
   create(): void {
-    this.success.set('');
     this.error.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -39,8 +40,8 @@ export class AccountFormComponent {
     this.userService.createAccount(this.form.getRawValue()).subscribe({
       next: (response) => {
         this.saving.set(false);
-        this.success.set(response.mensagem);
         this.form.reset({ nome: '', email: '', perfil: 'ORIENTADOR' });
+        this.created.emit(response.mensagem);
       },
       error: (e: Error) => {
         this.saving.set(false);

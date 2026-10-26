@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 
@@ -8,13 +8,13 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ActivityEditorComponent } from '../activity-editor/activity-editor.component';
+import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 @Component({
   selector: 'app-activity-schedule',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, DeadlinePipe, ActivityEditorComponent],
+  imports: [IconComponent, DeadlinePipe, ActivityEditorComponent, ScrollHintDirective],
   templateUrl: './activity-schedule.component.html',
-  styles: '.alert { margin: 1rem 1.25rem 0; }',
 })
 export class ActivityScheduleComponent {
   private readonly activityService = inject(ActivityService);
@@ -23,6 +23,8 @@ export class ActivityScheduleComponent {
   readonly loadError = signal('');
   readonly removeError = signal('');
   readonly editingId = signal<string | null>(null);
+  readonly canAdd = input(true);
+  readonly add = output();
 
   readonly activities = toSignal(
     this.activityService.list().pipe(

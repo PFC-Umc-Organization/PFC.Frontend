@@ -1,19 +1,28 @@
-<section class="card">
+<section class="card" aria-labelledby="enroll-title">
   <div class="card__body">
-    <h2 class="section-title">Pré-autorizar alunos por RGM</h2>
+    <div class="form-head">
+      <h2 id="enroll-title" class="section-title">Pré-autorizar RGMs</h2>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">Cancelar</button>
+    </div>
     <p class="lead text-sm mt-1">
-      O aluno cria a própria conta em "Criar conta". O RGM aqui só libera o cadastro dele. Nome e
-      e-mail são preenchidos pelo próprio aluno na hora.
+      O RGM pré-autorizado libera o cadastro do aluno em "Criar conta"; nome e e-mail ele mesmo preenche.
     </p>
 
     @if (result(); as r) {
-      <p class="ok mt-4" role="status">
-        <app-icon name="check" />
-        {{ r.processados === 1 ? '1 RGM pré-autorizado.' : r.processados + ' RGMs pré-autorizados.' }}
-        @if (r.falhas.length > 0) {
-          {{ r.falhas.length === 1 ? '1 falhou.' : r.falhas.length + ' falharam.' }}
-        }
-      </p>
+      <div class="alert mt-4" role="alert">
+        <app-icon name="alert" />
+        <div>
+          <p>
+            {{ r.processados === 1 ? '1 RGM pré-autorizado' : r.processados + ' RGMs pré-autorizados' }};
+            {{ r.falhas.length === 1 ? 'este não entrou:' : 'estes não entraram:' }}
+          </p>
+          <ul class="failures">
+            @for (f of r.falhas; track f.rgm) {
+              <li>{{ f.rgm }}: {{ f.erro }}</li>
+            }
+          </ul>
+        </div>
+      </div>
     }
     @if (error()) {
       <p class="alert mt-4" role="alert">
@@ -71,7 +80,6 @@
 
         <div>
           <button type="submit" class="btn btn--primary" [disabled]="saving()">
-            <app-icon name="plus" class="btn__icon" />
             {{ saving() ? 'Enviando…' : 'Pré-autorizar' }}
           </button>
         </div>

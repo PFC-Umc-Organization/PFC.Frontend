@@ -4,18 +4,18 @@
     <h1 class="page-title mt-2">Gestão de PFC</h1>
   </header>
 
-  <div class="segmented segmented--grid sections" role="group" aria-label="Seção da tela">
+  <nav class="tabs" aria-label="Seções da tela">
     @for (s of sections(); track s.id) {
       <button
         type="button"
-        class="segmented__item"
+        class="tabs__item"
         [attr.aria-pressed]="section() === s.id"
         (click)="section.set(s.id)"
       >
         {{ s.label }}
       </button>
     }
-  </div>
+  </nav>
 
   @switch (section()) {
     @case ('program') {
@@ -25,8 +25,10 @@
       <app-project-section />
     }
     @case ('activities') {
-      <app-new-activity />
-      <app-activity-schedule />
+      @if (activityFormOpen()) {
+        <app-new-activity (closed)="activityFormOpen.set(false)" (created)="activityFormOpen.set(false)" />
+      }
+      <app-activity-schedule [canAdd]="!activityFormOpen()" (add)="activityFormOpen.set(true)" />
     }
   }
 </div>

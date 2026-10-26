@@ -100,6 +100,10 @@
   background: color-mix(in oklch, var(--primary) 3%, var(--card));
 }
 
+.cell-pending {
+  padding: 0 0.75rem;
+}
+
 .cell {
   display: flex;
   align-items: center;

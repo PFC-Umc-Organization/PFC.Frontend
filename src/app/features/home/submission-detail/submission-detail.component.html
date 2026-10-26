@@ -5,7 +5,10 @@
         <h2 class="section-title">{{ activity().titulo }}</h2>
         <p class="meta">Projeto {{ projectName() }}</p>
       </div>
-      <button type="button" class="btn btn--outline btn--sm" (click)="closed.emit()">Fechar</button>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
+        <app-icon name="close" class="btn__icon" />
+        Fechar
+      </button>
     </div>
 
     @if (submission(); as s) {
@@ -29,8 +32,13 @@
         <app-icon name="trash" class="btn__icon" />
         Remover entrega (devolver ao grupo)
       </button>
+    } @else if (deadlinePassed()) {
+      <p class="meta">
+        O prazo venceu em {{ activity().prazo | deadline: true }} sem entrega do grupo. Isso conta como uma penalidade;
+        para perdoá-la, use a coluna Penalidades.
+      </p>
     } @else {
-      <p class="meta">Este grupo ainda não entregou esta atividade.</p>
+      <p class="meta">O grupo ainda não entregou. O prazo vai até {{ activity().prazo | deadline: true }}.</p>
     }
   </div>
 </section>

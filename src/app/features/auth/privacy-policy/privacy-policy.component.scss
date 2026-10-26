@@ -4,7 +4,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(0, 0, 0, 0.5);
+  background: oklch(22% 0.04 260 / 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,13 +16,12 @@
   background: var(--card);
   color: var(--foreground);
   border: 1px solid var(--border);
-  border-radius: 8px;
   max-width: 680px;
   width: 100%;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 12px 40px oklch(22% 0.04 260 / 0.2);
 }
 
 .box__head {
@@ -31,7 +30,8 @@
 }
 
 .box__head h2 {
-  font-size: 1.15rem;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
   margin: 0;
   color: var(--primary);
   font-weight: 700;

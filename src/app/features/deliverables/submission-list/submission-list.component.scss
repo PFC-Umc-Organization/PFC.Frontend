@@ -1,6 +1,14 @@
 .sent {
-  padding: 1rem;
-  border: 1px solid var(--border);
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.sent:first-of-type {
+  margin-top: 1.25rem;
+}
+
+.sent:last-of-type {
+  padding-bottom: 0;
 }
 
 .sent__top {
@@ -8,6 +16,7 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .sent__title {
@@ -18,6 +27,6 @@
 
 .sent__meta {
   margin: 0.125rem 0 0;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: var(--muted-foreground);
 }

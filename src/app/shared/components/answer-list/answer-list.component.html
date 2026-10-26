@@ -7,7 +7,7 @@
       } @else if (r.type === 'ARQUIVO' && isStoredFile(r.value)) {
         <button type="button" class="text-button" (click)="download.emit(r.fieldId)">
           <app-icon name="download" />
-          {{ fileNameOf(r.value) }}
+          <span class="text-button__label">{{ fileNameOf(r.value) }}</span>
         </button>
       } @else if (r.type === 'ARQUIVO') {
         {{ r.value }}

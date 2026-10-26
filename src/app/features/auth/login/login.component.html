@@ -14,34 +14,32 @@
 
     <div class="field">
       <label class="field__label" for="email">E-mail</label>
-      <div class="control-wrap">
-        <app-icon name="email" class="control-wrap__icon" />
-        <input
-          id="email"
-          type="email"
-          class="control"
-          placeholder="Seu email UMC"
-          autocomplete="username"
-          formControlName="email"
-          [class.control--invalid]="invalid('email')"
-        />
-      </div>
+      <input
+        id="email"
+        type="email"
+        class="control"
+        placeholder="Seu e-mail da UMC"
+        autocomplete="username"
+        formControlName="email"
+        [class.control--invalid]="invalid('email')"
+      />
       @if (invalid('email')) {
         <span class="field__error">Informe um e-mail válido.</span>
       }
     </div>
 
     <div class="field">
-      <label class="field__label" for="password">Senha</label>
-      <app-password-field fieldId="password" [control]="form.controls.senha" [invalid]="invalid('senha')" [withIcon]="true" />
+      <div class="password-head">
+        <label class="field__label" for="password">Senha</label>
+        <a class="link-button forgot" routerLink="/esqueci-senha" [queryParams]="{ email: form.controls.email.value || null }">
+          Esqueci minha senha
+        </a>
+      </div>
+      <app-password-field fieldId="password" [control]="form.controls.senha" [invalid]="invalid('senha')" />
       @if (invalid('senha')) {
         <span class="field__error">Informe sua senha.</span>
       }
     </div>
-
-    <a class="link-button forgot" routerLink="/esqueci-senha" [queryParams]="{ email: form.controls.email.value || null }">
-      Esqueci minha senha
-    </a>
 
     <button type="submit" class="btn btn--primary btn--block" [disabled]="loading()">
       {{ loading() ? 'Entrando…' : 'Entrar' }}

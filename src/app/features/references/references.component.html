@@ -1,32 +1,31 @@
 <div class="page">
-  <header>
-    <p class="eyebrow">Pesquisa</p>
-    <h1 class="page-title mt-2">Referências</h1>
-    <p class="lead mt-2">
-      @if (staff()) {
-        Acompanhe a bibliografia que cada grupo está montando para o PFC.
-      } @else {
-        Encontre artigos acadêmicos e monte a lista de referências do seu PFC já formatada nas normas da ABNT.
-      }
-    </p>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Pesquisa</p>
+      <h1 class="page-title mt-2">Referências</h1>
+      <p class="lead mt-2">
+        @if (staff()) {
+          Acompanhe a bibliografia que cada grupo está montando para o PFC.
+        } @else {
+          Encontre artigos acadêmicos e monte a lista de referências do seu PFC já formatada nas normas da ABNT.
+        }
+      </p>
+    </div>
+    @if (staff()) {
+      <div class="field picker">
+        <label class="field__label" for="project">PFC</label>
+        <select id="project" class="control" [value]="project()?.id ?? ''" (change)="choose($event)">
+          @for (p of projects(); track p.id) {
+            <option [value]="p.id">{{ p.nome }}</option>
+          } @empty {
+            <option value="">Nenhum PFC cadastrado</option>
+          }
+        </select>
+      </div>
+    }
   </header>
 
-  @if (staff()) {
-    <section class="card">
-      <div class="card__body">
-        <div class="field picker">
-          <label class="field__label" for="project">PFC</label>
-          <select id="project" class="control" [value]="project()?.id ?? ''" (change)="choose($event)">
-            @for (p of projects(); track p.id) {
-              <option [value]="p.id">{{ p.nome }}</option>
-            } @empty {
-              <option value="">Nenhum PFC cadastrado</option>
-            }
-          </select>
-        </div>
-      </div>
-    </section>
-  } @else {
+  @if (!staff()) {
     @if (!project()) {
       <p class="empty-state">
         Você ainda não faz parte de um PFC. Dá para pesquisar artigos, mas a lista de referências é do grupo:

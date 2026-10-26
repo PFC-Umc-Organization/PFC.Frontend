@@ -49,7 +49,7 @@ export class HeaderComponent {
 
   private readonly studentNav: NavItem[] = [
     { label: 'Início', route: '/', icon: 'dashboard' },
-    { label: 'PFC', route: '/meu-pfc', icon: 'landmark' },
+    { label: 'Meu PFC', route: '/meu-pfc', icon: 'landmark' },
     { label: 'Entregáveis', route: '/entregaveis', icon: 'clipboard' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },

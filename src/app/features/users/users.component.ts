@@ -1,31 +1,56 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 
 import { Cohort } from '../../core/models';
 import { CohortService } from '../../core/services/cohort.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 import { AccountFormComponent } from './account-form/account-form.component';
 import { EnrollFormComponent } from './enroll-form/enroll-form.component';
 import { EnrollmentListComponent } from './enrollment-list/enrollment-list.component';
 import { UserListComponent } from './user-list/user-list.component';
 
-type Section = 'account' | 'enroll' | 'enrollments' | 'users';
+type Section = 'accounts' | 'enrollments';
 
 @Component({
   selector: 'app-users',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [AccountFormComponent, EnrollFormComponent, EnrollmentListComponent, UserListComponent],
+  imports: [IconComponent, AccountFormComponent, EnrollFormComponent, EnrollmentListComponent, UserListComponent],
   templateUrl: './users.component.html',
-  styleUrl: './users.component.scss',
 })
+/** Each tab is a list; its form opens above it on demand. */
 export class UsersComponent {
   readonly sections: { id: Section; label: string }[] = [
-    { id: 'account', label: 'Cadastrar orientador ou admin' },
-    { id: 'enroll', label: 'Pré-autorizar alunos' },
-    { id: 'enrollments', label: 'RGMs pré-autorizados' },
-    { id: 'users', label: 'Usuários' },
+    { id: 'accounts', label: 'Contas' },
+    { id: 'enrollments', label: 'Pré-autorização de alunos' },
   ];
-  readonly section = signal<Section>('account');
+  readonly section = signal<Section>('accounts');
+  readonly formOpen = signal(false);
+  /** What the last form did, shown above the list. */
+  readonly done = signal('');
+  /** Bumped to remount the list, so it reads again what the form changed. */
+  readonly version = signal(0);
+
+  constructor() {
+    effect(() => {
+      this.section();
+      untracked(() => {
+        this.formOpen.set(false);
+        this.done.set('');
+      });
+    });
+  }
+
+  open(): void {
+    this.done.set('');
+    this.formOpen.set(true);
+  }
+
+  finish(message: string): void {
+    this.formOpen.set(false);
+    this.done.set(message);
+    this.version.update((v) => v + 1);
+  }
 
   readonly cohorts = toSignal(inject(CohortService).list().pipe(catchError(() => of([] as Cohort[]))), {
     initialValue: [] as Cohort[],

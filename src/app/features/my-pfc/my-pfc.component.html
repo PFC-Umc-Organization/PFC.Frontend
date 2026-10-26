@@ -1,8 +1,15 @@
 <div class="page">
   <header>
-    <p class="eyebrow">Meu grupo</p>
-    <h1 class="page-title mt-2">PFC</h1>
-    <p class="lead mt-2">Crie o projeto do seu grupo e acompanhe o orientador definido pela coordenação.</p>
+    <p class="eyebrow">Meu PFC</p>
+    @if (group(); as g) {
+      <h1 class="page-title mt-2">{{ g.projeto.nome }}</h1>
+      @if (g.projeto.descricao) {
+        <p class="lead mt-2">{{ g.projeto.descricao }}</p>
+      }
+    } @else {
+      <h1 class="page-title mt-2">Meu PFC</h1>
+      <p class="lead mt-2">Crie o projeto do seu grupo ou aceite o convite de um colega.</p>
+    }
   </header>
 
   @if (group(); as g) {

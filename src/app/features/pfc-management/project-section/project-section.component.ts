@@ -10,11 +10,12 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CohortPickerComponent } from '../cohort-picker/cohort-picker.component';
 import { PfcManagementStore } from '../pfc-management.store';
 import { ProjectEditorComponent } from '../project-editor/project-editor.component';
+import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 @Component({
   selector: 'app-project-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, CohortPickerComponent, ProjectEditorComponent],
+  imports: [IconComponent, CohortPickerComponent, ProjectEditorComponent, ScrollHintDirective],
   templateUrl: './project-section.component.html',
   styleUrl: './project-section.component.scss',
 })

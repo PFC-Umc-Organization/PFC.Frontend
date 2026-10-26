@@ -1,9 +1,8 @@
 <section class="card">
   <div class="card__body">
-    <h2 class="section-title">Suas entregas</h2>
-    <p class="lead mt-2">
-      O que o seu grupo enviou. Entregue no prazo, dá para editar depois; sem entrega, o prazo encerra a
-      atividade.
+    <h2 class="section-title">Entregas do grupo</h2>
+    <p class="lead text-sm mt-1">
+      O que foi entregue no prazo continua editável depois dele.
     </p>
     @if (error()) {
       <p class="alert mt-4" role="alert">
@@ -13,7 +12,7 @@
     }
 
     @for (item of items(); track item.activity.id) {
-      <article class="sent mt-6">
+      <article class="sent">
         <header class="sent__top">
           <div>
             <h3 class="sent__title">{{ item.activity.titulo }}</h3>

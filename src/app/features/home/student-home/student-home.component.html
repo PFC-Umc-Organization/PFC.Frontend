@@ -64,9 +64,12 @@
           <app-penalty-counter [penalties]="p" />
         </header>
         @if (p.penalidades.length) {
-          <div class="penalties__body">
+          <details class="penalties__body" [open]="p.penalidades.length <= 3">
+            <summary class="penalties__toggle">
+              {{ p.penalidades.length === 1 ? 'Ver a penalidade' : 'Ver as ' + p.penalidades.length + ' penalidades' }}
+            </summary>
             <app-penalty-list [penalties]="p.penalidades" />
-          </div>
+          </details>
         }
       </section>
     }

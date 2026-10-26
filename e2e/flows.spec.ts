@@ -81,7 +81,7 @@ test.describe('student with a group', () => {
     api.calls.length = 0;
     await page.goto('/meu-pfc');
     await expect(page.getByText('Bia Lima').first()).toBeVisible();
-    await expect(page.getByText('RGM 11231101230 (aguardando cadastro)')).toBeVisible();
+    await expect(page.locator('.member', { hasText: 'RGM 11231101230' })).toContainText('Aguardando cadastro');
     await expect(page.getByText('Orientadora Ana')).toBeVisible();
     await expect(page.getByText('Engenharia de Software (Noite, 2026.2)')).toBeVisible();
     await expect(page.locator('.invitation').filter({ hasText: 'André Novaes' })).toContainText('RGM 11231101228');
@@ -148,7 +148,7 @@ test.describe('references', () => {
     await page.getByRole('button', { name: 'Adicionar' }).click();
     await expect(page.getByText('Referência adicionada à lista do projeto.')).toBeVisible();
     await expect(page.getByText('Na lista')).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Referências do projeto Athena \(1\)/ })).toBeVisible();
+    await expect(page.locator('app-reference-list .card__count')).toHaveText('1 referência');
     expect(api.db.references).toHaveLength(1);
     expect(api.failed).toEqual([]);
   });
@@ -187,18 +187,36 @@ test.describe('coordination', () => {
     await expect(page.getByText('Turma removida')).toBeVisible();
   });
 
+  test('pre-authorized RGMs wait for the accounts instead of guessing "Aguardando cadastro"', async ({ page, api }) => {
+    let release!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    await signIn(page, ADMIN);
+    await page.route(/execute-api.*\/usuarios$/, async (route) => {
+      await held;
+      await api.handle(route);
+    });
+    await page.goto('/usuarios');
+    await page.getByRole('button', { name: 'Pré-autorização de alunos' }).click();
+    await expect(page.getByText('Verificando…').first()).toBeVisible();
+    await expect(page.getByText('Aguardando cadastro')).toHaveCount(0);
+    release();
+    await expect(page.getByText('Conta criada: André Novaes')).toBeVisible();
+    await expect(page.getByText('Aguardando cadastro')).toHaveCount(1);
+  });
+
   test('Usuários counts advisors and coordination apart', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.goto('/usuarios');
-    await page.getByRole('button', { name: 'Usuários', exact: true }).first().click();
-    await expect(page.getByText('Orientadores').first()).toBeVisible();
-    await expect(page.getByText('Coordenação').first()).toBeVisible();
+    await expect(page.locator('.summary__item', { hasText: 'orientadores' })).toContainText('2');
+    await expect(page.locator('.summary__item', { hasText: 'na coordenação' })).toContainText('1');
+    await expect(page.getByRole('row', { name: /Leonardo Alvino/ })).toContainText('Coordenação');
   });
 
   test('an invalid term is flagged before sending', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.goto('/turmas');
     await page.getByRole('button', { name: 'Turmas', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Nova turma' }).click();
     await page.fill('#new-term', '2026.3');
     await page.locator('#new-term').blur();
     await expect(page.getByText('Use ano e semestre')).toBeVisible();
@@ -207,11 +225,13 @@ test.describe('coordination', () => {
   test('registers a course and a cohort; a course with cohorts cannot be deleted', async ({ page, api }) => {
     await signIn(page, ADMIN);
     await page.goto('/turmas');
+    await page.getByRole('button', { name: 'Novo curso' }).click();
     await page.fill('#new-course-name', 'Direito');
     await page.getByRole('button', { name: 'Criar curso' }).click();
     await expect(page.getByRole('row', { name: /Direito/ })).toContainText('0');
 
     await page.getByRole('button', { name: 'Turmas', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Nova turma' }).click();
     await page.locator('#new-course').selectOption('Direito');
     await page.locator('#new-shift').selectOption('NOITE');
     await page.fill('#new-term', '2026.2');
@@ -228,11 +248,12 @@ test.describe('coordination', () => {
     await signIn(page, ADMIN);
     await page.goto('/materiais');
     await expect(page.locator('.material__audience', { hasText: 'Sistemas de Informação (Manhã, 2026.2)' })).toBeVisible();
+    await page.getByRole('button', { name: 'Publicar material' }).click();
     await page.fill('#material-title', 'Modelo de monografia');
     await page.getByRole('button', { name: 'Arquivo', exact: true }).click();
     await page.setInputFiles('#material-file', { name: 'modelo.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(1000, 1) });
     await expect(page.locator('.file-picker__name')).toHaveText('modelo.pdf');
-    await page.getByRole('button', { name: 'Publicar material' }).click();
+    await page.locator('app-material-form').getByRole('button', { name: 'Publicar material' }).click();
     await expect(page.getByText('Material publicado')).toBeVisible();
     await expect(page.getByText('Modelo de monografia')).toBeVisible();
     expect(api.db.materials.some((m) => m.chave === 'materiais/u1/modelo.pdf' && m.cursoId === null)).toBe(true);
@@ -244,6 +265,7 @@ test.describe('management', () => {
     await signIn(page, ADMIN);
     await page.goto('/gestao');
     await page.getByRole('button', { name: 'Atividades', exact: true }).click();
+    await page.getByRole('button', { name: 'Nova atividade' }).click();
 
     await page.fill('#new-activity-title', 'Banca final');
     await page.fill('#new-activity-deadline', '2099-12-20T23:59');
@@ -253,7 +275,8 @@ test.describe('management', () => {
     await form.getByRole('button', { name: 'Adicionar campo' }).click();
     await expect(form.getByText('Repositório')).toBeVisible();
     await page.getByRole('button', { name: 'Publicar atividade' }).click();
-    await expect(page.getByText('Atividade publicada')).toBeVisible();
+    await expect(page.locator('app-new-activity')).toHaveCount(0);
+    await expect(page.getByRole('cell', { name: 'Banca final', exact: true })).toBeVisible();
     const created = api.db.activities.find((a) => a.titulo === 'Banca final');
     expect(created?.campos.map((c) => c.tipo)).toEqual(['ARQUIVO', 'LINK']);
 

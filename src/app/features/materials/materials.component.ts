@@ -51,6 +51,18 @@ export class MaterialsComponent {
     return s.kind === 'error' ? s.message : '';
   });
   readonly actionError = signal('');
+  readonly formOpen = signal(false);
+  readonly done = signal('');
+
+  open(): void {
+    this.done.set('');
+    this.formOpen.set(true);
+  }
+
+  published(): void {
+    this.formOpen.set(false);
+    this.done.set('Material publicado. Os grupos já veem.');
+  }
 
   /** The coordination removes any material; an advisor, their own. */
   canRemove(m: Material): boolean {

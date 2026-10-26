@@ -2,18 +2,18 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 
-import { Project, courseShiftLabel } from '../../../core/models';
+import { Project, cohortLabel } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { CohortPickerComponent } from '../cohort-picker/cohort-picker.component';
 import { PfcManagementStore } from '../pfc-management.store';
+import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 @Component({
   selector: 'app-program-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, CohortPickerComponent],
+  imports: [IconComponent, ScrollHintDirective],
   templateUrl: './program-section.component.html',
   styleUrl: './program-section.component.scss',
 })
@@ -22,46 +22,58 @@ export class ProgramSectionComponent {
   private readonly programService = inject(ProgramService);
   private readonly confirmation = inject(ConfirmationService);
 
-  protected readonly courseShiftLabel = courseShiftLabel;
+  protected readonly cohortLabel = cohortLabel;
 
-  readonly error = signal('');
-  readonly creating = signal(false);
+  /** The cohort whose program is being created. */
+  readonly creating = signal<string | null>(null);
   readonly editingId = signal<string | null>(null);
   readonly newCohortId = signal('');
 
-  /** Every project of every program, only to count them per program. */
+  /** Every project of every program, only to count them; undefined while loading. */
   private readonly allProjects = toSignal(
     inject(ProjectService).list().pipe(catchError(() => of([] as Project[]))),
-    { initialValue: [] as Project[] },
+    { initialValue: undefined },
   );
 
-  readonly rows = computed(() =>
-    this.store
-      .programs()
-      .map((p) => {
-        const cohort = this.store.cohorts().find((c) => c.id === p.cursoId);
-        return {
-          id: p.id,
-          cohortId: p.cursoId,
-          cohort: cohort ? courseShiftLabel(cohort) : 'Turma removida',
-          term: cohort?.periodo ?? '—',
-          projects: this.allProjects().filter((x) => x.programaId === p.id).length,
-        };
-      })
-      .sort((a, b) => a.cohort.localeCompare(b.cohort, 'pt-BR') || a.term.localeCompare(b.term)),
+  /**
+   * One row per cohort, with its program or the button to create it, plus
+   * programs whose cohort was removed.
+   */
+  readonly rows = computed(() => {
+    const programs = this.store.programs();
+    const count = (programId: string) => this.allProjects()?.filter((x) => x.programaId === programId).length;
+    const cohortRows = this.store.cohorts().map((c) => {
+      const program = programs.find((p) => p.cursoId === c.id);
+      return {
+        key: c.id,
+        cohortId: c.id,
+        label: cohortLabel(c),
+        programId: program?.id ?? null,
+        projects: program ? count(program.id) : 0,
+      };
+    });
+    const orphans = programs
+      .filter((p) => !this.store.cohorts().some((c) => c.id === p.cursoId))
+      .map((p) => ({ key: p.id, cohortId: p.cursoId, label: 'Turma removida', programId: p.id, projects: count(p.id) }));
+    return [...cohortRows, ...orphans].sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+  });
+  readonly withProgram = computed(() => this.rows().filter((r) => r.programId).length);
+  /** Cohorts a program can move to: the ones without a program. */
+  readonly freeCohorts = computed(() =>
+    this.store.cohorts().filter((c) => !this.store.programs().some((p) => p.cursoId === c.id)),
   );
 
-  create(): void {
-    this.error.set('');
-    this.creating.set(true);
-    this.programService.create({ cursoId: this.store.cohortId() }).subscribe({
+  create(cohortId: string): void {
+    this.store.programsError.set('');
+    this.creating.set(cohortId);
+    this.programService.create({ cursoId: cohortId }).subscribe({
       next: () => {
-        this.creating.set(false);
+        this.creating.set(null);
         this.store.reloadPrograms();
       },
       error: (e: Error) => {
-        this.creating.set(false);
-        this.error.set(e.message);
+        this.creating.set(null);
+        this.store.programsError.set(e.message);
       },
     });
   }

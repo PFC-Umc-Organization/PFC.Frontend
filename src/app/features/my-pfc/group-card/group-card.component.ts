@@ -1,16 +1,18 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 
-import { ProjectDetail, cohortLabel } from '../../../core/models';
-import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { ProjectDetail, cohortLabel, rgmOf } from '../../../core/models';
+import { AuthService } from '../../../core/services/auth.service';
 
+/** The group's cohort, advisor and members; the page title already names the project. */
 @Component({
   selector: 'app-group-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent],
   templateUrl: './group-card.component.html',
   styleUrl: './group-card.component.scss',
 })
 export class GroupCardComponent {
   readonly detail = input.required<ProjectDetail>();
   protected readonly cohortLabel = cohortLabel;
+  private readonly auth = inject(AuthService);
+  protected readonly myRgm = computed(() => rgmOf(this.auth.user()));
 }

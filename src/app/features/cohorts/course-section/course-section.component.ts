@@ -6,13 +6,14 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
 import { CourseService } from '../../../core/services/course.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CohortsStore } from '../cohorts.store';
+import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 const nameForm = () => new FormGroup({ nome: new FormControl('', { nonNullable: true, validators: [Validators.required] }) });
 
 @Component({
   selector: 'app-course-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, IconComponent],
+  imports: [ReactiveFormsModule, IconComponent, ScrollHintDirective],
   templateUrl: './course-section.component.html',
   styles: ':host { display: contents; } .editor { padding: 0.5rem 0; }',
 })
@@ -26,6 +27,7 @@ export class CourseSectionComponent {
   readonly name = this.form.controls.nome;
   readonly editName = this.editForm.controls.nome;
   readonly creating = signal(false);
+  readonly formOpen = signal(false);
   readonly editingId = signal<string | null>(null);
 
   invalid(control: FormControl<string>): boolean {
@@ -43,6 +45,7 @@ export class CourseSectionComponent {
       next: () => {
         this.creating.set(false);
         this.form.reset({ nome: '' });
+        this.formOpen.set(false);
         this.store.reloadCourses();
       },
       error: (e: Error) => {

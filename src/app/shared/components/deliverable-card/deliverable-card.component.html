@@ -1,37 +1,26 @@
-<article class="deliverable" [class]="'tone-' + tone()">
+<article class="deliverable" [class]="'deliverable tone-' + tone()">
   <div>
-    <div class="row">
-      <span class="dot" [class]="'dot--' + tone()" aria-hidden="true"></span>
-      <span class="status">{{ label() }}</span>
-    </div>
-    <h3 class="title">{{ item().title }}</h3>
-    <p class="project">{{ item().projectName }}</p>
+    <p class="status">{{ label() }}</p>
+    <h3 class="title" [attr.title]="item().title">{{ item().title }}</h3>
   </div>
 
   <div class="bottom">
     <p class="deadline">
       <app-icon name="calendar" class="deadline__icon" />
-      Entrega até: {{ item().deadline | deadline }}
+      Até {{ item().deadline | deadline }}
     </p>
 
     @if (done()) {
-      <p class="action action--done">
+      <p class="outcome outcome--done">
         <app-icon name="check" />
-        @if (item().fileName; as name) {
-          Entregue: {{ name }}
-        } @else {
-          Entregável concluído
-        }
+        <span class="outcome__text">{{ item().fileName ? 'Entregue: ' + item().fileName : 'Entregue' }}</span>
       </p>
     } @else if (late()) {
-      <p class="action action--late">
-        <app-icon name="alert" />
-        Prazo encerrado
-      </p>
+      <p class="outcome outcome--late">Prazo encerrado sem entrega</p>
     } @else if (!interactive()) {
-      <p class="action action--waiting">Aguardando a entrega</p>
+      <p class="outcome">Prazo aberto</p>
     } @else {
-      <a class="btn btn--full-xs btn--primary" routerLink="/entregaveis" [queryParams]="{ atividade: item().activityId }">
+      <a class="btn btn--primary btn--sm btn--block" routerLink="/entregaveis" [queryParams]="{ atividade: item().activityId }">
         Enviar entrega
       </a>
     }

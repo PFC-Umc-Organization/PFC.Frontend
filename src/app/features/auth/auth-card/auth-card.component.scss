@@ -4,9 +4,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 1.5rem;
-  padding: 1.5rem 1rem;
+  /* Anchored at the top: a form that grows with its errors pushes down only. */
+  padding: clamp(1.5rem, 10vh, 6rem) 1rem 1.5rem;
 }
 
 .panel {
@@ -48,20 +48,29 @@
 }
 
 .panel__name {
+  display: grid;
   font-family: var(--font-display);
   font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: 0.14em;
+  line-height: 1.15;
   color: var(--primary);
+}
+
+.panel__tagline {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--muted-foreground);
 }
 
 /* --------------------------- headings --------------------------- */
 .panel__title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--foreground);
-  font-family: var(--font-sans);
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
 }
 
 .panel__subtitle {
@@ -90,4 +99,15 @@
   text-decoration: underline;
   cursor: pointer;
   font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .footer {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .footer__sep {
+    display: none;
+  }
 }

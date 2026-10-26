@@ -44,6 +44,22 @@ async function misaligned(page: Page, where: string): Promise<string[]> {
   return rows.map((r) => `${where}: ${r}`);
 }
 
+/** Forms open on demand: open each one, try its choices, check it and close it. */
+async function forms(page: Page, where: string): Promise<string[]> {
+  const found: string[] = [];
+  for (const opener of await page.locator('.card__actions .btn--primary, .list-head .btn--primary').all()) {
+    if (!(await opener.isVisible())) continue;
+    await opener.click();
+    found.push(...(await misaligned(page, `${where} (formulário)`)));
+    for (const choice of await page.locator('form .segmented__item').all()) {
+      await choice.click();
+      found.push(...(await misaligned(page, `${where} (formulário, ${await choice.textContent()})`)));
+    }
+    await page.getByRole('button', { name: 'Cancelar' }).first().click();
+  }
+  return found;
+}
+
 test('fields side by side line up on every screen', async ({ page }) => {
   const found: string[] = [];
 
@@ -51,7 +67,7 @@ test('fields side by side line up on every screen', async ({ page }) => {
   for (const route of ['/', '/meu-pfc', '/materiais', '/referencias', '/entregaveis']) {
     await page.goto(route);
     found.push(...(await misaligned(page, route)));
-    for (const tab of await page.locator('.segmented__item').all()) {
+    for (const tab of await page.locator('.tabs__item, .segmented__item').all()) {
       await tab.click();
       found.push(...(await misaligned(page, `${route} ${await tab.textContent()}`)));
     }
@@ -68,10 +84,12 @@ test('fields side by side line up on every screen', async ({ page }) => {
       await page.goto(route);
       if (!page.url().endsWith(route)) continue;
       found.push(...(await misaligned(page, `${email} ${route}`)));
-      for (const tab of await page.locator('.segmented__item').all()) {
+      for (const tab of await page.locator('.tabs__item, .segmented__item').all()) {
         await tab.click();
-        found.push(...(await misaligned(page, `${email} ${route} ${await tab.textContent()}`)));
+        const where = `${email} ${route} ${await tab.textContent()}`;
+        found.push(...(await misaligned(page, where)), ...(await forms(page, where)));
       }
+      found.push(...(await forms(page, `${email} ${route}`)));
     }
   }
 

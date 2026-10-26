@@ -7,11 +7,12 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CohortFieldsComponent, cohortForm } from '../cohort-fields/cohort-fields.component';
 import { CohortsStore } from '../cohorts.store';
+import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 @Component({
   selector: 'app-cohort-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, IconComponent, CohortFieldsComponent],
+  imports: [ReactiveFormsModule, IconComponent, CohortFieldsComponent, ScrollHintDirective],
   templateUrl: './cohort-section.component.html',
   styleUrl: './cohort-section.component.scss',
 })
@@ -26,6 +27,7 @@ export class CohortSectionComponent {
   readonly newForm = cohortForm();
   readonly editForm = cohortForm();
   readonly creating = signal(false);
+  readonly formOpen = signal(false);
   readonly editingId = signal<string | null>(null);
 
   /** The course name; "" is all of them. */
@@ -45,6 +47,7 @@ export class CohortSectionComponent {
       next: () => {
         this.creating.set(false);
         this.newForm.reset({ nome: '', turno: 'MANHA', periodo: '' });
+        this.formOpen.set(false);
         this.store.reloadCohorts();
       },
       error: (e: Error) => {

@@ -12,8 +12,14 @@
     </p>
   </header>
 
-  @if (staff()) {
-    <app-material-form [cohorts]="cohorts()" />
+  @if (staff() && formOpen()) {
+    <app-material-form [cohorts]="cohorts()" (closed)="formOpen.set(false)" (created)="published()" />
+  }
+  @if (done()) {
+    <p class="ok" role="status">
+      <app-icon name="check" />
+      <span>{{ done() }}</span>
+    </p>
   }
 
   @if (actionError()) {
@@ -34,6 +40,20 @@
       </p>
     }
     @default {
+      @if (staff()) {
+        <div class="list-head">
+          <h2 class="section-title">Publicados</h2>
+          <span class="card__count">{{ materials().length }} {{ materials().length === 1 ? 'material' : 'materiais' }}</span>
+          @if (!formOpen()) {
+            <div class="card__actions">
+              <button type="button" class="btn btn--primary btn--sm" (click)="open()">
+                <app-icon name="plus" class="btn__icon" />
+                Publicar material
+              </button>
+            </div>
+          }
+        </div>
+      }
       <div class="grid">
         @for (m of materials(); track m.id) {
           <app-material-card

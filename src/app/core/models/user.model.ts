@@ -62,7 +62,7 @@ export interface NewAccount {
 export const ROLE_LABEL: Record<Role, string> = {
   ALUNO: 'Aluno',
   ORIENTADOR: 'Orientador',
-  ADMIN: 'Admin',
+  ADMIN: 'Coordenação',
 };
 
 export function isStaff(role: Role | null): boolean {
