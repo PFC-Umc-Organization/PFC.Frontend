@@ -1,4 +1,4 @@
-# Athena — O Portal do PFC (frontend)
+# Rafa Manager — O Portal do PFC (frontend)
 
 Frontend Angular do gerenciador de TCC/PFC. Portado do protótipo feito no
 Lovable (React + Tailwind) para **Angular standalone + SCSS puro**, conforme

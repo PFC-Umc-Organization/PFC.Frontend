@@ -1,7 +1,7 @@
 {
   "name": "athena-front",
   "version": "0.1.0",
-  "description": "Athena — O Portal do PFC. Frontend Angular do gerenciador de TCC/PFC.",
+  "description": "Rafa Manager — O Portal do PFC. Frontend Angular do gerenciador de TCC/PFC.",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
