@@ -75,7 +75,7 @@ export class StaffHomeComponent {
 
   readonly emptyText = computed(() => {
     if (!this.programId()) {
-      return 'Nenhum PFC iniciado para esta turma. Crie o programa em Gestão de PFC.';
+      return 'Esta turma ainda não tem programa de PFC. Crie o programa em Gestão de PFC.';
     }
     return this.isAdvisor() ? 'Nenhum projeto desta turma tem você como orientador.' : 'Nenhum projeto cadastrado nesta turma.';
   });

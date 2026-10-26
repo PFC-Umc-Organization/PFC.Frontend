@@ -43,12 +43,12 @@ export class SubmissionDetailComponent {
   async handBack(): Promise<void> {
     const after =
       new Date(this.activity().prazo) > new Date()
-        ? 'O grupo poderá entregar de novo até o prazo.'
-        : 'O prazo já acabou: o grupo não poderá entregar de novo.';
+        ? 'O grupo poderá enviar novamente até o prazo.'
+        : 'Como o prazo já encerrou, o grupo não poderá enviar novamente.';
     const confirmed = await this.confirmation.confirm({
-      title: 'Remover entrega',
-      message: `Remover a entrega do projeto "${this.projectName()}"? ${after}`,
-      confirmText: 'Remover',
+      title: 'Devolver entrega',
+      message: `Devolver a entrega ao grupo ${this.projectName()}? As respostas e os arquivos enviados serão apagados. ${after}`,
+      confirmText: 'Devolver',
       danger: true,
     });
     if (!confirmed) {

@@ -61,7 +61,7 @@ export class MaterialsComponent {
 
   published(): void {
     this.formOpen.set(false);
-    this.done.set('Material publicado. Os grupos já veem.');
+    this.done.set('Material publicado e disponível para os grupos.');
   }
 
   /** The coordination removes any material; an advisor, their own. */
@@ -84,7 +84,7 @@ export class MaterialsComponent {
   async remove(m: Material): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Remover material',
-      message: `Remover "${m.titulo}"? Os grupos deixam de ver o material${m.arquivo ? ' e o arquivo é apagado' : ''}.`,
+      message: `Remover "${m.titulo}"? O material deixará de ser exibido aos grupos${m.arquivo ? ' e o arquivo será apagado' : ''}.`,
       confirmText: 'Remover',
       danger: true,
     });

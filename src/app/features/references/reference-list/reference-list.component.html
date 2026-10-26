@@ -6,7 +6,7 @@
     </div>
     @if (references().length > 0) {
       <button type="button" class="btn btn--outline btn--sm" (click)="copyAll()">
-        {{ copied() === 'all' ? 'Copiado!' : 'Copiar todas (ABNT)' }}
+        {{ copied() === 'all' ? 'Copiado' : 'Copiar todas (ABNT)' }}
       </button>
     }
   </div>
@@ -33,7 +33,7 @@
             </span>
             <div class="row">
               <button type="button" class="btn btn--ghost btn--sm" (click)="copy(r)">
-                {{ copied() === r.id ? 'Copiado!' : 'Copiar' }}
+                {{ copied() === r.id ? 'Copiado' : 'Copiar' }}
               </button>
               @if (editable()) {
                 <button
@@ -54,7 +54,7 @@
         <li class="list__empty">
           {{
             editable()
-              ? 'Nenhuma referência ainda. Busque um artigo acima e clique em "Adicionar".'
+              ? 'Nenhuma referência adicionada. Pesquise um artigo acima e selecione "Adicionar".'
               : 'Este grupo ainda não adicionou referências.'
           }}
         </li>

@@ -58,10 +58,8 @@
 .failed {
   display: inline-block;
   padding: 0.1875rem 0.5rem;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--destructive);
   background: color-mix(in oklch, var(--destructive) 9%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--destructive) 28%, transparent);

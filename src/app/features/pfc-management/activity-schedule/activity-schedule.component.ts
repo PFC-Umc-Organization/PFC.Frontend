@@ -38,9 +38,9 @@ export class ActivityScheduleComponent {
 
   async remove(id: string, title: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
-      title: 'Remover atividade',
-      message: `Remover a atividade "${title}"? Essa ação não pode ser desfeita.`,
-      confirmText: 'Remover',
+      title: 'Excluir atividade',
+      message: `Excluir a atividade "${title}"? As entregas dos grupos e os arquivos enviados para ela também serão apagados. Esta ação não pode ser desfeita.`,
+      confirmText: 'Excluir',
       danger: true,
     });
     if (!confirmed) {

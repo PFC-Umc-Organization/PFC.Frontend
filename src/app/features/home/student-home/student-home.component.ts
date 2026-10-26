@@ -94,7 +94,7 @@ export class StudentHomeComponent {
   });
   readonly error = computed(() => {
     const s = this.state();
-    return s.kind === 'error' ? `Não foi possível carregar as atividades: ${s.message}` : '';
+    return s.kind === 'error' ? `Não foi possível carregar as atividades. ${s.message}` : '';
   });
   /** The pending activity with the closest deadline. */
   readonly next = computed(() =>
@@ -108,7 +108,7 @@ export class StudentHomeComponent {
   timeLeft(deadline: string, now = new Date()): string {
     const hours = Math.floor((new Date(deadline).getTime() - now.getTime()) / 3_600_000);
     if (hours < 1) {
-      return 'Vence em menos de 1 hora';
+      return 'O prazo encerra em menos de 1 hora';
     }
     if (hours < 24) {
       return hours === 1 ? 'Falta 1 hora' : `Faltam ${hours} horas`;

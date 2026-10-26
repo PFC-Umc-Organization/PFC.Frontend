@@ -43,7 +43,7 @@ test.describe('student without a group', () => {
     await signIn(page, STUDENT_WITHOUT_GROUP);
     await expect(page.getByText('Monografia', { exact: true })).toBeVisible();
     await expect(page.getByText('1º CRUD')).toBeVisible();
-    await expect(page.getByText('ainda não faz parte de um PFC')).toBeVisible();
+    await expect(page.getByText('ainda não participa de um PFC')).toBeVisible();
     expect(api.calls).toContain('GET /me');
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
   });
@@ -51,7 +51,7 @@ test.describe('student without a group', () => {
   test('Entregáveis explains that submitting is done by the group', async ({ page }) => {
     await signIn(page, STUDENT_WITHOUT_GROUP);
     await page.goto('/entregaveis');
-    await expect(page.getByText('Você ainda não faz parte de um PFC')).toBeVisible();
+    await expect(page.getByText('Você ainda não participa de um PFC')).toBeVisible();
   });
 
   test('reads only general and own-cohort materials, without form or removal', async ({ page }) => {
@@ -69,7 +69,7 @@ test.describe('student with a group', () => {
     await signIn(page, STUDENT_WITH_GROUP);
     const next = page.locator('.next');
     await expect(next.getByRole('heading', { name: '1º CRUD' })).toBeVisible();
-    await expect(next).toContainText('mais 1 pendente');
+    await expect(next).toContainText('outra entrega pendente');
     await page.screenshot({ path: 'test-results/next.png' });
     await next.getByRole('link', { name: 'Enviar entrega' }).click();
     await expect(page).toHaveURL(/\/entregaveis\?atividade=a2/);
@@ -109,7 +109,7 @@ test.describe('student with a group', () => {
     expect(api.db.submissions.find((e) => e.atividadeId === 'a3')?.respostas?.c3).toBe('entregas/pr1/a3/c3/u1/Monografia Final.pdf');
     await expect(page.locator('#activity')).toHaveValue('');
     await expect(page.locator('#field-c3')).toHaveCount(0);
-    await expect(page.getByText('enviado antes do upload')).toBeVisible();
+    await expect(page.getByText('anterior ao envio de arquivos')).toBeVisible();
 
     const [download] = await Promise.all([
       page.waitForRequest((r) => r.url().includes('fake-bucket') && r.method() === 'GET'),
@@ -376,16 +376,16 @@ test.describe('penalties', () => {
     }
   };
 
-  test('the student home counts penalties and, at three, shows REPROVADO and closes submissions', async ({ page, api }) => {
+  test('the student home counts penalties and, at three, shows the failed notice and closes submissions', async ({ page, api }) => {
     await signIn(page, STUDENT_WITH_GROUP);
     await expect(page.getByText('0 penalidades ativas')).toBeVisible();
     seed(api, 3);
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Reprovado' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Grupo reprovado por penalidades' })).toBeVisible();
     await expect(page.getByText('Motivo 3')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Enviar entrega' })).toHaveCount(0);
     await page.goto('/entregaveis');
-    await expect(page.getByRole('alert')).toContainText('O grupo foi reprovado');
+    await expect(page.getByRole('alert')).toContainText('o grupo foi reprovado por penalidades');
     await expect(page.locator('#activity')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0);
   });

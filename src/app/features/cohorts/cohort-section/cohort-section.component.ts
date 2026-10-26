@@ -84,7 +84,7 @@ export class CohortSectionComponent {
   async remove(cohortId: string, name: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Excluir turma',
-      message: `Excluir a turma de "${name}"? Essa ação não pode ser desfeita.`,
+      message: `Excluir a turma ${name}? Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       danger: true,
     });

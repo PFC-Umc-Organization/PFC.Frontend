@@ -83,7 +83,7 @@
                     />
                     @if (c.nome !== editName.value.trim() && store.cohortsOf(c) > 0) {
                       <span class="field__hint">
-                        As {{ store.cohortsOf(c) }} turma(s) deste curso passam a usar o novo nome.
+                        {{ store.cohortsOf(c) === 1 ? 'A turma deste curso passará' : 'As ' + store.cohortsOf(c) + ' turmas deste curso passarão' }} a usar o novo nome.
                       </span>
                     }
                   </div>

@@ -16,8 +16,8 @@ export class TimelineComponent {
   readonly items = input<TimelineItem[]>([]);
   readonly interactive = input(true);
   readonly eyebrow = input('Entregáveis');
-  readonly heading = input('Timeline de Entregas');
-  readonly description = input('Marque cada etapa como concluída antes da data e hora limite.');
+  readonly heading = input('Cronograma de entregas');
+  readonly description = input('');
   readonly showLegend = input(true);
   /** A secondary section of the page: a smaller heading. */
   readonly compact = input(false);

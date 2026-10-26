@@ -4,8 +4,7 @@
     <h1 class="page-title mt-2">Materiais de apoio</h1>
     <p class="lead mt-2">
       @if (staff()) {
-        Modelos, guias e gravações para os grupos. Escolha a turma ou deixe "Todas as turmas" para
-        publicar para todos.
+        Modelos, guias e gravações disponibilizados aos grupos. Cada material pode ser publicado para uma turma específica ou para todas.
       } @else {
         Modelos, guias e gravações publicados pela coordenação e pelos orientadores para a sua turma.
       }
@@ -36,7 +35,7 @@
     @case ('error') {
       <p class="alert" role="alert">
         <app-icon name="alert" />
-        <span>Não foi possível carregar os materiais: {{ loadError() }}</span>
+        <span>Não foi possível carregar os materiais. {{ loadError() }}</span>
       </p>
     }
     @default {
@@ -66,9 +65,9 @@
         } @empty {
           <p class="empty-state">
             @if (staff()) {
-              Nenhum material publicado ainda. Os grupos veem aqui o que for publicado.
+              Nenhum material publicado. Os materiais publicados aparecem aqui e na tela dos grupos.
             } @else {
-              A coordenação ainda não publicou materiais para a sua turma.
+              Ainda não há materiais publicados para a sua turma.
             }
           </p>
         }

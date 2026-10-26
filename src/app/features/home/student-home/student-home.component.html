@@ -13,21 +13,25 @@
       <p class="notice" role="status">
         <app-icon name="alert" />
         <span>
-          Você ainda não faz parte de um PFC. As entregas são feitas pelo grupo:
-          <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
+          Você ainda não participa de um PFC. As entregas são feitas pelo grupo; para começar, <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
         </span>
       </p>
     } @else if (!penaltiesReady()) {
       <p class="loading" role="status">Carregando a situação do grupo…</p>
     } @else if (failed()) {
       <section class="failed" role="alert" aria-labelledby="failed-title">
-        <p class="eyebrow">Situação do grupo</p>
-        <h2 id="failed-title" class="failed__title">Reprovado</h2>
-        <p class="failed__text">
-          O grupo {{ project()!.nome }} tem {{ penalties()!.ativas }} penalidades ativas e o limite é
-          {{ penalties()!.limite }}, por isso não pode mais entregar. Se alguma foi aplicada por engano, fale com o
-          orientador ou com a coordenação.
-        </p>
+        <app-icon name="alert" class="failed__icon" />
+        <div class="failed__body">
+          <h2 id="failed-title" class="failed__title">Grupo reprovado por penalidades</h2>
+          <p class="failed__text">
+            O grupo {{ project()!.nome }} soma {{ penalties()!.ativas }} penalidades ativas, e o limite previsto nas
+            regras do PFC é {{ penalties()!.limite }}. Por esse motivo, o envio de entregas está encerrado.
+          </p>
+          <p class="failed__hint">
+            Se alguma penalidade foi aplicada indevidamente, solicite a revisão ao orientador do grupo ou à
+            coordenação do curso.
+          </p>
+        </div>
       </section>
     } @else if (next(); as n) {
       <section class="next" aria-labelledby="next-title">
@@ -38,7 +42,7 @@
             <app-icon name="calendar" />
             {{ timeLeft(n.deadline) }} · até {{ n.deadline | deadline: true }}
             @if (pendingCount() > 1) {
-              <span class="next__more">· mais {{ pendingCount() - 1 }} pendente{{ pendingCount() > 2 ? 's' : '' }}</span>
+              <span class="next__more">· {{ pendingCount() === 2 ? 'outra entrega pendente' : 'outras ' + (pendingCount() - 1) + ' entregas pendentes' }}</span>
             }
           </p>
         </div>
@@ -49,7 +53,7 @@
     } @else if (items().length > 0) {
       <p class="notice" role="status">
         <app-icon name="check" />
-        <span>{{ missed() ? 'Nenhuma entrega aberta no momento.' : 'Tudo em dia: nenhuma entrega pendente.' }}</span>
+        <span>{{ missed() ? 'Não há entregas com prazo aberto no momento.' : 'Todas as entregas do grupo estão em dia.' }}</span>
       </p>
     }
     @if (penalties(); as p) {
@@ -58,7 +62,7 @@
           <div>
             <h2 id="penalties-title" class="section-title">Penalidades</h2>
             <p class="penalties__rule">
-              Cada atividade vencida sem entrega conta uma. Com {{ p.limite }} ativas, o grupo é reprovado.
+              Cada atividade não entregue até o prazo gera uma penalidade para o grupo. Ao atingir {{ p.limite }} penalidades ativas, o grupo é reprovado.
             </p>
           </div>
           <app-penalty-counter [penalties]="p" />

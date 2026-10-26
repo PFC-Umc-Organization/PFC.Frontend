@@ -95,7 +95,7 @@ export class ProjectSectionComponent {
   async remove(projectId: string, name: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Excluir PFC',
-      message: `Excluir o PFC "${name}"? Essa ação não pode ser desfeita.`,
+      message: `Excluir o PFC "${name}"? As entregas, os convites, as referências e os arquivos do grupo também serão apagados. Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       danger: true,
     });

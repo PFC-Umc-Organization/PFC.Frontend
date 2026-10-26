@@ -44,8 +44,8 @@ export class ForgotPasswordComponent {
 
   readonly subtitle = computed(() =>
     this.codeSent()
-      ? 'Digite o código que enviamos e escolha a nova senha.'
-      : 'Informe o e-mail da sua conta: enviamos um código para criar uma senha nova.',
+      ? 'Digite o código enviado por e-mail e defina a nova senha.'
+      : 'Informe o e-mail da sua conta. Enviaremos um código para você definir uma nova senha.',
   );
 
   touchedInvalid(control: { invalid: boolean; touched: boolean }): boolean {

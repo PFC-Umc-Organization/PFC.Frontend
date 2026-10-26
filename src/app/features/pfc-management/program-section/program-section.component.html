@@ -3,7 +3,7 @@
     <h2 class="section-title">Programas de PFC</h2>
     <span class="card__count">{{ withProgram() }} de {{ rows().length }} turmas com programa</span>
   </div>
-  <p class="intro">Sem o programa, os alunos da turma não conseguem criar o PFC do grupo.</p>
+  <p class="intro">Os alunos só podem cadastrar o PFC do grupo depois que a turma tiver um programa.</p>
 
   @if (store.programsError()) {
     <p class="alert card__alert" role="alert">
@@ -91,7 +91,7 @@
                       type="button"
                       class="icon-action"
                       [disabled]="r.projects !== 0 || freeCohorts().length === 0"
-                      [attr.title]="(r.projects ?? 0) > 0 ? 'Não dá para mover um programa que já tem PFCs' : 'Mover para outra turma'"
+                      [attr.title]="(r.projects ?? 0) > 0 ? 'Não é possível mover um programa que já tem PFCs' : 'Mover para outra turma'"
                       (click)="startEdit(r.programId, '')"
                       [attr.aria-label]="'Mover programa de ' + r.label"
                     >
@@ -101,7 +101,7 @@
                       type="button"
                       class="icon-action"
                       [disabled]="r.projects !== 0"
-                      [attr.title]="(r.projects ?? 0) > 0 ? 'Não dá para excluir um programa que já tem PFCs' : 'Excluir programa'"
+                      [attr.title]="(r.projects ?? 0) > 0 ? 'Não é possível excluir um programa que já tem PFCs' : 'Excluir programa'"
                       (click)="remove(r.programId, r.label)"
                       [attr.aria-label]="'Excluir programa de ' + r.label"
                     >
@@ -114,7 +114,7 @@
           }
         } @empty {
           <tr>
-            <td class="table-empty" colspan="4">Nenhuma turma cadastrada. Crie as turmas em Turmas.</td>
+            <td class="table-empty" colspan="4">Nenhuma turma cadastrada. Cadastre as turmas na tela Turmas.</td>
           </tr>
         }
       </tbody>

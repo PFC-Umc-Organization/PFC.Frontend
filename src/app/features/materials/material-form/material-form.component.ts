@@ -83,7 +83,7 @@ export class MaterialFormComponent {
       },
       error: (e: ApiError) => {
         this.progress.set(null);
-        this.fileError.set(e.status === 503 ? 'O envio de arquivos ainda não está disponível. Publique um link.' : e.message);
+        this.fileError.set(e.status === 503 ? 'O envio de arquivos ainda não está disponível. Publique o material como link.' : e.message);
       },
     });
   }

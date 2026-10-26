@@ -28,8 +28,7 @@
   @if (!staff()) {
     @if (!project()) {
       <p class="empty-state">
-        Você ainda não faz parte de um PFC. Dá para pesquisar artigos, mas a lista de referências é do grupo:
-        <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
+        Você ainda não participa de um PFC. A pesquisa de artigos está disponível, mas a lista de referências pertence ao grupo; para montá-la, <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
       </p>
     }
 
@@ -52,7 +51,7 @@
             [attr.aria-selected]="mode() === 'doi'"
             (click)="mode.set('doi')"
           >
-            Tenho o DOI
+            Buscar por DOI
           </button>
         </div>
 

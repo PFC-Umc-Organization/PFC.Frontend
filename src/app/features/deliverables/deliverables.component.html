@@ -3,14 +3,14 @@
     <p class="eyebrow">Entrega de atividades</p>
     <h1 class="page-title mt-2">Entregáveis</h1>
     <p class="lead mt-2">
-      Escolha a atividade, preencha os campos e envie a entrega do grupo antes do prazo.
+      Selecione a atividade, preencha os campos e envie a entrega do grupo até o prazo.
     </p>
   </header>
 
   @if (loadError()) {
     <p class="alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível carregar as entregas: {{ loadError() }}</span>
+      <span>Não foi possível carregar as entregas. {{ loadError() }}</span>
     </p>
   }
 
@@ -20,8 +20,7 @@
     <p class="alert" role="alert">
       <app-icon name="alert" />
       <span>
-        O grupo foi reprovado: tem {{ penalties()!.ativas }} penalidades ativas e o limite é {{ penalties()!.limite }},
-        por isso não pode mais entregar. Se alguma foi aplicada por engano, fale com o orientador ou com a coordenação.
+        O envio de entregas está encerrado porque o grupo foi reprovado por penalidades ({{ penalties()!.ativas }} ativas, com limite de {{ penalties()!.limite }}). Para solicitar a revisão de uma penalidade, procure o orientador do grupo ou a coordenação do curso.
       </span>
     </p>
   } @else {

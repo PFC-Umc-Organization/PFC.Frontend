@@ -30,15 +30,14 @@
       }
       <button type="button" class="btn btn--outline btn--sm" (click)="handBack()">
         <app-icon name="trash" class="btn__icon" />
-        Remover entrega (devolver ao grupo)
+        Devolver entrega ao grupo
       </button>
     } @else if (deadlinePassed()) {
       <p class="meta">
-        O prazo venceu em {{ activity().prazo | deadline: true }} sem entrega do grupo. Isso conta como uma penalidade;
-        para perdoá-la, use a coluna Penalidades.
+        O prazo encerrou em {{ activity().prazo | deadline: true }} sem entrega do grupo, o que gerou uma penalidade. Para perdoá-la, abra a coluna Penalidades.
       </p>
     } @else {
-      <p class="meta">O grupo ainda não entregou. O prazo vai até {{ activity().prazo | deadline: true }}.</p>
+      <p class="meta">O grupo ainda não enviou esta entrega. O prazo encerra em {{ activity().prazo | deadline: true }}.</p>
     }
   </div>
 </section>

@@ -60,7 +60,7 @@ export class AuthService {
   setNewPassword(password: string): Observable<void> {
     const challenge = this.challenge();
     if (!challenge) {
-      return throwError(() => new Error('Entre de novo com a senha temporária do e-mail.'));
+      return throwError(() => new Error('A sessão expirou. Entre novamente com a senha temporária recebida por e-mail.'));
     }
     return this.users.setNewPassword(challenge.email, challenge.session, password).pipe(
       tap((result) => {

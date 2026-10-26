@@ -25,8 +25,7 @@
         <p class="alert" role="alert">
           <app-icon name="alert" />
           <span>
-            O seu RGM ainda não está pré-autorizado em nenhuma turma, então ainda não dá para criar o PFC.
-            Fale com a coordenação. Se ela acabou de liberar, recarregue a página.
+            O seu RGM ainda não está pré-autorizado em nenhuma turma, por isso não é possível criar o PFC. Solicite a pré-autorização à coordenação do curso; se ela já foi feita, recarregue a página.
           </span>
         </p>
       }
@@ -34,8 +33,7 @@
         <p class="alert" role="alert">
           <app-icon name="alert" />
           <span>
-            A sua turma ainda não tem PFC iniciado. Assim que a coordenação criar o programa de PFC da
-            turma, você poderá criar o projeto do seu grupo aqui.
+            A coordenação ainda não abriu o programa de PFC da sua turma. Assim que ele for criado, você poderá cadastrar o projeto do grupo nesta tela.
           </span>
         </p>
       }
@@ -45,8 +43,8 @@
       @case ('error') {
         <p class="alert" role="alert">
           <app-icon name="alert" />
-          <span>Não foi possível carregar o seu PFC: {{ loadError() }}</span>
-          <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar de novo</button>
+          <span>Não foi possível carregar o seu PFC. {{ loadError() }}</span>
+          <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar novamente</button>
         </p>
       }
       @default {

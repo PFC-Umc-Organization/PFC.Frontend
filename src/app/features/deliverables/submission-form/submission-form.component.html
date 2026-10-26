@@ -4,11 +4,10 @@
 
     @if (!project()) {
       <p class="empty-state mt-6">
-        Você ainda não faz parte de um PFC, e a entrega é feita pelo grupo.
-        <a routerLink="/meu-pfc">Crie o PFC ou aceite um convite</a>.
+        As entregas são feitas pelo grupo, e você ainda não participa de um PFC. Para começar, <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
       </p>
     } @else if (available().length === 0) {
-      <p class="empty-state mt-6">Nenhuma atividade aberta para entrega: os prazos das que faltam encerraram.</p>
+      <p class="empty-state mt-6">Não há atividades com prazo aberto para entrega.</p>
     } @else {
       <div class="form-grid form-grid--2 mt-6">
         <div class="field">
@@ -19,7 +18,7 @@
               <option [value]="item.activityId" [selected]="item.activityId === activityId()">
                 {{ item.title }} (até {{ item.deadline | deadline }})
                 @if (item.status !== 'PENDENTE') {
-                  · já entregue, editar
+                  · entregue, disponível para edição
                 }
               </option>
             }

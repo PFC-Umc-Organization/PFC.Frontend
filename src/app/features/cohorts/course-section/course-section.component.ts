@@ -81,7 +81,7 @@ export class CourseSectionComponent {
   async remove(course: Course): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Excluir curso',
-      message: `Excluir o curso "${course.nome}"? Essa ação não pode ser desfeita.`,
+      message: `Excluir o curso "${course.nome}"? Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       danger: true,
     });

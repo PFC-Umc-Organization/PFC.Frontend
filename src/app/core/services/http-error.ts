@@ -11,7 +11,9 @@ export function toApiError(e: HttpErrorResponse): Observable<never> {
   const message =
     body && typeof body === 'object' && 'erro' in body
       ? String((body as { erro: unknown }).erro)
-      : 'Não foi possível concluir a operação.';
+      : e.status === 0
+        ? 'Não foi possível conectar ao servidor. Verifique a conexão e tente novamente.'
+        : 'Não foi possível concluir a operação. Tente novamente em instantes.';
 
   const error: ApiError = new Error(message);
   error.status = e.status;

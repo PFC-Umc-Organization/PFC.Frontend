@@ -49,22 +49,22 @@ describe('MyPfcComponent', () => {
   it('without a cohort, explains the missing pre-authorization instead of the form', async () => {
     const text = await render(of({ turma: null, grupo: null }));
     expect(text).toContain('não está pré-autorizado');
-    expect(text).not.toContain('Criar o PFC do meu grupo');
+    expect(text).not.toContain('Criar o PFC do grupo');
   });
 
   it('warns when the cohort has no program yet', async () => {
     const text = await render(of({ turma: cohort, grupo: null }));
-    expect(text).toContain('ainda não tem PFC iniciado');
+    expect(text).toContain('ainda não abriu o programa de PFC');
   });
 
   it('offers to create the PFC with a cohort and a program', async () => {
     const text = await render(of({ turma: cohort, programaId: 'p1', grupo: null }));
-    expect(text).toContain('Criar o PFC do meu grupo');
+    expect(text).toContain('Criar o PFC do grupo');
   });
 
   it('shows why loading failed and does not fall back to the form', async () => {
     const text = await render(throwError(() => new Error('serviço fora do ar')));
-    expect(text).toContain('Não foi possível carregar o seu PFC: serviço fora do ar');
-    expect(text).not.toContain('Criar o PFC do meu grupo');
+    expect(text).toContain('Não foi possível carregar o seu PFC. serviço fora do ar');
+    expect(text).not.toContain('Criar o PFC do grupo');
   });
 });

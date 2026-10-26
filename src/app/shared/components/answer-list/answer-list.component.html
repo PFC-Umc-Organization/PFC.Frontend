@@ -11,7 +11,7 @@
         </button>
       } @else if (r.type === 'ARQUIVO') {
         {{ r.value }}
-        <span class="answers__muted">(enviado antes do upload, só o nome)</span>
+        <span class="answers__muted">(registro anterior ao envio de arquivos; apenas o nome)</span>
       } @else if (r.type === 'LINK') {
         <a [href]="r.value" target="_blank" rel="noopener noreferrer">{{ r.value }}</a>
       } @else {

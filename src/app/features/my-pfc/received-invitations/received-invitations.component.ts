@@ -53,7 +53,7 @@ export class ReceivedInvitationsComponent {
   async decline(invitation: Invitation): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Recusar convite',
-      message: `Recusar o convite para o grupo "${invitation.projetoNome}"? Para entrar depois, alguém do grupo precisa convidar você de novo.`,
+      message: `Recusar o convite para o grupo "${invitation.projetoNome}"? Para entrar no grupo depois, será necessário um novo convite.`,
       confirmText: 'Recusar',
       danger: true,
     });

@@ -114,7 +114,7 @@
                   <button
                     type="button"
                     class="icon-action"
-                    (click)="remove(c.id, c.nome)"
+                    (click)="remove(c.id, c.nome + ' (' + shiftLabel[c.turno] + ', ' + c.periodo + ')')"
                     [attr.aria-label]="'Excluir turma ' + c.nome"
                   >
                     <app-icon name="trash" />

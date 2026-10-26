@@ -5,7 +5,7 @@
       <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">Cancelar</button>
     </div>
     <p class="lead text-sm mt-1">
-      O RGM pré-autorizado libera o cadastro do aluno em "Criar conta"; nome e e-mail ele mesmo preenche.
+      A pré-autorização permite que o aluno crie a própria conta em "Criar conta", informando nome e e-mail.
     </p>
 
     @if (result(); as r) {
@@ -13,8 +13,7 @@
         <app-icon name="alert" />
         <div>
           <p>
-            {{ r.processados === 1 ? '1 RGM pré-autorizado' : r.processados + ' RGMs pré-autorizados' }};
-            {{ r.falhas.length === 1 ? 'este não entrou:' : 'estes não entraram:' }}
+            {{ r.processados === 1 ? '1 RGM pré-autorizado.' : r.processados + ' RGMs pré-autorizados.' }} {{ r.falhas.length === 1 ? 'Não foi possível incluir este RGM:' : 'Não foi possível incluir estes RGMs:' }}
           </p>
           <ul class="failures">
             @for (f of r.falhas; track f.rgm) {
@@ -70,8 +69,7 @@
             [class.control--invalid]="invalid('rgms')"
           ></textarea>
           <span class="field__hint">
-            Aceita vários RGMs de uma vez, separados por linha ou vírgula. Todos entram
-            pré-autorizados na turma selecionada.
+            Informe um ou mais RGMs, separados por linha ou vírgula. Todos serão pré-autorizados na turma selecionada.
           </span>
           @if (invalid('rgms')) {
             <span class="field__error">Informe ao menos um RGM válido (só números).</span>

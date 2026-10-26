@@ -1,4 +1,4 @@
-<app-auth-card heading="Criar conta" subtitle="Cadastro de aluno. Seu RGM precisa estar pré-autorizado pela coordenação.">
+<app-auth-card heading="Criar conta" subtitle="Cadastro exclusivo para alunos com RGM pré-autorizado pela coordenação do curso.">
   <form class="form" [formGroup]="form" (ngSubmit)="signUp()">
     @if (error()) {
       <p class="alert" role="alert">
@@ -34,9 +34,9 @@
         formControlName="email"
         [class.control--invalid]="invalid('email')"
       />
-      <span class="field__hint">Use o e-mail institucional com o seu RGM.</span>
+      <span class="field__hint">Use o e-mail institucional no formato RGM&#64;alunos.umc.br.</span>
       @if (invalid('email')) {
-        <span class="field__error">Use o formato &lt;seu RGM&gt;&#64;alunos.umc.br.</span>
+        <span class="field__error">Informe um e-mail no formato RGM&#64;alunos.umc.br.</span>
       }
     </div>
 

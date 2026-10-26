@@ -35,14 +35,14 @@ export class PenaltyPanelComponent {
       const toWaive = ativas - limite + 1;
       return {
         title: 'Reprovado',
-        text: `${ativas === limite ? 'No' : 'Acima do'} limite de ${limite}. O grupo não entrega mais; para voltar, perdoe ${plural(toWaive)}.`,
+        text: `O grupo ${ativas === limite ? 'atingiu' : 'ultrapassou'} o limite de ${plural(limite)} e não pode enviar entregas. Para liberar o envio, é preciso perdoar ${plural(toWaive)}.`,
       };
     }
     if (ativas === 0) {
-      return { title: 'Sem penalidades', text: `O grupo é reprovado ao chegar a ${limite}.` };
+      return { title: 'Sem penalidades', text: `O grupo será reprovado se atingir ${plural(limite)} ativas.` };
     }
     const left = limite - ativas;
-    return { title: left === 1 ? 'Em risco' : 'Dentro do limite', text: `Com mais ${plural(left)}, o grupo é reprovado.` };
+    return { title: left === 1 ? 'Em risco' : 'Dentro do limite', text: `O grupo será reprovado se receber mais ${plural(left)}.` };
   });
 
   readonly applying = signal(false);

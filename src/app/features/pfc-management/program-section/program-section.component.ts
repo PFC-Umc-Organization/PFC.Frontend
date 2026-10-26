@@ -98,7 +98,7 @@ export class ProgramSectionComponent {
   async remove(programId: string, cohort: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Excluir programa de PFC',
-      message: `Excluir o programa de PFC de "${cohort}"? Os alunos dessa turma deixam de poder criar PFC até o programa ser criado de novo.`,
+      message: `Excluir o programa de PFC de "${cohort}"? Os alunos da turma não poderão cadastrar PFCs até que um novo programa seja criado.`,
       confirmText: 'Excluir',
       danger: true,
     });

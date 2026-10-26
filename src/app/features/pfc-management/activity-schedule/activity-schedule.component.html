@@ -15,7 +15,7 @@
   @if (loadError()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível carregar as atividades: {{ loadError() }}</span>
+      <span>Não foi possível carregar as atividades. {{ loadError() }}</span>
     </p>
   }
   @if (removeError()) {
@@ -60,7 +60,7 @@
                     type="button"
                     class="icon-action"
                     (click)="remove(a.id, a.titulo)"
-                    [attr.aria-label]="'Remover atividade ' + a.titulo"
+                    [attr.aria-label]="'Excluir atividade ' + a.titulo"
                   >
                     <app-icon name="trash" />
                   </button>

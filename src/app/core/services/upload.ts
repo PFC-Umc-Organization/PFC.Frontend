@@ -30,7 +30,7 @@ export function uploadToBucket(
       }),
       filter((ev): ev is UploadEvent => ev !== null),
       catchError(() =>
-        throwError(() => new Error('O envio do arquivo falhou. Confira a conexão e tente de novo.')),
+        throwError(() => new Error('Não foi possível enviar o arquivo. Verifique a conexão e tente novamente.')),
       ),
     );
 }
