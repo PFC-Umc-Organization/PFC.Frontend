@@ -158,7 +158,7 @@ test.describe('coordination', () => {
   test('the panel starts at this term\'s cohort and builds the grid with one submissions call', async ({ page, api }) => {
     await signIn(page, ADMIN);
     await expect(page.locator('#cohort option:checked')).toHaveText('Engenharia de Software (Noite, 2026.2)');
-    await expect(page.getByText('Status de entrega por projeto (2)')).toBeVisible();
+    await expect(page.getByText('2 projetos')).toBeVisible();
     expect(api.calls).toContain('GET /programas/p1/entregas');
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
 
@@ -292,7 +292,7 @@ test.describe('management', () => {
 test.describe('advisor', () => {
   test('sees and manages only the groups they advise, without admin actions', async ({ page, api }) => {
     await signIn(page, ADVISOR);
-    await expect(page.getByText('Status de entrega por projeto (1)')).toBeVisible();
+    await expect(page.getByText('1 projeto', { exact: true })).toBeVisible();
     await expect(page.getByText('Web-Cursos')).toHaveCount(0);
 
     await page.goto('/gestao');
@@ -355,7 +355,7 @@ test.describe('penalties', () => {
 
   test('the student home counts penalties and, at three, shows REPROVADO and closes submissions', async ({ page, api }) => {
     await signIn(page, STUDENT_WITH_GROUP);
-    await expect(page.getByText('0 de 3 penalidades')).toBeVisible();
+    await expect(page.getByText('0 penalidades ativas')).toBeVisible();
     seed(api, 3);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Reprovado' })).toBeVisible();
@@ -382,7 +382,8 @@ test.describe('penalties', () => {
     await page.getByLabel('Motivo', { exact: true }).fill('Entrega não validada');
     await page.getByLabel('Atividade (opcional)').selectOption({ label: 'Monografia' });
     await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
-    await expect(page.getByText('Entrega não validada (Monografia)')).toBeVisible();
+    await expect(page.locator('.penalty').filter({ hasText: 'Entrega não validada' })).toContainText('Aplicada em');
+    await expect(page.locator('.penalty').filter({ hasText: 'Entrega não validada' })).toContainText('Monografia');
     await expect(page.getByRole('button', { name: 'Athena, penalidades: reprovado' })).toBeVisible();
     expect(api.db.penalties.at(-1)).toMatchObject({ projetoId: 'pr1', motivo: 'Entrega não validada', atividadeId: 'a1' });
   });

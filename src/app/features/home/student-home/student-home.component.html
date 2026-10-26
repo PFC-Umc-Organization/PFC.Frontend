@@ -17,13 +17,16 @@
           <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
         </span>
       </p>
+    } @else if (!penaltiesReady()) {
+      <p class="loading" role="status">Carregando a situação do grupo…</p>
     } @else if (failed()) {
       <section class="failed" role="alert" aria-labelledby="failed-title">
         <p class="eyebrow">Situação do grupo</p>
         <h2 id="failed-title" class="failed__title">Reprovado</h2>
         <p class="failed__text">
-          O grupo {{ project()!.nome }} chegou a {{ penalties()!.limite }} penalidades e não pode mais entregar. Se
-          alguma foi aplicada por engano, fale com o orientador ou com a coordenação.
+          O grupo {{ project()!.nome }} tem {{ penalties()!.ativas }} penalidades ativas e o limite é
+          {{ penalties()!.limite }}, por isso não pode mais entregar. Se alguma foi aplicada por engano, fale com o
+          orientador ou com a coordenação.
         </p>
       </section>
     } @else if (next(); as n) {
@@ -51,19 +54,20 @@
     }
     @if (penalties(); as p) {
       <section class="card penalties" aria-labelledby="penalties-title">
-        <div class="card__body penalties__body">
-          <div class="penalties__head">
+        <header class="penalties__head">
+          <div>
             <h2 id="penalties-title" class="section-title">Penalidades</h2>
-            <app-penalty-counter [penalties]="p" />
+            <p class="penalties__rule">
+              Cada atividade vencida sem entrega conta uma. Com {{ p.limite }} ativas, o grupo é reprovado.
+            </p>
           </div>
-          <p class="muted text-sm">
-            Cada atividade que passa do prazo sem entrega do grupo conta uma penalidade; o orientador e a coordenação
-            também podem aplicar ou perdoar. Com {{ p.limite }}, o grupo é reprovado.
-          </p>
-          @if (p.penalidades.length) {
+          <app-penalty-counter [penalties]="p" />
+        </header>
+        @if (p.penalidades.length) {
+          <div class="penalties__body">
             <app-penalty-list [penalties]="p.penalidades" />
-          }
-        </div>
+          </div>
+        }
       </section>
     }
     <app-timeline

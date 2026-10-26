@@ -1,7 +1,7 @@
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
 import { ProjectPenalties, STATUS_SHORT_LABEL, SubmissionStatus } from '../../../core/models';
-
 import { StatusGrid } from '../../../core/services/submission.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
@@ -17,7 +17,7 @@ export interface CellRef {
 @Component({
   selector: 'app-status-grid',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, StatusBadgeComponent, PenaltyCounterComponent],
+  imports: [DatePipe, IconComponent, StatusBadgeComponent, PenaltyCounterComponent],
   templateUrl: './status-grid.component.html',
   styleUrl: './status-grid.component.scss',
 })

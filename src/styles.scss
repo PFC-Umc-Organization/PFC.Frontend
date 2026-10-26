@@ -687,17 +687,15 @@ select.control {
 }
 
 .data-table thead {
-  background: color-mix(in oklch, var(--primary) 6%, transparent);
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
 }
 
 .data-table th {
   padding: 0.75rem 1.25rem;
   font-family: var(--font-sans);
   font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--primary);
+  font-weight: 600;
+  color: var(--muted-foreground);
 }
 
 .data-table td {

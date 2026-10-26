@@ -1,0 +1,35 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.status__dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+}
+
+.status--entregue .status__dot {
+  background: var(--success);
+}
+
+.status--pendente {
+  color: var(--muted-foreground);
+}
+
+.status--pendente .status__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--muted-foreground);
+}
+
+.status--atrasado,
+.status--entregue_com_atraso {
+  color: var(--destructive);
+}

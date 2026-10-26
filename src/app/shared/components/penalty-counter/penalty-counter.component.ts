@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 
 import { ProjectPenalties } from '../../../core/models';
 
-/** "N de 3" with one mark per possible penalty, or REPROVADO at the limit. */
+/** One segment per penalty up to the limit; at the limit, "Reprovado". */
 @Component({
   selector: 'app-penalty-counter',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -13,15 +13,15 @@ export class PenaltyCounterComponent {
   readonly penalties = input.required<ProjectPenalties>();
   readonly compact = input(false);
 
-  protected readonly marks = computed(() => {
+  protected readonly segments = computed(() => {
     const { ativas, limite } = this.penalties();
     return Array.from({ length: limite }, (_, i) => i < ativas);
   });
   protected readonly text = computed(() => {
-    const { ativas, limite, reprovado } = this.penalties();
-    if (reprovado) {
-      return 'Reprovado';
+    const { ativas, limite } = this.penalties();
+    if (this.compact()) {
+      return `${ativas} de ${limite}`;
     }
-    return this.compact() ? `${ativas}/${limite}` : `${ativas} de ${limite} penalidade${limite === 1 ? '' : 's'}`;
+    return ativas === 1 ? '1 penalidade ativa' : `${ativas} penalidades ativas`;
   });
 }

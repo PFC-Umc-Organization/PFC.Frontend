@@ -1,7 +1,10 @@
 <section class="card card--flush">
   <div class="card__head">
     <app-icon name="clipboard" class="card__head-icon" />
-    <h2 class="section-title">Status de entrega por projeto ({{ grid().rows.length }})</h2>
+    <h2 class="section-title">Entregas por projeto</h2>
+    @if (!loading() && grid().rows.length) {
+      <span class="count">{{ grid().rows.length }} {{ grid().rows.length === 1 ? 'projeto' : 'projetos' }}</span>
+    }
   </div>
 
   @if (error()) {
@@ -11,27 +14,30 @@
     </p>
   }
 
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th scope="col">Projeto</th>
-          <th scope="col">Penalidades</th>
-          @for (a of grid().activities; track a.id) {
-            <th scope="col">{{ a.titulo }}</th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @if (loading()) {
+  @if (loading()) {
+    <p class="empty" role="status">Carregando projetos…</p>
+  } @else if (!grid().rows.length) {
+    <p class="empty">{{ emptyText() }}</p>
+  } @else {
+    <div class="table-scroll">
+      <table class="matrix">
+        <thead>
           <tr>
-            <td class="table-empty" [attr.colspan]="grid().activities.length + 2">Carregando projetos…</td>
+            <th scope="col" class="matrix__project">Projeto</th>
+            <th scope="col" class="matrix__penalties">Penalidades</th>
+            @for (a of grid().activities; track a.id) {
+              <th scope="col" class="matrix__activity">
+                <span class="activity__due">{{ a.prazo | date: 'dd/MM' }}</span>
+                <span class="activity__title" [attr.title]="a.titulo">{{ a.titulo }}</span>
+              </th>
+            }
           </tr>
-        } @else {
+        </thead>
+        <tbody>
           @for (row of grid().rows; track row.project.id) {
             <tr>
-              <td class="cell-strong">{{ row.project.nome }}</td>
-              <td>
+              <th scope="row" class="matrix__project">{{ row.project.nome }}</th>
+              <td class="matrix__penalties">
                 @if (penalties().get(row.project.id); as p) {
                   <button
                     type="button"
@@ -58,13 +64,9 @@
                 </td>
               }
             </tr>
-          } @empty {
-            <tr>
-              <td class="table-empty" [attr.colspan]="grid().activities.length + 2">{{ emptyText() }}</td>
-            </tr>
           }
-        }
-      </tbody>
-    </table>
-  </div>
+        </tbody>
+      </table>
+    </div>
+  }
 </section>

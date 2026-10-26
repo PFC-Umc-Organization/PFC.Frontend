@@ -89,9 +89,8 @@
   color: var(--foreground);
 }
 
-.penalties__body {
-  display: grid;
-  gap: 0.75rem;
+.penalties {
+  padding: 0;
 }
 
 .penalties__head {
@@ -99,5 +98,24 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.75rem 1.5rem;
+  padding: 1.25rem 1.5rem;
+}
+
+.penalties__rule {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.penalties__body {
+  padding: 0.25rem 1.5rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .penalties__head,
+  .penalties__body {
+    padding-inline: 1rem;
+  }
 }

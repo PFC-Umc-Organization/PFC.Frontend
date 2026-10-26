@@ -32,9 +32,7 @@ export interface NewPenalty {
   atividadeId?: string;
 }
 
+/** The activity for a missed deadline, the reason for a manual one. */
 export function penaltyTitle(p: Penalty): string {
-  if (p.origem === 'PRAZO') {
-    return `Prazo perdido: ${p.atividadeTitulo ?? 'atividade'}`;
-  }
-  return p.atividadeTitulo ? `${p.motivo} (${p.atividadeTitulo})` : (p.motivo ?? '');
+  return p.origem === 'PRAZO' ? (p.atividadeTitulo ?? 'Atividade removida') : (p.motivo ?? '');
 }

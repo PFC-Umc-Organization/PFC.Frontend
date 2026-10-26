@@ -67,17 +67,25 @@ export class StudentHomeComponent {
     const s = this.state();
     return s.kind === 'ready' ? s.project : null;
   });
-  /** Null without a group or when the load fails; the schedule still shows. */
-  readonly penalties = toSignal(
+  /**
+   * Undefined while loading, so the top of the page waits instead of showing
+   * "Próxima entrega" to a failed group; null without a group or on failure.
+   */
+  private readonly loadedPenalties = toSignal(
     toObservable(this.project).pipe(
       switchMap((project) =>
         project
-          ? this.penaltyService.ofProject(project.id).pipe(catchError(() => of(null)))
-          : of(null as ProjectPenalties | null),
+          ? this.penaltyService.ofProject(project.id).pipe(
+              catchError(() => of(null)),
+              startWith(undefined),
+            )
+          : of(null),
       ),
     ),
-    { initialValue: null as ProjectPenalties | null },
+    { initialValue: undefined as ProjectPenalties | null | undefined },
   );
+  readonly penaltiesReady = computed(() => !this.project() || this.loadedPenalties() !== undefined);
+  readonly penalties = computed(() => this.loadedPenalties() ?? null);
   readonly failed = computed(() => this.penalties()?.reprovado ?? false);
 
   readonly items = computed(() => {

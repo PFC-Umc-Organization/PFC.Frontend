@@ -1,15 +1,15 @@
-import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { Penalty, penaltyTitle } from '../../../core/models';
 import { PenaltyService } from '../../../core/services/penalty.service';
 
-/** The group's penalties, oldest first; the staff waives one with a reason. */
+/** The group's penalties, active then waived; the staff waives one with a reason. */
 @Component({
   selector: 'app-penalty-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule],
+  imports: [DatePipe, NgTemplateOutlet, ReactiveFormsModule],
   templateUrl: './penalty-list.component.html',
   styleUrl: './penalty-list.component.scss',
 })
@@ -21,6 +21,8 @@ export class PenaltyListComponent {
   readonly manageable = input(false);
 
   protected readonly title = penaltyTitle;
+  protected readonly active = computed(() => this.penalties().filter((p) => !p.perdao));
+  protected readonly waived = computed(() => this.penalties().filter((p) => p.perdao));
   readonly waiving = signal<string | null>(null);
   readonly reason = new FormControl('', { nonNullable: true });
   readonly busy = signal(false);
