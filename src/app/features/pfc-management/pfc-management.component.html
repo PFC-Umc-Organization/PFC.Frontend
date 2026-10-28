@@ -25,7 +25,7 @@
       <app-project-section />
     }
     @case ('activities') {
-      @if (activityFormOpen()) {
+      @if (store.isAdmin() && activityFormOpen()) {
         <app-new-activity (closed)="activityFormOpen.set(false)" (created)="activityFormOpen.set(false)" />
       }
       <app-activity-schedule [canAdd]="!activityFormOpen()" (add)="activityFormOpen.set(true)" />

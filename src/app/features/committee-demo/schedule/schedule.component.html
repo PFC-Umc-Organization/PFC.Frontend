@@ -1,0 +1,80 @@
+@if (formOpen()) {
+  <app-session-form (closed)="formOpen.set(false)" (created)="created($event)" />
+}
+
+<section class="card card--flush">
+  <div class="card__head card__head--wrap">
+    <h2 class="section-title">Sessões de banca</h2>
+    <span class="card__count">{{ store.sessions().length }} {{ store.sessions().length === 1 ? 'sessão' : 'sessões' }}</span>
+    @if (!formOpen()) {
+      <div class="card__actions">
+        <button type="button" class="btn btn--primary btn--sm" (click)="formOpen.set(true)">
+          <app-icon name="plus" class="btn__icon" />
+          Nova sessão
+        </button>
+      </div>
+    }
+  </div>
+
+  @if (failedNames()) {
+    <p class="note">Grupos reprovados por penalidades não apresentam e não aparecem para encaixe: {{ failedNames() }}.</p>
+  }
+
+  @for (s of store.sessions(); track s.id) {
+    <article class="session" [attr.aria-label]="sessionLabel(s)">
+      <header class="session__head">
+        <div class="session__title-row">
+          <h3 class="session__title">{{ sessionLabel(s) }}</h3>
+          @if (isEmpty(s)) {
+            <button type="button" class="text-action text-action--danger" (click)="store.removeSession(s.id)">Excluir sessão</button>
+          }
+        </div>
+        <dl class="session__meta">
+          <div>
+            <dt>Apresentador</dt>
+            <dd>{{ store.teacher(s.presenterId).name }}</dd>
+          </div>
+          <div>
+            <dt>Avaliadores fixos</dt>
+            <dd>{{ fixedMembers(s) }}</dd>
+          </div>
+        </dl>
+      </header>
+
+      <div class="slots">
+        @for (i of slots(s); track i) {
+          @let booking = store.bookingAt(s.id, i);
+          <button
+            type="button"
+            class="slot"
+            [class.slot--empty]="!booking"
+            [class.slot--active]="isSelected(s.id, i)"
+            [attr.aria-pressed]="isSelected(s.id, i)"
+            (click)="select(s.id, i)"
+          >
+            <span class="slot__time">{{ slotTime(s, i) }}</span>
+            @if (booking) {
+              <span class="slot__project">{{ store.project(booking.projectId).name }}</span>
+              <span
+                class="status-text"
+                [class.status-text--ok]="booking.status === 'ENCERRADA'"
+                [class.status-text--bad]="booking.status === 'AUSENTE'"
+              >
+                {{ statusText[booking.status] }}
+              </span>
+            } @else {
+              <span class="slot__project slot__project--empty">Horário livre</span>
+              <span class="slot__hint">Encaixar projeto</span>
+            }
+          </button>
+        }
+      </div>
+
+      @if (panelFor(s); as p) {
+        <app-slot-panel [sessionId]="p.sessionId" [slot]="p.slot" (closed)="selected.set(null)" />
+      }
+    </article>
+  } @empty {
+    <p class="table-empty">Nenhuma sessão cadastrada. Crie a primeira com "Nova sessão".</p>
+  }
+</section>

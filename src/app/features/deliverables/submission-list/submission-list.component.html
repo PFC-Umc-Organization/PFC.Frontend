@@ -33,6 +33,17 @@
             <button type="button" class="btn btn--outline btn--sm" (click)="edit.emit(item.activity.id)">Editar</button>
           }
         </header>
+        <div class="validation" [class]="'validation validation--' + (item.submission.validacao?.status ?? 'pending')">
+          <p class="validation__title">
+            {{ validationLabel(item.submission.validacao) }}
+            @if (item.submission.validacao; as v) {
+              <span class="validation__meta">· {{ v.porNome }}, em {{ v.em | date: 'dd/MM/yyyy HH:mm' }}</span>
+            }
+          </p>
+          @if (item.submission.validacao?.comentario; as comment) {
+            <p class="validation__comment"><span class="sr-only">Comentário do orientador: </span>{{ comment }}</p>
+          }
+        </div>
         <app-answer-list
           [activity]="item.activity"
           [submission]="item.submission"

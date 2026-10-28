@@ -2,4 +2,14 @@
 <div class="shell">
   <router-outlet />
 </div>
+<footer class="shell footer">
+  <span>Universidade de Mogi das Cruzes</span>
+  <span class="footer__sep" aria-hidden="true">·</span>
+  <button type="button" class="link-button footer__link" (click)="policyOpen.set(true)">
+    Política de Privacidade e Termos de Uso
+  </button>
+</footer>
 <app-confirm-dialog />
+@if (policyOpen()) {
+  <app-privacy-policy (closed)="policyOpen.set(false)" />
+}

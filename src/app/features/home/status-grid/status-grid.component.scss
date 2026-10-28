@@ -131,3 +131,20 @@
   outline: 2px solid var(--ring);
   outline-offset: -2px;
 }
+
+.cell:has(.validation) {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.125rem;
+}
+
+.validation {
+  font-size: 0.6875rem;
+  color: var(--success);
+  white-space: nowrap;
+}
+
+.validation--rejected {
+  color: var(--destructive);
+}

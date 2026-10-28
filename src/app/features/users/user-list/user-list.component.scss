@@ -45,3 +45,22 @@
     align-items: end;
   }
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem 1rem;
+}
+
+.rename {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rename .control {
+  min-width: 12rem;
+  flex: 1;
+}

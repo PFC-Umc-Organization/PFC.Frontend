@@ -14,8 +14,39 @@
   </div>
 </header>
 
+@if (choosingCohort()) {
+  <p class="pending" role="status">Carregando as turmas que você acompanha…</p>
+}
+
+@if (grid().rows.length) {
+  <section class="overview" aria-label="Resumo e filtros">
+    <dl class="summary">
+      <div class="summary__item"><dt>{{ summary().submitted === 1 ? 'entrega feita' : 'entregas feitas' }}</dt><dd>{{ summary().submitted }}</dd></div>
+      <div class="summary__item"><dt>aguardando validação</dt><dd>{{ summary().awaiting }}</dd></div>
+      <div class="summary__item"><dt>{{ summary().rejected === 1 ? 'não validada' : 'não validadas' }}</dt><dd>{{ summary().rejected }}</dd></div>
+      <div class="summary__item"><dt>no prazo, sem entrega</dt><dd>{{ summary().open }}</dd></div>
+      <div class="summary__item summary__item--bad"><dt>{{ summary().missed === 1 ? 'não entregue' : 'não entregues' }}</dt><dd>{{ summary().missed }}</dd></div>
+    </dl>
+    <div class="filters">
+      <div class="field">
+        <label class="field__label" for="project-search">Buscar projeto</label>
+        <input id="project-search" type="search" class="control" placeholder="Nome do projeto" [value]="search()" (input)="setSearch($event)" />
+      </div>
+      <div class="field">
+        <label class="field__label" for="project-filter">Mostrar</label>
+        <select id="project-filter" class="control" [value]="filter()" (change)="setFilter($event)">
+          <option value="all">Todos os projetos</option>
+          <option value="late">Com atividade não entregue</option>
+          <option value="awaiting">Com entrega aguardando validação</option>
+          <option value="rejected">Com entrega não validada</option>
+        </select>
+      </div>
+    </div>
+  </section>
+}
+
 <app-status-grid
-  [grid]="grid()"
+  [grid]="visibleGrid()"
   [loading]="loading()"
   [error]="error()"
   [selected]="selected()"

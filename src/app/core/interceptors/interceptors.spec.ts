@@ -17,6 +17,7 @@ describe('interceptors', () => {
 
   beforeEach(() => {
     auth.signOut.mockReset();
+    auth.token.set('student-token');
     TestBed.configureTestingModule({
       providers: [
         provideZonelessChangeDetection(),
@@ -54,12 +55,20 @@ describe('interceptors', () => {
     req.flush(null, { status: 204, statusText: 'No Content' });
   });
 
-  it('signs out and goes to the login on a 401', () => {
-    const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+  it('signs out and goes to the login on a 401, saying why and where to come back', () => {
+    const router = TestBed.inject(Router);
+    vi.spyOn(router, 'url', 'get').mockReturnValue('/entregaveis?atividade=a1');
+    const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    auth.signOut.mockImplementation(() => auth.token.set(null));
     http.get(`${api}/meu-pfc`).subscribe({ error: () => undefined });
+    http.get(`${api}/atividades`).subscribe({ error: () => undefined });
     backend.expectOne(`${api}/meu-pfc`).flush({}, { status: 401, statusText: 'Unauthorized' });
-    expect(auth.signOut).toHaveBeenCalled();
-    expect(navigate).toHaveBeenCalledWith(['/entrar']);
+    backend.expectOne(`${api}/atividades`).flush({}, { status: 401, statusText: 'Unauthorized' });
+    expect(auth.signOut).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith(['/entrar'], {
+      queryParams: { motivo: 'sessao-expirada', retorno: '/entregaveis?atividade=a1' },
+    });
   });
 
   it('joins identical GETs in flight into one request', () => {

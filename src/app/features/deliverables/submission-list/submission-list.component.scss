@@ -30,3 +30,34 @@
   font-size: 0.8125rem;
   color: var(--muted-foreground);
 }
+
+.validation {
+  margin: 0 0 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--muted-foreground);
+}
+
+.validation--VALIDADA {
+  border-left-color: var(--success);
+}
+
+.validation--NAO_VALIDADA {
+  border-left-color: var(--destructive);
+}
+
+.validation__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.validation__meta {
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+.validation__comment {
+  margin: 0.25rem 0 0;
+  font-size: 0.875rem;
+  white-space: pre-line;
+}

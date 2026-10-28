@@ -37,6 +37,12 @@ export abstract class UserService {
   abstract resetPassword(email: string, code: string, password: string): Observable<MessageResponse>;
   /** The signed-in user, read again (a student's cohort may have changed). */
   abstract me(): Observable<User>;
+  /** Coordination only; each one clears the cached list. */
+  abstract rename(userId: string, name: string): Observable<MessageResponse>;
+  abstract changeRole(userId: string, role: 'ORIENTADOR' | 'ADMIN'): Observable<MessageResponse>;
+  abstract disable(userId: string): Observable<MessageResponse>;
+  abstract enable(userId: string): Observable<MessageResponse>;
+  abstract resendInvitation(userId: string): Observable<MessageResponse>;
 }
 
 function applyFilter(users: User[], { search, role }: UserFilter): User[] {
@@ -107,6 +113,37 @@ export class UserHttpService extends UserService {
 
   override createAccount(account: NewAccount): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`${this.base}/admin/usuarios`, account).pipe(
+      tap(() => (this.cache$ = null)),
+      catchError(toApiError),
+    );
+  }
+
+  override rename(userId: string, name: string): Observable<MessageResponse> {
+    return this.change(this.http.put<MessageResponse>(`${this.accounts(userId)}/nome`, { nome: name }));
+  }
+
+  override changeRole(userId: string, role: 'ORIENTADOR' | 'ADMIN'): Observable<MessageResponse> {
+    return this.change(this.http.put<MessageResponse>(`${this.accounts(userId)}/perfil`, { perfil: role }));
+  }
+
+  override disable(userId: string): Observable<MessageResponse> {
+    return this.change(this.http.post<MessageResponse>(`${this.accounts(userId)}/desativar`, {}));
+  }
+
+  override enable(userId: string): Observable<MessageResponse> {
+    return this.change(this.http.post<MessageResponse>(`${this.accounts(userId)}/reativar`, {}));
+  }
+
+  override resendInvitation(userId: string): Observable<MessageResponse> {
+    return this.change(this.http.post<MessageResponse>(`${this.accounts(userId)}/convite`, {}));
+  }
+
+  private accounts(userId: string): string {
+    return `${this.base}/admin/usuarios/${encodeURIComponent(userId)}`;
+  }
+
+  private change(request: Observable<MessageResponse>): Observable<MessageResponse> {
+    return request.pipe(
       tap(() => (this.cache$ = null)),
       catchError(toApiError),
     );

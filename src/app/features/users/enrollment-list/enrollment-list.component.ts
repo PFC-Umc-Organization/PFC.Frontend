@@ -80,7 +80,13 @@ export class EnrollmentListComponent {
     }
     this.error.set('');
     this.enrollmentService.remove([rgm]).subscribe({
-      next: () => this.reload$.next(),
+      next: (result) => {
+        const failure = result.falhas?.[0];
+        if (failure) {
+          this.error.set(`Não foi possível remover o RGM ${failure.rgm}. ${failure.erro}`);
+        }
+        this.reload$.next();
+      },
       error: (e: Error) => this.error.set(e.message),
     });
   }

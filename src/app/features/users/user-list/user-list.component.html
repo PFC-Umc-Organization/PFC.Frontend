@@ -54,6 +54,12 @@
       <span>{{ error() }}</span>
     </p>
   }
+  @if (done()) {
+    <p class="ok card__alert" role="status">
+      <app-icon name="check" />
+      <span>{{ done() }}</span>
+    </p>
+  }
 
   <div class="table-scroll">
     <table class="data-table">
@@ -64,13 +70,28 @@
           <th scope="col">E-mail</th>
           <th scope="col">RGM</th>
           <th scope="col">Situação</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
       <tbody>
         @for (u of users(); track u.id) {
           <tr>
             <td class="cell-strong">
-              @if (u.nome) {
+              @if (renamingId() === u.id) {
+                <form class="rename" (submit)="$event.preventDefault(); rename(u)">
+                  <label class="sr-only" [for]="'rename-' + u.id">Nome de {{ u.email }}</label>
+                  <input
+                    [id]="'rename-' + u.id"
+                    class="control"
+                    maxlength="150"
+                    autocomplete="off"
+                    [value]="newName()"
+                    (input)="setNewName($event)"
+                  />
+                  <button type="submit" class="btn btn--primary btn--sm" [disabled]="busyId() === u.id">Salvar</button>
+                  <button type="button" class="btn btn--ghost btn--sm" (click)="renamingId.set(null)">Cancelar</button>
+                </form>
+              } @else if (u.nome && u.nome !== u.email) {
                 {{ u.nome }}
               } @else {
                 <span class="muted">Sem nome cadastrado</span>
@@ -87,17 +108,49 @@
             </td>
             <td>
               @if (u.status !== 'ATIVO') {
-                <span class="status-text status-text--bad">Inativa</span>
+                <span class="status-text status-text--bad">Desativada</span>
+              } @else if (u.aguardandoPrimeiroAcesso) {
+                <span class="status-text status-text--warn">Aguardando primeiro acesso</span>
               } @else if (u.confirmado === false) {
                 <span class="status-text status-text--warn">E-mail não confirmado</span>
               } @else {
                 <span class="status-text status-text--ok">Ativa</span>
               }
             </td>
+            <td class="row-actions">
+              @if (renamingId() !== u.id) {
+                <div class="actions">
+                  <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="startRename(u)" [attr.aria-label]="'Editar nome de ' + u.email">
+                    Editar nome
+                  </button>
+                  @if (u.perfil !== 'ALUNO' && u.id !== myId()) {
+                    <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="changeRole(u)" [attr.aria-label]="'Trocar perfil de ' + u.email">
+                      Trocar perfil
+                    </button>
+                  }
+                  @if (u.perfil !== 'ALUNO' && u.status === 'ATIVO' && u.aguardandoPrimeiroAcesso) {
+                    <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="resendInvitation(u)" [attr.aria-label]="'Reenviar convite para ' + u.email">
+                      Reenviar convite
+                    </button>
+                  }
+                  @if (u.id !== myId()) {
+                    @if (u.status === 'ATIVO') {
+                      <button type="button" class="text-action text-action--danger" [disabled]="busyId() === u.id" (click)="disable(u)" [attr.aria-label]="'Desativar a conta de ' + u.email">
+                        Desativar
+                      </button>
+                    } @else {
+                      <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="enable(u)" [attr.aria-label]="'Reativar a conta de ' + u.email">
+                        Reativar
+                      </button>
+                    }
+                  }
+                </div>
+              }
+            </td>
           </tr>
         } @empty {
           <tr>
-            <td class="table-empty" colspan="5">Nenhuma conta encontrada com esses filtros.</td>
+            <td class="table-empty" colspan="6">Nenhuma conta encontrada com esses filtros.</td>
           </tr>
         }
       </tbody>

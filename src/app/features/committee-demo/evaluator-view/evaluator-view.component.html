@@ -1,0 +1,63 @@
+<section class="card card--flush">
+  <div class="card__head card__head--wrap">
+    <h2 class="section-title">Minhas bancas</h2>
+    <span class="card__count">{{ rows().length }} {{ rows().length === 1 ? 'projeto' : 'projetos' }}</span>
+    <div class="card__actions">
+      <div class="field picker">
+        <label class="sr-only" for="evaluator">Professor</label>
+        <select id="evaluator" class="control" (change)="choose($event)">
+          @for (t of store.teachers; track t.id) {
+            <option [value]="t.id" [selected]="t.id === teacherId()">
+              {{ t.name }} ({{ t.role === 'ADMIN' ? 'coordenação' : t.role === 'BANCA' ? 'conta de banca' : 'orientador' }})
+            </option>
+          }
+        </select>
+      </div>
+    </div>
+  </div>
+
+  @if (teacher().role === 'BANCA') {
+    <p class="note">Conta de banca: no sistema, este professor vê só esta tela.</p>
+  }
+
+  <div class="table-scroll">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th scope="col">Data e horário</th>
+          <th scope="col">Projeto</th>
+          <th scope="col">Papel na banca</th>
+          <th scope="col">Situação</th>
+          <th scope="col"><span class="sr-only">Ações</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (r of rows(); track r.projectId) {
+          <tr [class.row--active]="projectId() === r.projectId">
+            <td>{{ r.when }}</td>
+            <td class="cell-strong">{{ r.project }}</td>
+            <td>{{ r.role }}{{ isAdvisor(r.projectId) && r.role !== 'Orientador do projeto' ? ' e orientador' : '' }}</td>
+            <td>
+              <span class="status-text" [class.status-text--ok]="r.tone === 'ok'" [class.status-text--warn]="r.tone === 'warn'" [class.status-text--bad]="r.tone === 'bad'">
+                {{ r.status }}
+              </span>
+            </td>
+            <td>
+              <button type="button" class="text-action" (click)="projectId.set(r.projectId)">Abrir ficha</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td class="table-empty" colspan="5">Este professor não está em nenhuma banca agendada.</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (projectId(); as id) {
+  @if (store.bookingOf(id)) {
+    <app-evaluation-form [projectId]="id" [teacherId]="teacherId()" (closed)="projectId.set(null)" />
+  }
+}

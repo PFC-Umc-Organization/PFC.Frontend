@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Activity, ProjectPenalties } from '../../../core/models';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
@@ -17,6 +18,7 @@ import { PenaltyListComponent } from '../../../shared/components/penalty-list/pe
 })
 export class PenaltyPanelComponent {
   private readonly penaltyService = inject(PenaltyService);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly projectName = input.required<string>();
   readonly penalties = input.required<ProjectPenalties>();
@@ -48,11 +50,26 @@ export class PenaltyPanelComponent {
   readonly applying = signal(false);
   readonly error = signal('');
 
-  apply(): void {
+  async apply(): Promise<void> {
     const { motivo, atividadeId } = this.form.getRawValue();
     if (!motivo.trim()) {
       this.form.markAllAsTouched();
       this.error.set('Informe o motivo da penalidade.');
+      return;
+    }
+    const { ativas, limite } = this.penalties();
+    const after = ativas + 1;
+    const consequence =
+      after >= limite
+        ? `Com ${after} de ${limite}, o grupo fica reprovado e não poderá mais enviar entregas até que uma penalidade seja perdoada.`
+        : `O grupo passará de ${ativas} para ${after} de ${limite} penalidades ativas.`;
+    const confirmed = await this.confirmation.confirm({
+      title: 'Aplicar penalidade',
+      message: `Aplicar uma penalidade ao grupo ${this.projectName()}? ${consequence} A penalidade não pode ser apagada, apenas perdoada com motivo.`,
+      confirmText: 'Aplicar penalidade',
+      danger: true,
+    });
+    if (!confirmed) {
       return;
     }
     this.error.set('');

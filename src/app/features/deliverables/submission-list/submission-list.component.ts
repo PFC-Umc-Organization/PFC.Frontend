@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-import { Activity, Submission } from '../../../core/models';
+import { Activity, Submission, validationLabel } from '../../../core/models';
 import { editedLater } from '../../../core/services/submission-status';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -20,6 +20,7 @@ export interface SentSubmission {
 })
 export class SubmissionListComponent {
   protected readonly editedLater = editedLater;
+  protected readonly validationLabel = validationLabel;
 
   readonly items = input.required<SentSubmission[]>();
   readonly error = input('');

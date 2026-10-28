@@ -25,6 +25,56 @@
         }
       </p>
       <app-answer-list [activity]="activity()" [submission]="s" (download)="download($event)" />
+
+      <div class="validation" [class]="'validation validation--' + (s.validacao?.status ?? 'pending')">
+        <h3 class="validation__title">
+          @if (canValidate()) {
+            {{ s.validacao ? (s.validacao.status === 'VALIDADA' ? 'Você validou esta entrega' : 'Você não validou esta entrega') : 'Validação da entrega' }}
+          } @else {
+            {{ s.validacao ? 'Entrega ' + (s.validacao.status === 'VALIDADA' ? 'validada' : 'não validada') + ' pelo orientador' : validationLabel(null) }}
+          }
+        </h3>
+        @if (s.validacao; as v) {
+          <p class="meta">
+            {{ v.porNome }}, em {{ v.em | date: 'dd/MM/yyyy HH:mm' }}
+          </p>
+          @if (v.comentario && !canValidate()) {
+            <p class="validation__comment">{{ v.comentario }}</p>
+          }
+        } @else if (canValidate()) {
+          <p class="meta">O grupo verá a sua avaliação e o comentário. Se o grupo editar a entrega, ela volta a aguardar a sua validação.</p>
+        }
+
+        @if (canValidate()) {
+          <div class="field">
+            <label class="field__label" for="validation-comment">Comentário para o grupo</label>
+            <textarea
+              id="validation-comment"
+              class="control control--textarea"
+              maxlength="2000"
+              aria-describedby="validation-comment-hint"
+              [value]="comment()"
+              (input)="setComment($event)"
+            ></textarea>
+            <span class="field__hint" id="validation-comment-hint">Obrigatório para não validar. Diga o que o grupo precisa corrigir. O comentário fica visível para o grupo. Não inclua informações de saúde nem outros dados pessoais sensíveis.</span>
+          </div>
+          <div class="row validation__actions">
+            <button type="button" class="btn btn--primary btn--sm" [disabled]="validating()" (click)="validate('VALIDADA')">
+              Validar entrega
+            </button>
+            <button type="button" class="btn btn--outline btn--sm" [disabled]="validating()" (click)="validate('NAO_VALIDADA')">
+              Não validar
+            </button>
+          </div>
+          @if (validationError()) {
+            <p class="field__error" role="alert">{{ validationError() }}</p>
+          }
+          @if (validationDone()) {
+            <p class="ok-text" role="status">{{ validationDone() }}</p>
+          }
+        }
+      </div>
+
       @if (error()) {
         <p class="alert alert--inline" role="alert">{{ error() }}</p>
       }

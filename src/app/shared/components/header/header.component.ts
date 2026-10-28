@@ -68,6 +68,7 @@ export class HeaderComponent {
     { label: 'Turmas', route: '/turmas', icon: 'calendar' },
     { label: 'Usuários', route: '/usuarios', icon: 'users' },
     { label: 'Gestão de PFC', route: '/gestao', icon: 'landmark' },
+    { label: 'Banca', route: '/banca', icon: 'graduation-cap' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];

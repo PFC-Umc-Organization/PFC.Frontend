@@ -2,7 +2,7 @@
   <div class="card__head card__head--wrap">
     <h2 class="section-title">Atividades</h2>
     <span class="card__count">{{ activities().length }} {{ activities().length === 1 ? 'atividade' : 'atividades' }}</span>
-    @if (canAdd()) {
+    @if (manage() && canAdd()) {
       <div class="card__actions">
         <button type="button" class="btn btn--primary btn--sm" (click)="add.emit()">
           <app-icon name="plus" class="btn__icon" />
@@ -12,10 +12,13 @@
     }
   </div>
 
+  @if (!manage()) {
+    <p class="notice card__alert">As atividades valem para todas as turmas e são definidas pela coordenação do curso.</p>
+  }
   @if (loadError()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível carregar as atividades. {{ loadError() }}</span>
+      <span>{{ loadError() }}</span>
     </p>
   }
   @if (removeError()) {
@@ -31,12 +34,14 @@
         <tr>
           <th scope="col">Atividade</th>
           <th scope="col">Data e hora limite</th>
-          <th scope="col"><span class="sr-only">Ações</span></th>
+          @if (manage()) {
+            <th scope="col"><span class="sr-only">Ações</span></th>
+          }
         </tr>
       </thead>
       <tbody>
         @for (a of activities(); track a.id) {
-          @if (editingId() === a.id) {
+          @if (manage() && editingId() === a.id) {
             <tr>
               <td colspan="3">
                 <app-activity-editor [activity]="a" (closed)="editingId.set(null)" />
@@ -46,31 +51,33 @@
             <tr>
               <td class="cell-strong">{{ a.titulo }}</td>
               <td>{{ a.prazo | deadline }}</td>
-              <td>
-                <div class="row">
-                  <button
-                    type="button"
-                    class="icon-action"
-                    (click)="editingId.set(a.id)"
-                    [attr.aria-label]="'Editar atividade ' + a.titulo"
-                  >
-                    <app-icon name="edit" />
-                  </button>
-                  <button
-                    type="button"
-                    class="icon-action"
-                    (click)="remove(a.id, a.titulo)"
-                    [attr.aria-label]="'Excluir atividade ' + a.titulo"
-                  >
-                    <app-icon name="trash" />
-                  </button>
-                </div>
-              </td>
+              @if (manage()) {
+                <td>
+                  <div class="row">
+                    <button
+                      type="button"
+                      class="icon-action"
+                      (click)="editingId.set(a.id)"
+                      [attr.aria-label]="'Editar atividade ' + a.titulo"
+                    >
+                      <app-icon name="edit" />
+                    </button>
+                    <button
+                      type="button"
+                      class="icon-action"
+                      (click)="remove(a.id, a.titulo)"
+                      [attr.aria-label]="'Excluir atividade ' + a.titulo"
+                    >
+                      <app-icon name="trash" />
+                    </button>
+                  </div>
+                </td>
+              }
             </tr>
           }
         } @empty {
           <tr>
-            <td class="table-empty" colspan="3">Nenhuma atividade cadastrada ainda.</td>
+            <td class="table-empty" [attr.colspan]="manage() ? 3 : 2">Nenhuma atividade cadastrada ainda.</td>
           </tr>
         }
       </tbody>

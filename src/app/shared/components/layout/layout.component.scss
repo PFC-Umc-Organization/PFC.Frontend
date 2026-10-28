@@ -3,3 +3,23 @@
   min-height: 100vh;
   background: var(--background);
 }
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.footer__sep {
+  opacity: 0.6;
+}
+
+.footer__link {
+  font-size: inherit;
+}

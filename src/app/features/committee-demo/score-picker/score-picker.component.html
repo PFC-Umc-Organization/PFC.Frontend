@@ -1,0 +1,15 @@
+<div class="segmented scores" role="radiogroup" [attr.aria-label]="label()">
+  @for (n of scores; track n) {
+    <button
+      type="button"
+      role="radio"
+      class="segmented__item"
+      [attr.aria-checked]="value() === n"
+      [attr.aria-pressed]="value() === n"
+      [disabled]="disabled()"
+      (click)="picked.emit(n)"
+    >
+      {{ n }}
+    </button>
+  }
+</div>

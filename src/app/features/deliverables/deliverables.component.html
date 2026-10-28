@@ -10,7 +10,8 @@
   @if (loadError()) {
     <p class="alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível carregar as entregas. {{ loadError() }}</span>
+      <span>{{ loadError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar novamente</button>
     </p>
   }
 

@@ -16,7 +16,7 @@ type Section = 'program' | 'projects' | 'activities';
   templateUrl: './pfc-management.component.html',
 })
 export class PfcManagementComponent {
-  private readonly store = inject(PfcManagementStore);
+  protected readonly store = inject(PfcManagementStore);
 
   /** One section at a time. Programs are set up once per cohort and are the coordination's, so they come last. */
   readonly sections = computed<{ id: Section; label: string }[]>(() => [

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable, catchError, combineLatest, map, switchMap, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { Activity, Answers, ProjectStatusRow, Submission, TimelineItem, UploadEvent } from '../models';
+import { Activity, Answers, ProjectStatusRow, Submission, TimelineItem, UploadEvent, ValidationInput } from '../models';
 import { ActivityService } from './activity.service';
 import { toApiError } from './http-error';
 import { ProjectService } from './project.service';
@@ -25,10 +25,12 @@ export abstract class SubmissionService {
   abstract ofProject(projectId: string): Observable<Submission[]>;
   /** Hands the activity back to the group. */
   abstract remove(projectId: string, activityId: string): Observable<void>;
+  /** The project advisor's verdict; refreshes the lists. */
+  abstract validate(projectId: string, activityId: string, input: ValidationInput): Observable<void>;
   abstract submit(activityId: string, projectId: string, answers: Answers): Observable<void>;
   /**
    * Uploads straight to the bucket and ends with the key, the field's answer.
-   * An error with `status` 503 means the backend has no bucket yet.
+   * An error with `status` 503 means the backend has no bucket configured.
    */
   abstract uploadFile(projectId: string, activityId: string, fieldId: string, file: File): Observable<UploadEvent>;
   /** A download link valid for 5 minutes. */
@@ -65,6 +67,7 @@ export class SubmissionHttpService extends SubmissionService {
             deadline: activity.prazo,
             status: submissionStatus(activity.prazo, submission?.entregueEm),
             fileName: submittedFileName(activity, submission?.respostas),
+            validation: submission ? (submission.validacao ?? null) : undefined,
           };
         }),
       ),
@@ -85,13 +88,14 @@ export class SubmissionHttpService extends SubmissionService {
         submissions,
         rows: projects.map<ProjectStatusRow>((project) => ({
           project: { id: project.id, nome: project.nome },
-          cells: activities.map((activity) => ({
-            activityId: activity.id,
-            status: submissionStatus(
-              activity.prazo,
-              submissions.find((s) => s.projetoId === project.id && s.atividadeId === activity.id)?.entregueEm,
-            ),
-          })),
+          cells: activities.map((activity) => {
+            const submission = submissions.find((s) => s.projetoId === project.id && s.atividadeId === activity.id);
+            return {
+              activityId: activity.id,
+              status: submissionStatus(activity.prazo, submission?.entregueEm),
+              validation: submission?.validacao?.status,
+            };
+          }),
         })),
       })),
     );
@@ -122,6 +126,14 @@ export class SubmissionHttpService extends SubmissionService {
 
   override remove(projectId: string, activityId: string): Observable<void> {
     return this.http.delete(`${this.base}/${projectId}/entregas/${activityId}`).pipe(
+      tap(() => this.reload$.next()),
+      map(() => undefined),
+      catchError(toApiError),
+    );
+  }
+
+  override validate(projectId: string, activityId: string, input: ValidationInput): Observable<void> {
+    return this.http.put(`${this.base}/${projectId}/entregas/${activityId}/validacao`, input).pipe(
       tap(() => this.reload$.next()),
       map(() => undefined),
       catchError(toApiError),

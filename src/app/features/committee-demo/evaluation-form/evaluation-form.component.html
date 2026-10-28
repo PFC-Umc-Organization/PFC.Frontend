@@ -1,0 +1,104 @@
+<section class="card card--flush sheet" aria-labelledby="sheet-title">
+  <header class="sheet__head">
+    <div>
+      <p class="eyebrow">Ficha de avaliação · {{ when() }}</p>
+      <h2 id="sheet-title" class="sheet__title">{{ project().name }}</h2>
+      <p class="sheet__meta">{{ project().cohort }} · Banca: {{ committeeNames() }}</p>
+    </div>
+    <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
+      <app-icon name="close" class="btn__icon" />
+      Fechar
+    </button>
+  </header>
+
+  <div class="part">
+    <h3 class="part__title">Trabalho do grupo</h3>
+    <p class="part__hint">A banca vê tudo o que o grupo entregou, inclusive os arquivos.</p>
+    <ul class="deliveries">
+      @for (d of project().deliveries; track d.title) {
+        <li class="delivery">
+          <span class="delivery__title">{{ d.title }}</span>
+          <span class="delivery__file">
+            <app-icon [name]="d.file ? 'download' : 'external-link'" />
+            {{ d.file ?? d.link }}
+          </span>
+        </li>
+      }
+    </ul>
+    <p class="part__hint">Na demonstração os arquivos não abrem.</p>
+  </div>
+
+  @if (lockText()) {
+    <p class="notice sheet__notice">{{ lockText() }}</p>
+  }
+
+  <div class="part">
+    <h3 class="part__title">Avaliação do grupo</h3>
+    <p class="part__hint">Critérios de exemplo, adaptados de uma ficha de TCC publicada. Os critérios da UMC serão definidos com a coordenação. Notas de 0 a 5.</p>
+    @for (sec of sections(); track sec.title) {
+      <div class="criteria">
+        <h4 class="criteria__section">{{ sec.title }}</h4>
+        @for (c of sec.criteria; track c.id) {
+          <div class="criterion">
+            <span class="criterion__title">{{ c.title }}</span>
+            <app-score-picker [label]="c.title" [value]="draft().group[c.id]" [disabled]="locked()" (picked)="setGroup(c.id, $event)" />
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="part">
+    <h3 class="part__title">Avaliação individual</h3>
+    <p class="part__hint">Na apresentação, cada integrante recebe a própria nota.</p>
+    @for (m of project().members; track m.rgm) {
+      <div class="criteria">
+        <h4 class="criteria__section">{{ m.name }}</h4>
+        @for (c of store.individualCriteria; track c.id) {
+          <div class="criterion">
+            <span class="criterion__title">{{ c.title }}</span>
+            <app-score-picker
+              [label]="m.name + ': ' + c.title"
+              [value]="draft().individual[m.rgm]?.[c.id]"
+              [disabled]="locked()"
+              (picked)="setIndividual(m.rgm, c.id, $event)"
+            />
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="part">
+    <div class="field">
+      <label class="field__label" for="sheet-comment">Comentário para o grupo (opcional)</label>
+      <textarea
+        id="sheet-comment"
+        class="control control--textarea"
+        rows="3"
+        maxlength="1000"
+        [value]="draft().comment"
+        [disabled]="locked()"
+        (input)="setComment($any($event.target).value)"
+      ></textarea>
+      <span class="field__hint">O grupo vê os comentários sem o nome de quem escreveu.</span>
+    </div>
+
+    @if (!locked()) {
+      @if (error()) {
+        <p class="field__error" role="alert">{{ error() }}</p>
+      }
+      @if (message()) {
+        <p class="ok" role="status">
+          <app-icon name="check" />
+          <span>{{ message() }}</span>
+        </p>
+      }
+      <div class="actions">
+        <button type="button" class="btn btn--primary" (click)="send()">Enviar avaliação</button>
+        <button type="button" class="btn btn--outline" (click)="saveDraft()">Salvar rascunho</button>
+        <span class="actions__count">{{ missing() === 0 ? 'Todas as notas preenchidas.' : 'Faltam ' + missing() + (missing() === 1 ? ' nota.' : ' notas.') }}</span>
+      </div>
+    }
+  </div>
+</section>

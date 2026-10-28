@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 
-import { ProjectPenalties, STATUS_SHORT_LABEL, SubmissionStatus } from '../../../core/models';
+import { ProjectPenalties, STATUS_SHORT_LABEL, SubmissionStatus, ValidationStatus } from '../../../core/models';
 import { StatusGrid } from '../../../core/services/submission.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
@@ -43,6 +43,13 @@ export class StatusGridComponent {
 
   label(status: SubmissionStatus): string {
     return STATUS_SHORT_LABEL[status];
+  }
+
+  validationText(v: ValidationStatus | undefined): string {
+    if (!v) {
+      return '';
+    }
+    return v === 'VALIDADA' ? ', validada pelo orientador' : ', não validada pelo orientador';
   }
 
   isSelected(projectId: string, activityId: string): boolean {

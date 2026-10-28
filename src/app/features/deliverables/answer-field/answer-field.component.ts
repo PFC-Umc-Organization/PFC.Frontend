@@ -7,8 +7,9 @@ import { FilePickerComponent } from '../../../shared/components/file-picker/file
 
 /**
  * One field of the submission form. A file goes straight to the bucket when
- * picked; the submission only changes when the group sends the form. Without
- * a bucket in the backend (503), the answer is just the file name.
+ * picked; the submission only changes when the group sends the form. A failed
+ * upload leaves the answer as it was: a 503 also comes from an overloaded
+ * gateway, and the file would look sent without being so.
  */
 @Component({
   selector: 'app-answer-field',
@@ -54,11 +55,7 @@ export class AnswerFieldComponent {
       },
       error: (e: ApiError) => {
         this.setProgress(null);
-        if (e.status === 503) {
-          this.changed.emit(file.name);
-        } else {
-          this.error.set(e.message);
-        }
+        this.error.set(`O arquivo não foi enviado. ${e.message || 'Tente novamente em instantes.'}`);
       },
     });
   }

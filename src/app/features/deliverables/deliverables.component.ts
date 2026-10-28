@@ -24,7 +24,7 @@ export class DeliverablesComponent {
   private readonly submissionService = inject(SubmissionService);
   private readonly penaltyService = inject(PenaltyService);
 
-  /** Shown instead of misleading empty lists. */
+  /** Shown instead of misleading empty lists; the first failure is the one shown. */
   readonly loadError = signal('');
   readonly downloadError = signal('');
 
@@ -32,7 +32,7 @@ export class DeliverablesComponent {
     return (source: Observable<T>) =>
       source.pipe(
         catchError((e: Error) => {
-          this.loadError.set(e.message);
+          this.loadError.update((current) => current || e.message);
           return of(empty);
         }),
       );
@@ -109,6 +109,11 @@ export class DeliverablesComponent {
         }
       });
     }
+  }
+
+  /** The page reads four things; reading them all again is the simple retry. */
+  reload(): void {
+    window.location.reload();
   }
 
   edit(activityId: string): void {

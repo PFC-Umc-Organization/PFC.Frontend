@@ -1,0 +1,68 @@
+<div class="field picker">
+  <label class="field__label" for="student">Ver como o aluno</label>
+  <select id="student" class="control" (change)="choose($event)">
+    @for (p of store.projects; track p.id) {
+      <optgroup [label]="p.name">
+        @for (m of p.members; track m.rgm) {
+          <option [value]="m.rgm" [selected]="m.rgm === rgm()">{{ m.name }}</option>
+        }
+      </optgroup>
+    }
+  </select>
+</div>
+
+<section class="card card--flush result" aria-labelledby="result-title">
+  <header class="result__head">
+    <p class="eyebrow">Banca de avaliação</p>
+    <h2 id="result-title" class="result__title">{{ project().name }}</h2>
+  </header>
+
+  @if (project().failedByPenalties) {
+    <p class="result__text">O grupo foi reprovado por penalidades e não apresenta o trabalho à banca.</p>
+  } @else if (!booking()) {
+    <p class="result__text">A data da apresentação ainda não foi definida. Ela aparece aqui assim que a coordenação montar a sessão.</p>
+  } @else {
+    <dl class="facts">
+      <div><dt>Apresentação</dt><dd>{{ when() }}</dd></div>
+      <div><dt>Banca</dt><dd>{{ committeeNames() }}</dd></div>
+    </dl>
+
+    @switch (booking()!.status) {
+      @case ('AGENDADA') {
+        <p class="result__text">A nota é divulgada quando a coordenação encerrar a banca.</p>
+      }
+      @case ('AUSENTE') {
+        <p class="result__text result__text--bad">
+          O grupo não compareceu à apresentação e foi reprovado. Com justificativa (um atestado, por exemplo), procure a coordenação do curso para pedir o reagendamento.
+        </p>
+      }
+      @case ('ENCERRADA') {
+        <div class="grades">
+          <div class="grade grade--main">
+            <span class="grade__label">Sua nota final</span>
+            <span class="grade__value">{{ formatScore(mine().final) }}</span>
+          </div>
+          <div class="grade">
+            <span class="grade__label">Nota do grupo</span>
+            <span class="grade__value">{{ formatScore(result().group) }}</span>
+          </div>
+          <div class="grade">
+            <span class="grade__label">Sua nota individual</span>
+            <span class="grade__value">{{ formatScore(mine().individual) }}</span>
+          </div>
+        </div>
+        <p class="result__hint">Notas de 0 a 5, média das {{ result().sent }} avaliações da banca. A nota mínima para aprovação ainda será definida pela coordenação.</p>
+        @if (result().comments.length) {
+          <div class="comments">
+            <h3 class="comments__title">Comentários da banca</h3>
+            <ul>
+              @for (c of result().comments; track c) {
+                <li>{{ c }}</li>
+              }
+            </ul>
+          </div>
+        }
+      }
+    }
+  }
+</section>

@@ -48,7 +48,7 @@ export function fakeApi() {
     if (m === 'OPTIONS') return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
     if (p === '/auth/login') {
       const u = db.users[body.email.trim().toLowerCase()];
-      if (!u || u.senha !== body.senha) return json(401, { erro: 'E-mail ou senha inválidos' });
+      if (!u || u.senha !== body.senha || u.desativada) return json(401, { erro: 'E-mail ou senha incorretos.' });
       if (u.temporaria) return json(200, { desafio: 'NOVA_SENHA', sessao: 'sess-' + u.id });
       return json(200, session(u));
     }
@@ -142,6 +142,7 @@ export function fakeApi() {
     if ((mm = p.match(/^\/projetos\/([^/]+)\/convites$/))) return json(200, []);
     const activity = (id) => db.activities.find((x) => x.id === id);
     const project = (id) => db.projects.find((x) => x.id === id);
+    if (p.startsWith('/atividades') && m !== 'GET' && role !== 'ADMIN') return json(403, { erro: 'Apenas a coordenação cria, altera e exclui atividades.' });
     if (p === '/atividades' && m === 'POST') {
       const a = { id: `a${db.activities.length + 10}`, titulo: body.titulo, descricao: body.descricao, prazo: body.prazo, publicadaEm: new Date().toISOString(), campos: (body.campos ?? []).map((c, i) => ({ id: `n${i}`, ...c })) };
       db.activities.push(a);
@@ -181,13 +182,23 @@ export function fakeApi() {
       if (!v?.startsWith('entregas/')) return json(404, { erro: 'Esta entrega não tem arquivo para baixar' });
       return json(200, { url: 'https://fake-bucket.s3.us-east-1.amazonaws.com/' + v, nome: v.split('/').pop() });
     }
+    if ((mm = p.match(/^\/projetos\/([^/]+)\/entregas\/([^/]+)\/validacao$/)) && m === 'PUT') {
+      const pr = project(mm[1]);
+      if (!pr || role !== 'ORIENTADOR' || pr.orientadorId !== me.sub) return json(403, { erro: 'Apenas o orientador do projeto pode validar a entrega.' });
+      const e = db.submissions.find((x) => x.projetoId === mm[1] && x.atividadeId === mm[2]);
+      if (!e) return json(404, { erro: 'Entrega não encontrada.' });
+      const comentario = body.comentario?.trim();
+      if (body.status === 'NAO_VALIDADA' && !comentario) return json(400, { erro: 'Informe o comentário para o grupo: o que precisa ser corrigido.' });
+      e.validacao = { status: body.status, ...(comentario ? { comentario } : {}), por: me.sub, porNome: me.name, em: new Date().toISOString() };
+      return json(200, e);
+    }
     if ((mm = p.match(/^\/projetos\/([^/]+)\/entregas\/([^/]+)$/)) && m === 'PUT') {
       const previous = db.submissions.find((x) => x.projetoId === mm[1] && x.atividadeId === mm[2]);
       const due = db.activities.find((a) => a.id === mm[2]).prazo;
       if (!previous && new Date(due) < new Date()) return json(409, { erro: 'O prazo desta atividade acabou e ela não recebe mais entregas' });
       const now = new Date().toISOString();
       const e = previous
-        ? { ...previous, atualizadaEm: now, atualizadaPor: me.name, respostas: body.respostas }
+        ? { ...previous, atualizadaEm: now, atualizadaPor: me.name, respostas: body.respostas, validacao: undefined }
         : { atividadeId: mm[2], projetoId: mm[1], entregueEm: now, entreguePor: me.name, respostas: body.respostas };
       db.submissions = db.submissions.filter((x) => x !== previous).concat(e);
       return json(200, e);
@@ -243,7 +254,38 @@ export function fakeApi() {
     }
     if (p === '/meus-convites') return json(200, []);
     if (p === '/usuarios' && !staff) return forbidden();
-    if (p === '/usuarios') return json(200, Object.values(db.users).map((u) => ({ id: u.id, nome: u.nome, email: staff ? u.email : undefined, perfil: u.perfil, status: 'ATIVO', confirmado: !u.temporaria, cursoIds: [], rgm: u.rgm })));
+    if (p === '/usuarios') {
+      const advisees = db.projects.filter((x) => x.orientadorId === me.sub).flatMap((x) => x.integrantes);
+      const listed = Object.values(db.users).filter((u) => role === 'ADMIN' || (u.perfil === 'ALUNO' && advisees.includes(u.rgm)));
+      return json(200, listed.map((u) => ({ id: u.id, nome: u.nome, email: u.email, perfil: u.perfil, status: u.desativada ? 'INATIVO' : 'ATIVO', confirmado: !u.temporaria, aguardandoPrimeiroAcesso: u.temporaria || undefined, cursoIds: [], rgm: u.rgm })));
+    }
+    if ((mm = p.match(/^\/admin\/usuarios\/([^/]+)\/(nome|perfil|desativar|reativar|convite)$/))) {
+      if (role !== 'ADMIN') return json(403, { erro: 'Acesso restrito à coordenação.' });
+      const u = Object.values(db.users).find((x) => x.id === mm[1]);
+      if (!u) return json(404, { erro: 'Conta não encontrada.' });
+      const self = u.id === me.sub;
+      switch (mm[2]) {
+        case 'nome':
+          if (!body.nome?.trim()) return json(400, { erro: 'Informe o nome.' });
+          u.nome = body.nome.trim();
+          return json(200, { mensagem: 'Nome atualizado.' });
+        case 'perfil':
+          if (self) return json(409, { erro: 'Você não pode alterar o próprio perfil. Peça a outra pessoa da coordenação.' });
+          if (u.perfil === 'ALUNO') return json(409, { erro: 'Contas de aluno não mudam de perfil.' });
+          u.perfil = body.perfil;
+          return json(200, { mensagem: 'Perfil alterado. A mudança vale a partir da próxima entrada da pessoa no portal.' });
+        case 'desativar':
+          if (self) return json(409, { erro: 'Você não pode desativar a própria conta. Peça a outra pessoa da coordenação.' });
+          u.desativada = true;
+          return json(200, { mensagem: 'Conta desativada. A pessoa não consegue mais entrar no portal.' });
+        case 'reativar':
+          u.desativada = false;
+          return json(200, { mensagem: 'Conta reativada.' });
+        default:
+          if (!u.temporaria) return json(409, { erro: 'Esta conta já fez o primeiro acesso.' });
+          return json(200, { mensagem: 'Convite reenviado. A pessoa receberá por e-mail uma nova senha temporária.' });
+      }
+    }
     if (p === '/admin/students') {
       const cohort = url.searchParams.get('turmaId');
       if (!cohort) return json(400, { erro: 'Selecione a turma.' });

@@ -1,0 +1,35 @@
+<div class="page">
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Demonstração</p>
+      <h1 class="page-title mt-2">Banca de avaliação</h1>
+      <p class="lead mt-2">Como a coordenação monta as sessões, como cada professor avalia e o que o aluno vê depois.</p>
+    </div>
+    <button type="button" class="btn btn--outline btn--sm" (click)="store.reset()">Restaurar dados de exemplo</button>
+  </header>
+
+  <p class="notice">
+    <strong>Dados fictícios.</strong>
+    <span>Nada é gravado no sistema: ao recarregar a página, a demonstração volta ao início.</span>
+  </p>
+
+  <nav class="tabs" aria-label="Ver a banca como">
+    @for (v of views; track v.id) {
+      <button type="button" class="tabs__item" [attr.aria-pressed]="view() === v.id" (click)="view.set(v.id)">
+        {{ v.label }}
+      </button>
+    }
+  </nav>
+
+  @switch (view()) {
+    @case ('coordination') {
+      <app-schedule />
+    }
+    @case ('evaluator') {
+      <app-evaluator-view />
+    }
+    @case ('student') {
+      <app-student-result />
+    }
+  }
+</div>

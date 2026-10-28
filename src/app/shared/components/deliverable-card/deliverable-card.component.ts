@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { STATUS_LABEL, STATUS_TONE, TimelineItem } from '../../../core/models';
+import { STATUS_LABEL, STATUS_TONE, TimelineItem, validationLabel } from '../../../core/models';
 import { DeadlinePipe } from '../../pipes/deadline.pipe';
 import { IconComponent } from '../icon/icon.component';
 
@@ -21,4 +21,5 @@ export class DeliverableCardComponent {
   readonly label = computed(() => STATUS_LABEL[this.item().status]);
   readonly done = computed(() => this.item().status === 'ENTREGUE' || this.item().status === 'ENTREGUE_COM_ATRASO');
   readonly late = computed(() => this.item().status === 'ATRASADO');
+  readonly validation = computed(() => validationLabel(this.item().validation));
 }

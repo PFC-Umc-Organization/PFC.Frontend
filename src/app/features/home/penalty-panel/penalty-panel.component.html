@@ -31,8 +31,10 @@
             class="control"
             maxlength="500"
             placeholder="Ex.: entrega não validada pelo orientador"
+            aria-describedby="penalty-reason-hint"
             formControlName="motivo"
           />
+          <span class="field__hint" id="penalty-reason-hint">O motivo fica visível para o grupo. Não inclua dados pessoais sensíveis.</span>
         </div>
         <div class="field">
           <label class="field__label" for="penalty-activity">Atividade (opcional)</label>

@@ -18,8 +18,11 @@ import { AuthCardComponent } from '../auth-card/auth-card.component';
 export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
   /** The page the person tried to open before landing here. */
-  private readonly returnTo = inject(ActivatedRoute).snapshot.queryParamMap.get('retorno');
+  private readonly returnTo = this.query.get('retorno');
+  /** Sent here by the interceptor when the token expired. */
+  readonly expired = this.query.get('motivo') === 'sessao-expirada';
 
   readonly loading = signal(false);
   readonly error = signal('');

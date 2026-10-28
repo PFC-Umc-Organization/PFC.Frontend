@@ -84,7 +84,7 @@ export class CohortSectionComponent {
   async remove(cohortId: string, name: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Excluir turma',
-      message: `Excluir a turma ${name}? Esta ação não pode ser desfeita.`,
+      message: `Excluir a turma ${name}? A exclusão só é aceita se a turma não tiver programa de PFC nem RGMs pré-autorizados; caso tenha, exclua o programa em Gestão de PFC e remova as pré-autorizações em Usuários antes. Esta ação não pode ser desfeita.`,
       confirmText: 'Excluir',
       danger: true,
     });

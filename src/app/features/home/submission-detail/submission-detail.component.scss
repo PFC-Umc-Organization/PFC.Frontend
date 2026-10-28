@@ -19,3 +19,50 @@ app-answer-list {
 .alert--inline {
   margin: 0 0 0.75rem;
 }
+
+.validation {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0 0 1.25rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--border);
+  border-top-width: 3px;
+  border-radius: var(--radius, 0.5rem);
+}
+
+.validation--VALIDADA {
+  border-top-color: var(--success);
+}
+
+.validation--NAO_VALIDADA {
+  border-top-color: var(--destructive);
+}
+
+.validation--pending {
+  border-top-color: var(--muted-foreground);
+}
+
+.validation__title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.validation .meta {
+  margin: 0;
+}
+
+.validation__comment {
+  margin: 0;
+  white-space: pre-line;
+}
+
+.validation__actions {
+  gap: 0.5rem;
+}
+
+.ok-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--success);
+}

@@ -12,6 +12,8 @@ export interface User {
   rgm?: string;
   /** false: the Cognito account exists but the e-mail is not confirmed yet. */
   confirmado?: boolean;
+  /** A staff account still on the temporary password of its invitation. */
+  aguardandoPrimeiroAcesso?: boolean;
 }
 
 export interface NewUser {

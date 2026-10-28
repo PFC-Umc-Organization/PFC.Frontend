@@ -1,5 +1,10 @@
 <app-auth-card heading="Entrar">
   <form class="form" [formGroup]="form" (ngSubmit)="signIn()">
+    @if (expired && !error()) {
+      <p class="notice" role="status">
+        Sua sessão expirou por segurança. Entre novamente para voltar à página em que você estava. Os dados que ainda não tinham sido enviados precisam ser preenchidos novamente.
+      </p>
+    }
     @if (error()) {
       <p class="alert" role="alert">
         <app-icon name="alert" />

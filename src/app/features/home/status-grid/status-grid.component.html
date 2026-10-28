@@ -58,9 +58,14 @@
                     class="cell"
                     [class.cell--active]="isSelected(row.project.id, c.activityId)"
                     (click)="open.emit({ projectId: row.project.id, projectName: row.project.nome, activityId: c.activityId })"
-                    [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + label(c.status)"
+                    [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + label(c.status) + validationText(c.validation)"
                   >
                     <app-status-badge [status]="c.status" />
+                    @if (c.validation) {
+                      <span class="validation" [class.validation--rejected]="c.validation === 'NAO_VALIDADA'">
+                        {{ c.validation === 'VALIDADA' ? 'Validada' : 'Não validada' }}
+                      </span>
+                    }
                   </button>
                 </td>
               }

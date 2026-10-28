@@ -91,6 +91,13 @@ export const routes: Routes = [
         loadComponent: () => import('./features/cohorts/cohorts.component').then((m) => m.CohortsComponent),
       },
       {
+        path: 'banca',
+        canActivate: [roleGuard(['ADMIN'])],
+        title: 'Banca de avaliação | Rafa Manager',
+        loadComponent: () =>
+          import('./features/committee-demo/committee-demo.component').then((m) => m.CommitteeDemoComponent),
+      },
+      {
         path: 'sem-acesso',
         title: 'Sem acesso | Rafa Manager',
         loadComponent: () => import('./features/notice/notice.component').then((m) => m.NoticeComponent),

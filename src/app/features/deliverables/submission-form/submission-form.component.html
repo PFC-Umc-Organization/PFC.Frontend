@@ -37,17 +37,23 @@
           />
         }
 
+        <p class="form-grid__full field__hint">
+          O conteúdo enviado fica visível para o grupo, para o orientador e para a coordenação. Não inclua dados de saúde nem outros dados pessoais sensíveis.
+        </p>
+
         <div class="form-grid__full">
           <button type="button" class="btn btn--primary" [disabled]="!canSend()" (click)="send()">
             <app-icon name="plus" class="btn__icon" />
             {{ editing() ? 'Salvar alterações' : 'Enviar entrega' }}
           </button>
-          @if (message()) {
-            <p class="result">{{ message() }}</p>
-          }
-          @if (error()) {
-            <p class="result result--error">{{ error() }}</p>
-          }
+          <div #outcome tabindex="-1">
+            @if (message()) {
+              <p class="result" role="status">{{ message() }}</p>
+            }
+            @if (error()) {
+              <p class="result result--error" role="alert">{{ error() }}</p>
+            }
+          </div>
         </div>
       </div>
     }

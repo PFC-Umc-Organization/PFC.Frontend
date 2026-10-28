@@ -1,5 +1,23 @@
 export type SubmissionStatus = 'ENTREGUE' | 'ENTREGUE_COM_ATRASO' | 'PENDENTE' | 'ATRASADO';
 
+export type ValidationStatus = 'VALIDADA' | 'NAO_VALIDADA';
+
+/** The project advisor's verdict on the submission as it is; editing it drops the verdict. */
+export interface Validation {
+  status: ValidationStatus;
+  comentario?: string;
+  /** The advisor's id. */
+  por: string;
+  porNome: string;
+  em: string;
+}
+
+/** Body of PUT /projetos/:id/entregas/:atividadeId/validacao; a comment is required to not validate. */
+export interface ValidationInput {
+  status: ValidationStatus;
+  comentario?: string;
+}
+
 export interface Submission {
   atividadeId: string;
   projetoId: string;
@@ -10,6 +28,7 @@ export interface Submission {
   respostas?: Record<string, string>;
   atualizadaEm?: string;
   atualizadaPor?: string;
+  validacao?: Validation | null;
 }
 
 export type Answers = Record<string, string>;
@@ -21,6 +40,8 @@ export interface TimelineItem {
   deadline: string;
   status: SubmissionStatus;
   fileName?: string;
+  /** Only for a submitted activity: undefined while the advisor has not validated it. */
+  validation?: Validation | null;
 }
 
 export type StatusTone = 'success' | 'primary' | 'destructive';
@@ -54,7 +75,15 @@ export const STATUS_LEGEND: { tone: StatusTone; text: string }[] = [
 
 export interface ProjectStatusRow {
   project: { id: string; nome: string };
-  cells: { activityId: string; status: SubmissionStatus }[];
+  cells: { activityId: string; status: SubmissionStatus; validation?: ValidationStatus }[];
+}
+
+/** What the group and the coordination read about the advisor's validation. */
+export function validationLabel(v: Validation | null | undefined): string {
+  if (!v) {
+    return 'Aguardando validação do orientador';
+  }
+  return v.status === 'VALIDADA' ? 'Validada pelo orientador' : 'Não validada pelo orientador';
 }
 
 /** Same limits as the backend's `internal/platform/storage/rules.go`. */

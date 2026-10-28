@@ -47,9 +47,13 @@
                   [id]="'waive-' + p.id"
                   class="control"
                   maxlength="500"
-                  placeholder="Ex.: atestado médico apresentado à coordenação"
+                  placeholder="Ex.: justificativa aceita pela coordenação, processo nº 123"
+                  [attr.aria-describedby]="'waive-hint-' + p.id"
                   [formControl]="reason"
                 />
+                <span class="field__hint" [id]="'waive-hint-' + p.id">
+                  O motivo fica visível para o grupo. Não inclua informações de saúde nem outros dados pessoais sensíveis.
+                </span>
               </div>
               <div class="waive__actions">
                 <button type="button" class="btn btn--ghost btn--sm" (click)="waiving.set(null)">Cancelar</button>

@@ -220,6 +220,37 @@ test.describe('coordination', () => {
     await expect(page.getByText('Nenhum RGM pré-autorizado nesta turma.')).toBeVisible();
   });
 
+  test('fixes a name, disables and reactivates an account and resends an invitation', async ({ page, api }) => {
+    await signIn(page, ADMIN);
+    await page.goto('/usuarios');
+    await expect(page.getByRole('row', { name: /prof@umc.br/ })).toContainText('Aguardando primeiro acesso');
+    await expect(page.getByRole('button', { name: 'Desativar a conta de leonardoalvino@umc.br' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Trocar perfil de leonardoalvino@umc.br' })).toHaveCount(0);
+
+    await page.getByRole('button', { name: 'Editar nome de ana@umc.br' }).click();
+    await page.getByLabel('Nome de ana@umc.br').fill('Ana Souza');
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.getByRole('row', { name: /Ana Souza/ })).toBeVisible();
+    expect(api.db.users['ana@umc.br'].nome).toBe('Ana Souza');
+
+    await page.getByRole('button', { name: 'Desativar a conta de ana@umc.br' }).click();
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toContainText('pode ser reativada');
+    await dialog.getByRole('button', { name: 'Desativar' }).click();
+    await expect(page.getByRole('row', { name: /Ana Souza/ })).toContainText('Desativada');
+    await page.getByRole('button', { name: 'Reativar a conta de ana@umc.br' }).click();
+    await expect(page.getByRole('row', { name: /Ana Souza/ })).toContainText('Ativa');
+
+    await page.getByRole('button', { name: 'Trocar perfil de ana@umc.br' }).click();
+    await expect(dialog).toContainText('de Orientador para Coordenação');
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
+    expect(api.db.users['ana@umc.br'].perfil).toBe('ORIENTADOR');
+
+    await page.getByRole('button', { name: 'Reenviar convite para prof@umc.br' }).click();
+    await expect(page.locator('.ok', { hasText: 'Convite reenviado' })).toBeVisible();
+    expect(api.failed).toEqual([]);
+  });
+
   test('Usuários counts advisors and coordination apart', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.goto('/usuarios');
@@ -340,10 +371,101 @@ test.describe('advisor', () => {
     await expect(page.getByText('Web-Cursos')).toHaveCount(0);
     await expect(page.locator('[aria-label^="Excluir PFC"], [aria-label^="Editar PFC"]')).toHaveCount(0);
 
+    await page.getByRole('button', { name: 'Atividades', exact: true }).click();
+    await expect(page.getByRole('cell', { name: 'Monografia', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nova atividade' })).toHaveCount(0);
+    await expect(page.locator('[aria-label^="Editar atividade"], [aria-label^="Excluir atividade"]')).toHaveCount(0);
+    await expect(page.getByText('definidas pela coordenação')).toBeVisible();
+
     await page.goto('/materiais');
     await expect(page.locator('.material__remove')).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Remover Aula da turma t2' })).toBeVisible();
+    expect(api.calls.some((c) => c.startsWith('POST /atividades') || c.startsWith('PUT /atividades'))).toBe(false);
     expect(api.failed).toEqual([]);
+  });
+
+  test('the account list only has the students of the groups they advise', async ({ page, api }) => {
+    await signIn(page, ADVISOR);
+    await page.goto('/gestao');
+    await expect(page.getByRole('row', { name: /Athena/ })).toContainText('Bia Lima');
+    const listed = await page.evaluate(async () => {
+      const { token } = JSON.parse(localStorage.getItem('athena.sessao')!);
+      const r = await fetch('https://376uriw318.execute-api.us-east-1.amazonaws.com/usuarios', { headers: { Authorization: `Bearer ${token}` } });
+      return ((await r.json()) as { email: string }[]).map((u) => u.email);
+    });
+    expect(listed).toEqual(['11231101229@alunos.umc.br']);
+    expect(api.failed).toEqual([]);
+  });
+
+  test('opens on a cohort they follow, summarizes and filters the groups', async ({ page, api }) => {
+    api.db.projects.push({ id: 'pr3', nome: 'Rota Verde', descricao: '', programaId: 'p2', integrantes: [], orientadorId: 'u-ana' });
+    api.db.programs.push({ id: 'p2', cursoId: 't2' });
+    api.db.projects.find((x) => x.id === 'pr1')!.orientadorId = 'u-outro';
+    await signIn(page, ADVISOR);
+    await expect(page.locator('#cohort option:checked')).toHaveText('Sistemas de Informação (Manhã, 2026.2)');
+    await expect(page.getByRole('rowheader', { name: 'Rota Verde' })).toBeVisible();
+    await expect(page.locator('.summary__item', { hasText: 'não entregue' })).toContainText('1');
+
+    await page.fill('#project-search', 'nada');
+    await expect(page.getByText('Nenhum projeto desta turma corresponde aos filtros.')).toBeVisible();
+    await page.fill('#project-search', 'rota');
+    await page.locator('#project-filter').selectOption('late');
+    await expect(page.getByRole('rowheader', { name: 'Rota Verde' })).toBeVisible();
+    await page.locator('#project-filter').selectOption('awaiting');
+    await expect(page.getByRole('rowheader', { name: 'Rota Verde' })).toHaveCount(0);
+    expect(api.failed).toEqual([]);
+  });
+
+  test('validates a submission or asks for changes, and the group reads it', async ({ page, api }) => {
+    await signIn(page, ADVISOR);
+    await page.getByRole('button', { name: 'Athena, Monografia: Entregue' }).click();
+    await expect(page.getByRole('heading', { name: 'Validação da entrega' })).toBeVisible();
+    await page.getByRole('button', { name: 'Não validar' }).click();
+    await expect(page.getByText('escreva no comentário o que o grupo precisa corrigir')).toBeVisible();
+    expect(api.db.submissions[0].validacao).toBeUndefined();
+
+    await page.getByLabel('Comentário para o grupo').fill('Falta a seção de resultados.');
+    await page.getByRole('button', { name: 'Não validar' }).click();
+    await expect(page.getByRole('heading', { name: 'Você não validou esta entrega' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Athena, Monografia: Entregue, não validada pelo orientador' })).toBeVisible();
+    expect(api.db.submissions[0].validacao).toMatchObject({ status: 'NAO_VALIDADA', comentario: 'Falta a seção de resultados.', por: 'u-ana' });
+
+    await page.getByRole('button', { name: 'Validar entrega' }).click();
+    await expect(page.getByRole('heading', { name: 'Você validou esta entrega' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Athena, Monografia: Entregue, validada pelo orientador' })).toBeVisible();
+    expect(api.failed).toEqual([]);
+  });
+});
+
+test.describe('validation seen by the group and the coordination', () => {
+  const validated = (api: Api, status: 'VALIDADA' | 'NAO_VALIDADA') =>
+    Object.assign(api.db.submissions[0], {
+      validacao: { status, comentario: status === 'NAO_VALIDADA' ? 'Falta a seção de resultados.' : undefined, por: 'u-ana', porNome: 'Orientadora Ana', em: '2026-10-11T12:00:00Z' },
+    });
+
+  test('the student reads the advisor comment in Entregáveis and on the home', async ({ page, api }) => {
+    validated(api, 'NAO_VALIDADA');
+    await signIn(page, STUDENT_WITH_GROUP);
+    await expect(page.locator('app-deliverable-card', { hasText: 'Monografia' }).first()).toContainText('Não validada pelo orientador');
+    await page.goto('/entregaveis');
+    const sent = page.locator('.sent', { hasText: 'Monografia' });
+    await expect(sent).toContainText('Não validada pelo orientador');
+    await expect(sent).toContainText('Falta a seção de resultados.');
+    await expect(sent).toContainText('Orientadora Ana');
+  });
+
+  test('a submission without a verdict waits for the advisor', async ({ page }) => {
+    await signIn(page, STUDENT_WITH_GROUP);
+    await page.goto('/entregaveis');
+    await expect(page.locator('.sent', { hasText: 'Monografia' })).toContainText('Aguardando validação do orientador');
+  });
+
+  test('the coordination sees the verdict in the cell and its detail, without validating', async ({ page, api }) => {
+    validated(api, 'VALIDADA');
+    await signIn(page, ADMIN);
+    await page.getByRole('button', { name: 'Athena, Monografia: Entregue, validada pelo orientador' }).click();
+    await expect(page.getByRole('heading', { name: 'Entrega validada pelo orientador' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Validar entrega' })).toHaveCount(0);
   });
 });
 
@@ -413,14 +535,20 @@ test.describe('penalties', () => {
     await page.getByRole('button', { name: 'Perdoar' }).first().click();
     await page.getByRole('button', { name: 'Confirmar perdão' }).click();
     await expect(page.getByText('Informe o motivo do perdão.')).toBeVisible();
-    await page.getByLabel('Motivo do perdão').fill('Atestado médico');
+    await page.getByLabel('Motivo do perdão').fill('Justificativa aceita pela coordenação');
     await page.getByRole('button', { name: 'Confirmar perdão' }).click();
-    await expect(page.getByText('Perdoada em')).toContainText('Orientadora Ana: Atestado médico');
+    await expect(page.getByText('Perdoada em')).toContainText('Orientadora Ana: Justificativa aceita pela coordenação');
     await expect(page.getByRole('button', { name: 'Athena, penalidades: 2 de 3' })).toBeVisible();
 
     await page.getByLabel('Motivo', { exact: true }).fill('Entrega não validada');
     await page.getByLabel('Atividade (opcional)').selectOption({ label: 'Monografia' });
     await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toContainText('Com 3 de 3, o grupo fica reprovado');
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
+    expect(api.db.penalties.filter((x) => x.motivo === 'Entrega não validada')).toHaveLength(0);
+    await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
+    await dialog.getByRole('button', { name: 'Aplicar penalidade' }).click();
     await expect(page.locator('.penalty').filter({ hasText: 'Entrega não validada' })).toContainText('Aplicada em');
     await expect(page.locator('.penalty').filter({ hasText: 'Entrega não validada' })).toContainText('Monografia');
     await expect(page.getByRole('button', { name: 'Athena, penalidades: reprovado' })).toBeVisible();
@@ -443,5 +571,63 @@ test.describe('phone (390 px)', () => {
       await page.waitForLoadState('networkidle');
       await noSideScroll(page);
     }
+  });
+});
+
+test.describe('committee demo', () => {
+  test('the coordination places a project, a professor sends the sheet and the student sees the grade', async ({ page }) => {
+    await signIn(page, ADMIN);
+    await page.getByRole('link', { name: 'Banca' }).first().click();
+    await expect(page.getByRole('heading', { name: 'Banca de avaliação' })).toBeVisible();
+    await expect(page.getByText('1 de 3 avaliações enviadas.')).toBeVisible();
+    await page.screenshot({ path: 'test-results/banca-coordenacao.png', fullPage: true });
+
+    const night = page.getByRole('article', { name: /07\/12\/2026/ });
+    await night.getByRole('button', { name: /21:15/ }).click();
+    await expect(page.getByText('Turma do turno da manhã.').first()).toBeVisible();
+    await page.screenshot({ path: 'test-results/banca-encaixe.png', fullPage: true });
+    await page.locator('.candidate', { hasText: 'EstudaJunto' }).getByRole('button', { name: 'Encaixar' }).click();
+    await expect(night.getByRole('button', { name: /21:15/ })).toContainText('EstudaJunto');
+
+    const morning = page.getByRole('article', { name: /08\/12\/2026/ });
+    await morning.getByRole('button', { name: /08:55/ }).click();
+    await expect(page.locator('.candidate', { hasText: 'Biblioteca Viva' })).toContainText('A banca ficaria com 5 pessoas');
+    await expect(page.locator('.candidate', { hasText: 'Biblioteca Viva' }).getByRole('button', { name: 'Encaixar' })).toBeDisabled();
+
+    await page.getByRole('button', { name: 'Avaliador', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Rota Verde' })).toBeVisible();
+    await page.getByRole('button', { name: 'Enviar avaliação' }).click();
+    await expect(page.getByText(/Faltam \d+ notas para enviar/)).toBeVisible();
+    for (const group of await page.getByRole('radiogroup').all()) {
+      await group.getByRole('radio', { name: '4' }).click();
+    }
+    await page.screenshot({ path: 'test-results/banca-ficha.png', fullPage: true });
+    await page.getByRole('button', { name: 'Enviar avaliação' }).click();
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Enviar avaliação' }).click();
+    await expect(page.getByText('Avaliação enviada. Ela não pode mais ser alterada.')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Coordenação', exact: true }).click();
+    await expect(page.getByText('2 de 3 avaliações enviadas.')).toBeVisible();
+    await page.getByRole('button', { name: 'Encerrar banca' }).click();
+    await expect(page.getByRole('alert')).toContainText('Informe o motivo.');
+    await page.getByLabel('Motivo').fill('Avaliadora ausente por motivo de saúde');
+    await page.getByRole('button', { name: 'Encerrar banca' }).click();
+    await expect(page.getByText('Banca encerrada sem todas as avaliações. Motivo: Avaliadora ausente por motivo de saúde')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Aluno', exact: true }).click();
+    await expect(page.getByText('Sua nota final')).toBeVisible();
+    await page.screenshot({ path: 'test-results/banca-aluno.png', fullPage: true });
+    await page.getByLabel('Ver como o aluno').selectOption({ label: 'Natália Pires' });
+    await expect(page.getByText('reprovado por penalidades e não apresenta')).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole('button', { name: 'Avaliador', exact: true }).click();
+    await noSideScroll(page);
+    await page.screenshot({ path: 'test-results/banca-ficha-celular.png', fullPage: true });
+  });
+
+  test('only the coordination opens the demo', async ({ page }) => {
+    await signIn(page, ADVISOR);
+    await page.goto('/banca');
+    await expect(page).toHaveURL(/sem-acesso/);
   });
 });

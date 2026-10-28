@@ -15,6 +15,12 @@
         <app-icon name="check" />
         <span class="outcome__text">{{ item().fileName ? 'Entregue: ' + item().fileName : 'Entregue' }}</span>
       </p>
+      <p class="validation" [class]="'validation validation--' + (item().validation?.status ?? 'pending')">
+        {{ validation() }}
+      </p>
+      @if (item().validation?.comentario; as comment) {
+        <p class="validation__comment" [attr.title]="comment">{{ comment }}</p>
+      }
     } @else if (late()) {
       <p class="outcome outcome--late">Prazo encerrado sem entrega</p>
     } @else if (!interactive()) {

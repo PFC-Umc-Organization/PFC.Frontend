@@ -1,4 +1,15 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, model, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  computed,
+  inject,
+  input,
+  linkedSignal,
+  model,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { Activity, Project, Submission, TimelineItem } from '../../../core/models';
@@ -36,6 +47,8 @@ export class SubmissionFormComponent {
     return new Set();
   });
   readonly sending = signal(false);
+  /** On a phone the button ends a long form: the result is brought into view. */
+  private readonly outcome = viewChild<ElementRef<HTMLElement>>('outcome');
   readonly message = signal('');
   readonly error = signal('');
 
@@ -89,11 +102,17 @@ export class SubmissionFormComponent {
         this.sending.set(false);
         this.message.set(edit ? 'Entrega atualizada.' : 'Entrega enviada com sucesso.');
         this.activityId.set('');
+        this.showOutcome();
       },
       error: (e: Error) => {
         this.sending.set(false);
         this.error.set(e.message);
+        this.showOutcome();
       },
     });
+  }
+
+  private showOutcome(): void {
+    queueMicrotask(() => this.outcome()?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' }));
   }
 }

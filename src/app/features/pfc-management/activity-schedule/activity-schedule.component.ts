@@ -9,6 +9,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ActivityEditorComponent } from '../activity-editor/activity-editor.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
+import { PfcManagementStore } from '../pfc-management.store';
 
 @Component({
   selector: 'app-activity-schedule',
@@ -18,6 +19,8 @@ import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.dire
 })
 export class ActivityScheduleComponent {
   private readonly activityService = inject(ActivityService);
+  /** Activities are global: only the coordination creates, edits and deletes them. */
+  protected readonly manage = inject(PfcManagementStore).isAdmin;
   private readonly confirmation = inject(ConfirmationService);
 
   readonly loadError = signal('');

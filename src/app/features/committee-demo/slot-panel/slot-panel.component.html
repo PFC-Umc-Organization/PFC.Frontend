@@ -1,0 +1,163 @@
+<section class="panel" aria-labelledby="slot-panel-title" aria-live="polite">
+  <header class="panel__head">
+    <div>
+      <p class="eyebrow">{{ heading() }}</p>
+      <h4 id="slot-panel-title" class="panel__title">{{ project()?.name ?? 'Encaixar projeto neste horário' }}</h4>
+    </div>
+    <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
+      <app-icon name="close" class="btn__icon" />
+      Fechar
+    </button>
+  </header>
+
+  @if (project(); as p) {
+    <dl class="facts">
+      <div><dt>Turma</dt><dd>{{ p.cohort }}</dd></div>
+      <div><dt>Integrantes</dt><dd>{{ p.members.length }}</dd></div>
+      <div><dt>Orientador</dt><dd>{{ advisorName(p.advisorId) }}</dd></div>
+    </dl>
+
+    <div class="block">
+      <h5 class="block__title">Banca deste projeto · {{ members().length }} pessoas</h5>
+      <ul class="members">
+        @for (m of members(); track m.teacher.id) {
+          <li class="member">
+            <span class="member__name">{{ m.teacher.name }}</span>
+            <span class="member__role">{{ m.role }}{{ m.advisor && m.role !== 'Orientador do projeto' ? ' e orientador do projeto' : '' }}</span>
+            <span
+              class="status-text"
+              [class.status-text--ok]="m.evaluation?.status === 'ENVIADA'"
+              [class.status-text--warn]="m.evaluation?.status === 'RASCUNHO'"
+            >
+              {{ evaluationText(m.evaluation?.status) }}
+            </span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    @switch (booking()!.status) {
+      @case ('AGENDADA') {
+        <div class="block">
+          <p class="block__text">
+            {{ sent() }} de {{ members().length }} avaliações enviadas.
+            @if (sent() === members().length) {
+              Todas foram enviadas: a banca pode ser encerrada.
+            } @else if (anySent()) {
+              Para encerrar sem as que faltam, informe o motivo.
+            }
+          </p>
+          @if (anySent() && sent() < members().length) {
+            <div class="field">
+              <label class="field__label" for="slot-reason">Motivo</label>
+              <input id="slot-reason" class="control" maxlength="300" placeholder="Ex.: avaliador ausente por motivo de saúde" [value]="reason()" (input)="reason.set($any($event.target).value)" />
+            </div>
+          }
+          @if (error()) {
+            <p class="field__error" role="alert">{{ error() }}</p>
+          }
+          <div class="actions">
+            <button type="button" class="btn btn--primary btn--sm" [disabled]="!anySent()" (click)="closeCommittee()">Encerrar banca</button>
+            <button type="button" class="btn btn--outline btn--sm" (click)="markAbsent()">Registrar ausência</button>
+            @if (!anySent()) {
+              <button type="button" class="text-action text-action--danger" (click)="unbook()">Retirar do horário</button>
+            }
+          </div>
+        </div>
+      }
+      @case ('AUSENTE') {
+        <div class="block block--bad">
+          <p class="block__text"><strong>Grupo reprovado por ausência.</strong> Com justificativa (um atestado, por exemplo), a coordenação reverte a ausência ou reagenda a apresentação.</p>
+          <div class="field">
+            <label class="field__label" for="slot-justification">Justificativa</label>
+            <input id="slot-justification" class="control" maxlength="300" placeholder="Ex.: atestado médico de um integrante" [value]="reason()" (input)="reason.set($any($event.target).value)" />
+          </div>
+          @if (error()) {
+            <p class="field__error" role="alert">{{ error() }}</p>
+          }
+          <div class="actions">
+            <button type="button" class="btn btn--primary btn--sm" (click)="reschedule()">Reagendar</button>
+            <button type="button" class="btn btn--outline btn--sm" (click)="revert()">Reverter ausência</button>
+          </div>
+        </div>
+      }
+      @case ('ENCERRADA') {
+        @if (result(); as r) {
+          <div class="block">
+            <h5 class="block__title">Resultado · média de {{ r.sent }} {{ r.sent === 1 ? 'avaliação' : 'avaliações' }}</h5>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th scope="col">Aluno</th>
+                    <th scope="col" class="num">Grupo</th>
+                    <th scope="col" class="num">Individual</th>
+                    <th scope="col" class="num">Nota final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (s of r.students; track s.rgm) {
+                    <tr>
+                      <td class="cell-strong">{{ s.name }}</td>
+                      <td class="num">{{ formatScore(r.group) }}</td>
+                      <td class="num">{{ formatScore(s.individual) }}</td>
+                      <td class="num cell-strong">{{ formatScore(s.final) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <p class="block__hint">Regra provisória, a confirmar com a coordenação: nota final = média da nota do grupo e da nota individual, de 0 a 5.</p>
+          </div>
+          <div class="block">
+            <div class="field">
+              <label class="field__label" for="slot-reopen">Motivo para reabrir</label>
+              <input id="slot-reopen" class="control" maxlength="300" placeholder="Ex.: erro de digitação em uma nota" [value]="reason()" (input)="reason.set($any($event.target).value)" />
+            </div>
+            @if (error()) {
+              <p class="field__error" role="alert">{{ error() }}</p>
+            }
+            <div class="actions">
+              <button type="button" class="btn btn--outline btn--sm" (click)="reopen()">Reabrir banca</button>
+            </div>
+          </div>
+        }
+      }
+    }
+
+    @if (history().length) {
+      <div class="block">
+        <h5 class="block__title">Histórico</h5>
+        <ul class="history">
+          @for (h of history(); track h.at + h.text) {
+            <li>{{ h.text }}</li>
+          }
+        </ul>
+      </div>
+    }
+  } @else {
+    <div class="block">
+      <p class="block__text">
+        Projetos sem horário. A banca de cada um é a da sessão mais o orientador do projeto, entre 3 e 4 pessoas.
+      </p>
+      <ul class="candidates">
+        @for (c of candidates(); track c.project.id) {
+          <li class="candidate" [class.candidate--blocked]="c.blocked">
+            <div class="candidate__info">
+              <span class="candidate__name">{{ c.project.name }}</span>
+              <span class="candidate__meta">{{ c.project.cohort }} · Orientador: {{ advisorName(c.project.advisorId) }}</span>
+              @if (c.blocked) {
+                <span class="candidate__reason">{{ c.blocked }}</span>
+              } @else {
+                <span class="candidate__meta">Banca com {{ c.size }} pessoas.{{ c.warning ? ' ' + c.warning : '' }}</span>
+              }
+            </div>
+            <button type="button" class="btn btn--outline btn--sm" [disabled]="!!c.blocked" (click)="place(c.project.id)">Encaixar</button>
+          </li>
+        } @empty {
+          <li class="candidate"><span class="candidate__meta">Todos os projetos já têm horário.</span></li>
+        }
+      </ul>
+    </div>
+  }
+</section>

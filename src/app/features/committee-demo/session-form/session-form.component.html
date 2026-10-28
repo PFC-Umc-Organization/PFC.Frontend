@@ -1,0 +1,77 @@
+<section class="card">
+  <div class="form-head">
+    <h2 class="section-title">Nova sessão</h2>
+    <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">Cancelar</button>
+  </div>
+
+  <form class="form-grid mt-6" [formGroup]="form" (ngSubmit)="save()">
+    <div class="trio">
+      <div class="field">
+        <label class="field__label" for="session-date">Data</label>
+        <input id="session-date" type="date" class="control" formControlName="date" />
+      </div>
+      <div class="field">
+        <label class="field__label" for="session-shift">Turno</label>
+        <select id="session-shift" class="control" formControlName="shift">
+          <option value="MANHA">Manhã</option>
+          <option value="NOITE">Noite</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field__label" for="session-presenter">Apresentador</label>
+        <select id="session-presenter" class="control" formControlName="presenterId">
+          @for (t of store.presenters; track t.id) {
+            <option [value]="t.id">{{ t.name }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <fieldset class="field">
+      <legend class="field__label">Avaliadores fixos</legend>
+      <div class="checks">
+        @for (t of store.evaluatorPool; track t.id) {
+          <label class="check">
+            <input
+              type="checkbox"
+              [checked]="evaluators().includes(t.id)"
+              [disabled]="!evaluators().includes(t.id) && fixed() >= max"
+              (change)="toggle(t.id, $any($event.target).checked)"
+            />
+            <span>{{ t.name }}</span>
+            <span class="check__role">{{ t.role === 'BANCA' ? 'Conta de banca' : 'Orientador' }}</span>
+          </label>
+        }
+      </div>
+      <span class="field__hint">
+        {{ fixed() }} de {{ max }} membros fixos, contando o apresentador. O orientador de cada projeto entra na banca dele
+        automaticamente: com {{ max }} membros fixos, só cabem projetos orientados por um deles.
+      </span>
+    </fieldset>
+
+    <div class="trio">
+      <div class="field">
+        <label class="field__label" for="session-start">Início</label>
+        <input id="session-start" type="time" class="control" formControlName="start" />
+      </div>
+      <div class="field">
+        <label class="field__label" for="session-minutes">Duração de cada apresentação (min)</label>
+        <input id="session-minutes" type="number" min="10" class="control" formControlName="minutes" />
+      </div>
+      <div class="field">
+        <label class="field__label" for="session-slots">Apresentações</label>
+        <input id="session-slots" type="number" min="1" max="8" class="control" formControlName="slots" />
+      </div>
+    </div>
+    @if (preview()) {
+      <p class="field__hint">Horários: {{ preview() }}.</p>
+    }
+
+    @if (error()) {
+      <p class="field__error" role="alert">{{ error() }}</p>
+    }
+    <div>
+      <button type="submit" class="btn btn--primary">Criar sessão</button>
+    </div>
+  </form>
+</section>

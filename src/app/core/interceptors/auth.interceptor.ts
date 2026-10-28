@@ -21,9 +21,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
     catchError((error: unknown) => {
       // The Cognito ID token lasts 1 h; without this the app stayed "signed in" with every call failing.
-      if (error instanceof HttpErrorResponse && error.status === 401) {
+      // Several calls fail together: only the first one signs out and keeps the page to come back to.
+      if (error instanceof HttpErrorResponse && error.status === 401 && auth.token()) {
+        const back = router.url;
         auth.signOut();
-        void router.navigate(['/entrar']);
+        void router.navigate(['/entrar'], {
+          queryParams: { motivo: 'sessao-expirada', ...(back && back !== '/' && !back.startsWith('/entrar') ? { retorno: back } : {}) },
+        });
       }
       return throwError(() => error);
     }),
