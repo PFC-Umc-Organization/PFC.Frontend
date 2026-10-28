@@ -204,6 +204,22 @@ test.describe('coordination', () => {
     await expect(page.getByText('Aguardando cadastro')).toHaveCount(1);
   });
 
+  test('pre-authorized RGMs are listed one cohort at a time, starting on this term', async ({ page }) => {
+    await signIn(page, ADMIN);
+    await page.goto('/usuarios');
+    await page.getByRole('button', { name: 'Pré-autorização de alunos' }).click();
+    const cohort = page.getByLabel('Turma');
+    await expect(cohort).toHaveValue('t1');
+    await expect(page.getByRole('row', { name: /11231103420/ })).toBeVisible();
+    await expect(page.getByText('2 RGMs')).toBeVisible();
+    await cohort.selectOption('t2');
+    await expect(page.getByRole('row', { name: /11231109999/ })).toBeVisible();
+    await expect(page.getByRole('row', { name: /11231103420/ })).toHaveCount(0);
+    await expect(page.getByText('1 RGM', { exact: true })).toBeVisible();
+    await cohort.selectOption('t3');
+    await expect(page.getByText('Nenhum RGM pré-autorizado nesta turma.')).toBeVisible();
+  });
+
   test('Usuários counts advisors and coordination apart', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.goto('/usuarios');

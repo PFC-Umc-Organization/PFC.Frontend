@@ -34,11 +34,21 @@
       }
     }
     @case ('enrollments') {
-      @if (formOpen()) {
-        <app-enroll-form [cohorts]="cohorts()" (closed)="formOpen.set(false)" (created)="finish($event)" />
-      }
-      @for (v of [version()]; track v) {
-        <app-enrollment-list [cohorts]="cohorts()" [canAdd]="!formOpen()" (add)="open()" />
+      @if (cohorts(); as cohorts) {
+        @if (formOpen()) {
+          <app-enroll-form
+            [cohorts]="cohorts"
+            [cohortId]="enrollmentCohort()"
+            (enrolledIn)="enrollmentCohort.set($event)"
+            (closed)="formOpen.set(false)"
+            (created)="finish($event)"
+          />
+        }
+        @for (v of [version()]; track v) {
+          <app-enrollment-list [cohorts]="cohorts" [(cohortId)]="enrollmentCohort" [canAdd]="!formOpen()" (add)="open()" />
+        }
+      } @else {
+        <p class="pending">Carregando as turmas…</p>
       }
     }
   }

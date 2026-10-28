@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
@@ -18,6 +18,9 @@ export class EnrollFormComponent {
   private readonly enrollmentService = inject(EnrollmentService);
 
   readonly cohorts = input.required<Cohort[]>();
+  /** The cohort shown in the list; the form starts on it when it is from this term. */
+  readonly cohortId = input('');
+  readonly enrolledIn = output<string>();
   protected readonly cohortLabel = cohortLabel;
   protected readonly term = currentTerm();
 
@@ -34,6 +37,15 @@ export class EnrollFormComponent {
   readonly closed = output();
   /** Only when every RGM went in; with failures the form stays open to show them. */
   readonly created = output<string>();
+
+  constructor() {
+    effect(() => {
+      const id = this.cohortId();
+      if (this.termCohorts().some((c) => c.id === id)) {
+        untracked(() => this.form.controls.turmaId.setValue(id));
+      }
+    });
+  }
 
   invalid(name: 'turmaId' | 'rgms'): boolean {
     const c = this.form.controls[name];
@@ -58,6 +70,7 @@ export class EnrollFormComponent {
       next: (result) => {
         this.saving.set(false);
         this.form.reset({ turmaId: '', rgms: '' });
+        this.enrolledIn.emit(turmaId);
         if (result.falhas.length === 0) {
           this.created.emit(result.processados === 1 ? '1 RGM pré-autorizado.' : `${result.processados} RGMs pré-autorizados.`);
         } else {

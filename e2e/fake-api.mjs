@@ -244,7 +244,12 @@ export function fakeApi() {
     if (p === '/meus-convites') return json(200, []);
     if (p === '/usuarios' && !staff) return forbidden();
     if (p === '/usuarios') return json(200, Object.values(db.users).map((u) => ({ id: u.id, nome: u.nome, email: staff ? u.email : undefined, perfil: u.perfil, status: 'ATIVO', confirmado: !u.temporaria, cursoIds: [], rgm: u.rgm })));
-    if (p === '/admin/students') return json(200, [{ rgm: '11231101228', status: 'ATIVO', turmaId: 't1' }, { rgm: '11231103420', status: 'ATIVO' }]);
+    if (p === '/admin/students') {
+      const cohort = url.searchParams.get('turmaId');
+      if (!cohort) return json(400, { erro: 'Selecione a turma.' });
+      const preauthorized = [{ rgm: '11231101228', turmaId: 't1' }, { rgm: '11231103420', turmaId: 't1' }, { rgm: '11231109999', turmaId: 't2' }];
+      return json(200, preauthorized.filter((e) => e.turmaId === cohort).map((e) => ({ ...e, status: 'ATIVO' })));
+    }
     return json(404, { erro: 'Rota não encontrada' });
   }
   const s3 = [];

@@ -1,15 +1,27 @@
 <section class="card card--flush">
   <div class="card__head card__head--wrap">
     <h2 class="section-title">RGMs pré-autorizados</h2>
-    <span class="card__count">{{ enrollments().length }} {{ enrollments().length === 1 ? 'RGM' : 'RGMs' }}</span>
-    @if (canAdd()) {
-      <div class="card__actions">
+    @if (enrollments(); as list) {
+      <span class="card__count">{{ list.length }} {{ list.length === 1 ? 'RGM' : 'RGMs' }}</span>
+    }
+    <div class="card__actions">
+      @if (cohorts().length > 0) {
+        <div class="field picker">
+          <label class="sr-only" for="enrollment-cohort">Turma</label>
+          <select id="enrollment-cohort" class="control" (change)="choose($event)">
+            @for (c of cohorts(); track c.id) {
+              <option [value]="c.id" [selected]="c.id === shownCohortId()">{{ cohortLabel(c) }}</option>
+            }
+          </select>
+        </div>
+      }
+      @if (canAdd()) {
         <button type="button" class="btn btn--primary btn--sm" (click)="add.emit()">
           <app-icon name="plus" class="btn__icon" />
           Pré-autorizar RGMs
         </button>
-      </div>
-    }
+      }
+    </div>
   </div>
 
   @if (error()) {
@@ -24,16 +36,14 @@
       <thead>
         <tr>
           <th scope="col">RGM</th>
-          <th scope="col">Turma</th>
           <th scope="col">Situação</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
       <tbody>
-        @for (m of enrollments(); track m.rgm) {
+        @for (m of enrollments() ?? []; track m.rgm) {
           <tr>
             <td class="cell-strong">{{ m.rgm }}</td>
-            <td>{{ cohortName(m.turmaId) }}</td>
             <td>
               @if (users() === undefined) {
                 <span class="pending">Verificando…</span>
@@ -62,7 +72,11 @@
           </tr>
         } @empty {
           <tr>
-            <td class="table-empty" colspan="4">Nenhum RGM pré-autorizado no momento.</td>
+            @if (enrollments() === undefined) {
+              <td class="table-empty pending" colspan="3">{{ cohorts().length ? 'Carregando os RGMs da turma…' : 'Cadastre uma turma para pré-autorizar RGMs.' }}</td>
+            } @else {
+              <td class="table-empty" colspan="3">Nenhum RGM pré-autorizado nesta turma.</td>
+            }
           </tr>
         }
       </tbody>

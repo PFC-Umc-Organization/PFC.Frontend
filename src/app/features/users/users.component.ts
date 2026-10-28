@@ -52,7 +52,10 @@ export class UsersComponent {
     this.version.update((v) => v + 1);
   }
 
+  /** Undefined while loading: the list would otherwise say there is no cohort. */
   readonly cohorts = toSignal(inject(CohortService).list().pipe(catchError(() => of([] as Cohort[]))), {
-    initialValue: [] as Cohort[],
+    initialValue: undefined,
   });
+  /** The cohort the list shows; the form starts on it and the list follows the form. */
+  readonly enrollmentCohort = signal('');
 }
