@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { EMPTY, Subject, catchError, combineLatest, of, startWith, switchMap } from 'rxjs';
+import { EMPTY, Observable, Subject, catchError, combineLatest, of, startWith, switchMap, tap } from 'rxjs';
 
 import { Cohort, Enrollment, User, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
@@ -58,10 +58,29 @@ export class EnrollmentListComponent {
     this.cohortId.set((event.target as HTMLSelectElement).value);
   }
 
-  /** Undefined while loading: the status column waits instead of saying "Aguardando cadastro". */
-  readonly users = toSignal(inject(UserService).list().pipe(catchError(() => of([] as User[]))), {
-    initialValue: undefined,
-  });
+  private readonly userService = inject(UserService);
+  readonly usersError = signal('');
+  private readonly reloadUsers$ = new Subject<void>();
+  /** Undefined while loading or after a failure: the status column never guesses "Aguardando cadastro". */
+  readonly users = toSignal(
+    this.reloadUsers$.pipe(
+      startWith(undefined),
+      tap(() => this.usersError.set('')),
+      switchMap(() =>
+        this.userService.list().pipe(
+          catchError((e: Error): Observable<User[] | undefined> => {
+            this.usersError.set(e.message);
+            return of(undefined);
+          }),
+        ),
+      ),
+    ),
+    { initialValue: undefined },
+  );
+
+  retryUsers(): void {
+    this.reloadUsers$.next();
+  }
 
   /** The account of the student whose e-mail is `<rgm>@…`. */
   accountOf(rgm: string): User | undefined {

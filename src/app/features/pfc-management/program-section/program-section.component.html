@@ -1,7 +1,9 @@
 <section class="card card--flush">
   <div class="card__head card__head--wrap">
     <h2 class="section-title">Programas de PFC</h2>
-    <span class="card__count">{{ withProgram() }} de {{ rows().length }} turmas com programa</span>
+    @if (!store.loadError()) {
+      <span class="card__count">{{ withProgram() }} de {{ rows().length }} turmas com programa</span>
+    }
   </div>
   <p class="intro">Os alunos só podem cadastrar o PFC do grupo depois que a turma tiver um programa.</p>
 
@@ -9,6 +11,14 @@
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ store.programsError() }}</span>
+    </p>
+  }
+
+  @if (countError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível contar os PFCs de cada programa; mover e excluir ficam bloqueados. {{ countError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="retryCount()">Tentar novamente</button>
     </p>
   }
 
@@ -70,7 +80,11 @@
                 @if (!r.programId) {
                   <span class="muted">—</span>
                 } @else if (r.projects === undefined) {
-                  <span class="pending">Contando…</span>
+                  @if (countError()) {
+                    <span class="muted">—</span>
+                  } @else {
+                    <span class="pending">Contando…</span>
+                  }
                 } @else {
                   {{ r.projects }}
                 }
@@ -114,7 +128,13 @@
           }
         } @empty {
           <tr>
-            <td class="table-empty" colspan="4">Nenhuma turma cadastrada. Cadastre as turmas na tela Turmas.</td>
+            <td class="table-empty" colspan="4">
+              @if (store.loadError()) {
+                Os programas aparecem aqui depois que as turmas forem carregadas.
+              } @else {
+                Nenhuma turma cadastrada. Cadastre as turmas na tela Turmas.
+              }
+            </td>
           </tr>
         }
       </tbody>

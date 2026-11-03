@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { Subject, catchError, of, startWith, switchMap, tap } from 'rxjs';
 
-import { Project, cohortLabel } from '../../../core/models';
+import { cohortLabel } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
@@ -20,6 +20,7 @@ import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.dire
 export class ProgramSectionComponent {
   protected readonly store = inject(PfcManagementStore);
   private readonly programService = inject(ProgramService);
+  private readonly projectService = inject(ProjectService);
   private readonly confirmation = inject(ConfirmationService);
 
   protected readonly cohortLabel = cohortLabel;
@@ -29,17 +30,41 @@ export class ProgramSectionComponent {
   readonly editingId = signal<string | null>(null);
   readonly newCohortId = signal('');
 
-  /** Every project of every program, only to count them; undefined while loading. */
+  readonly countError = signal('');
+  private readonly reloadCount$ = new Subject<void>();
+  /**
+   * Every project of every program, only to count them; undefined while
+   * loading or after a failure, so an unknown count never reads as zero and
+   * unlocks moving or removing the program.
+   */
   private readonly allProjects = toSignal(
-    inject(ProjectService).list().pipe(catchError(() => of([] as Project[]))),
+    this.reloadCount$.pipe(
+      startWith(undefined),
+      tap(() => this.countError.set('')),
+      switchMap(() =>
+        this.projectService.list().pipe(
+          catchError((e: Error) => {
+            this.countError.set(e.message);
+            return of(undefined);
+          }),
+        ),
+      ),
+    ),
     { initialValue: undefined },
   );
+
+  retryCount(): void {
+    this.reloadCount$.next();
+  }
 
   /**
    * One row per cohort, with its program or the button to create it, plus
    * programs whose cohort was removed.
    */
   readonly rows = computed(() => {
+    if (this.store.loadError()) {
+      return [];
+    }
     const programs = this.store.programs();
     const count = (programId: string) => this.allProjects()?.filter((x) => x.programaId === programId).length;
     const cohortRows = this.store.cohorts().map((c) => {

@@ -59,7 +59,7 @@ export class DeliverablesComponent {
       switchMap((p) =>
         p
           ? this.penaltyService.ofProject(p.id).pipe(
-              catchError(() => of(null)),
+              this.orEmpty<ProjectPenalties | null>(null),
               startWith(undefined),
             )
           : of(null),

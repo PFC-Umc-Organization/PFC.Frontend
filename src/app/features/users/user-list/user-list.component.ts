@@ -34,6 +34,8 @@ export class UserListComponent {
   private readonly reload$ = new Subject<void>();
 
   /** The service caches the list, so filtering makes no new call. */
+  /** A list or the counters failed to load; empty lists and zeros mean nothing then. */
+  readonly loadFailed = signal(false);
   readonly users = toSignal(
     combineLatest([
       toObservable(computed(() => ({ search: this.search(), role: this.role() }))),
@@ -42,6 +44,7 @@ export class UserListComponent {
       switchMap(([filter]) =>
         this.userService.list(filter).pipe(
           catchError((e: Error) => {
+            this.loadFailed.set(true);
             this.error.set(e.message);
             return of([] as User[]);
           }),
@@ -55,7 +58,15 @@ export class UserListComponent {
   private readonly everyone = toSignal(
     this.reload$.pipe(
       startWith(undefined),
-      switchMap(() => this.userService.list().pipe(catchError(() => of([] as User[])))),
+      switchMap(() =>
+        this.userService.list().pipe(
+          catchError((e: Error) => {
+            this.loadFailed.set(true);
+            this.error.update((current) => current || e.message);
+            return of([] as User[]);
+          }),
+        ),
+      ),
     ),
     { initialValue: [] as User[] },
   );
@@ -71,6 +82,12 @@ export class UserListComponent {
       ],
     };
   });
+
+  retryLoad(): void {
+    this.loadFailed.set(false);
+    this.error.set('');
+    this.reload$.next();
+  }
 
   setSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);

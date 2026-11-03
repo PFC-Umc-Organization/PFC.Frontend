@@ -21,3 +21,21 @@
 .notice {
   margin: 0 1.25rem 1.25rem;
 }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.filters .field {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.filters .filters__search {
+  flex: 2 1 18rem;
+}

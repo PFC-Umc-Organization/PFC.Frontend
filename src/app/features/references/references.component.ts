@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { catchError, of, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, catchError, combineLatest, of, switchMap, tap } from 'rxjs';
 
 import { Project, Reference, isStaff } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { ProjectService } from '../../core/services/project.service';
 import { ReferenceService } from '../../core/services/reference.service';
+import { IconComponent } from '../../shared/components/icon/icon.component';
 import { DoiLookupComponent } from './doi-lookup/doi-lookup.component';
 import { ReferenceListComponent } from './reference-list/reference-list.component';
 import { TopicSearchComponent } from './topic-search/topic-search.component';
@@ -21,7 +22,7 @@ type Mode = 'topic' | 'doi';
 @Component({
   selector: 'app-references',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TopicSearchComponent, DoiLookupComponent, ReferenceListComponent, RouterLink],
+  imports: [IconComponent, TopicSearchComponent, DoiLookupComponent, ReferenceListComponent, RouterLink],
   templateUrl: './references.component.html',
   styleUrl: './references.component.scss',
 })
@@ -32,21 +33,47 @@ export class ReferencesComponent {
 
   readonly staff = computed(() => isStaff(this.auth.role()));
 
+  readonly projectError = signal('');
+  private readonly reloadProject$ = new BehaviorSubject<void>(undefined);
+
   private readonly studentProject = toSignal(
-    toObservable(this.staff).pipe(
-      switchMap((staff) => (staff ? of(null) : this.projectService.myProject().pipe(catchError(() => of(null))))),
+    combineLatest([toObservable(this.staff), this.reloadProject$]).pipe(
+      switchMap(([staff]) =>
+        staff
+          ? of(null)
+          : this.projectService.myProject().pipe(
+              catchError((e: Error) => {
+                this.projectError.set(e.message);
+                return of(null);
+              }),
+            ),
+      ),
     ),
     { initialValue: null as Project | null },
   );
 
   /** For the staff's picker; the backend returns an advisor only their projects. */
   readonly projects = toSignal(
-    toObservable(this.staff).pipe(
-      switchMap((staff) => (staff ? this.projectService.list().pipe(catchError(() => of([] as Project[]))) : of([] as Project[]))),
+    combineLatest([toObservable(this.staff), this.reloadProject$]).pipe(
+      switchMap(([staff]) =>
+        staff
+          ? this.projectService.list().pipe(
+              catchError((e: Error) => {
+                this.projectError.set(e.message);
+                return of([] as Project[]);
+              }),
+            )
+          : of([] as Project[]),
+      ),
     ),
     { initialValue: [] as Project[] },
   );
   private readonly chosen = signal('');
+
+  retryProject(): void {
+    this.projectError.set('');
+    this.reloadProject$.next();
+  }
 
   readonly project = computed<Project | null>(() => {
     if (!this.staff()) {

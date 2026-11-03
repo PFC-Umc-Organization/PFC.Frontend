@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { BehaviorSubject, catchError, combineLatest, of, switchMap } from 'rxjs';
+import { BehaviorSubject, catchError, combineLatest, of, switchMap, tap } from 'rxjs';
 
 import { Invitation } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
@@ -24,12 +24,25 @@ export class SentInvitationsComponent {
   readonly projectId = input.required<string>();
   private readonly reload$ = new BehaviorSubject<void>(undefined);
 
+  readonly loadError = signal('');
   readonly pending = toSignal(
     combineLatest([toObservable(this.projectId), this.reload$]).pipe(
-      switchMap(([id]) => this.invitationService.ofProject(id).pipe(catchError(() => of([] as Invitation[])))),
+      tap(() => this.loadError.set('')),
+      switchMap(([id]) =>
+        this.invitationService.ofProject(id).pipe(
+          catchError((e: Error) => {
+            this.loadError.set(e.message);
+            return of([] as Invitation[]);
+          }),
+        ),
+      ),
     ),
     { initialValue: [] as Invitation[] },
   );
+
+  reload(): void {
+    this.reload$.next();
+  }
 
   readonly form = new FormGroup({ rgm: new FormControl('', { nonNullable: true }) });
   /** Any request on the way locks every button: no double clicks. */

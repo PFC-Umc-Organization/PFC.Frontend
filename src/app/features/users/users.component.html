@@ -34,7 +34,13 @@
       }
     }
     @case ('enrollments') {
-      @if (cohorts(); as cohorts) {
+      @if (cohortsError()) {
+        <p class="alert" role="alert">
+          <app-icon name="alert" />
+          <span>Não foi possível carregar as turmas. {{ cohortsError() }}</span>
+          <button type="button" class="btn btn--outline btn--sm" (click)="retryCohorts()">Tentar novamente</button>
+        </p>
+      } @else if (cohorts(); as cohorts) {
         @if (formOpen()) {
           <app-enroll-form
             [cohorts]="cohorts"

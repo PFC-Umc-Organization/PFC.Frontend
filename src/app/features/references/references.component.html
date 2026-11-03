@@ -18,15 +18,23 @@
           @for (p of projects(); track p.id) {
             <option [value]="p.id">{{ p.nome }}</option>
           } @empty {
-            <option value="">Nenhum PFC cadastrado</option>
+            <option value="">{{ projectError() ? 'PFCs não carregados' : 'Nenhum PFC cadastrado' }}</option>
           }
         </select>
       </div>
     }
   </header>
 
+  @if (projectError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar {{ staff() ? 'os PFCs' : 'o seu PFC' }}. {{ projectError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="retryProject()">Tentar novamente</button>
+    </p>
+  }
+
   @if (!staff()) {
-    @if (!project()) {
+    @if (!project() && !projectError()) {
       <p class="empty-state">
         Você ainda não participa de um PFC. A pesquisa de artigos está disponível, mas a lista de referências pertence ao grupo; para montá-la, <a routerLink="/meu-pfc">crie o PFC ou aceite um convite</a>.
       </p>

@@ -3,7 +3,13 @@
     <h2 class="section-title">Convites pendentes</h2>
   </div>
   <div class="card__body invitations">
-    @if (pending().length) {
+    @if (loadError()) {
+      <p class="alert" role="alert">
+        <app-icon name="alert" />
+        <span>Não foi possível carregar os convites pendentes. {{ loadError() }}</span>
+        <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar novamente</button>
+      </p>
+    } @else if (pending().length) {
       <ul class="invitations__list">
         @for (i of pending(); track i.rgm) {
           <li class="invitation">

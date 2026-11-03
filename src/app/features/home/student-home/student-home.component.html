@@ -9,6 +9,13 @@
     </p>
   }
   @default {
+    @if (penaltiesError()) {
+      <p class="alert" role="alert">
+        <app-icon name="alert" />
+        <span>Não foi possível carregar as penalidades do grupo. {{ penaltiesError() }}</span>
+        <button type="button" class="btn btn--outline btn--sm" (click)="retryPenalties()">Tentar novamente</button>
+      </p>
+    }
     @if (!project()) {
       <p class="notice" role="status">
         <app-icon name="alert" />

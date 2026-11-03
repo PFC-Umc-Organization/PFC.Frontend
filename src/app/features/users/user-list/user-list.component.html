@@ -1,7 +1,9 @@
 <section class="card card--flush">
   <div class="card__head card__head--wrap">
     <h2 class="section-title">Contas</h2>
-    <span class="card__count">{{ stats().total }} {{ stats().total === 1 ? 'conta' : 'contas' }}</span>
+    @if (!loadFailed()) {
+      <span class="card__count">{{ stats().total }} {{ stats().total === 1 ? 'conta' : 'contas' }}</span>
+    }
     @if (canAdd()) {
       <div class="card__actions">
         <button type="button" class="btn btn--primary btn--sm" (click)="add.emit()">
@@ -12,14 +14,16 @@
     }
   </div>
 
-  <dl class="summary">
-    @for (s of stats().byRole; track s.label) {
-      <div class="summary__item">
-        <dt>{{ s.label }}</dt>
-        <dd>{{ s.value }}</dd>
-      </div>
-    }
-  </dl>
+  @if (!loadFailed()) {
+    <dl class="summary">
+      @for (s of stats().byRole; track s.label) {
+        <div class="summary__item">
+          <dt>{{ s.label }}</dt>
+          <dd>{{ s.value }}</dd>
+        </div>
+      }
+    </dl>
+  }
 
   <div class="filters">
     <div class="field">
@@ -52,6 +56,9 @@
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ error() }}</span>
+      @if (loadFailed()) {
+        <button type="button" class="btn btn--outline btn--sm" (click)="retryLoad()">Tentar novamente</button>
+      }
     </p>
   }
   @if (done()) {
@@ -69,7 +76,7 @@
           <th scope="col">Perfil</th>
           <th scope="col">E-mail</th>
           <th scope="col">RGM</th>
-          <th scope="col">Situação</th>
+          <th scope="col">Status</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
@@ -150,7 +157,9 @@
           </tr>
         } @empty {
           <tr>
-            <td class="table-empty" colspan="6">Nenhuma conta encontrada com esses filtros.</td>
+            <td class="table-empty" colspan="6">
+              {{ loadFailed() ? 'As contas não foram carregadas.' : 'Nenhuma conta encontrada com esses filtros.' }}
+            </td>
           </tr>
         }
       </tbody>

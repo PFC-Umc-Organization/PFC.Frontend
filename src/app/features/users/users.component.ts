@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
+import { Subject, catchError, of, startWith, switchMap, tap } from 'rxjs';
 
-import { Cohort } from '../../core/models';
 import { CohortService } from '../../core/services/cohort.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { AccountFormComponent } from './account-form/account-form.component';
@@ -52,10 +51,30 @@ export class UsersComponent {
     this.version.update((v) => v + 1);
   }
 
-  /** Undefined while loading: the list would otherwise say there is no cohort. */
-  readonly cohorts = toSignal(inject(CohortService).list().pipe(catchError(() => of([] as Cohort[]))), {
-    initialValue: undefined,
-  });
+  private readonly cohortService = inject(CohortService);
+  readonly cohortsError = signal('');
+  private readonly reloadCohorts$ = new Subject<void>();
+  /** Undefined while loading or after a failure: the list would otherwise say there is no cohort. */
+  readonly cohorts = toSignal(
+    this.reloadCohorts$.pipe(
+      startWith(undefined),
+      tap(() => this.cohortsError.set('')),
+      switchMap(() =>
+        this.cohortService.list().pipe(
+          catchError((e: Error) => {
+            this.cohortsError.set(e.message);
+            return of(undefined);
+          }),
+        ),
+      ),
+    ),
+    { initialValue: undefined },
+  );
+
+  retryCohorts(): void {
+    this.reloadCohorts$.next();
+  }
+
   /** The cohort the list shows; the form starts on it and the list follows the form. */
   readonly enrollmentCohort = signal('');
 }

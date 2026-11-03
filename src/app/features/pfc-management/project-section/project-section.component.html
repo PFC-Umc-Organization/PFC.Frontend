@@ -2,7 +2,13 @@
   <div class="card__head card__head--wrap">
     <h2 class="section-title">{{ store.isAdmin() ? 'PFCs dos alunos' : 'Meus orientandos' }}</h2>
     @if (store.program()) {
-      <span class="card__count">{{ projects().length }} {{ projects().length === 1 ? 'PFC' : 'PFCs' }}</span>
+      <span class="card__count">
+        @if (filtering()) {
+          {{ visibleProjects().length }} de {{ projects().length }} PFCs
+        } @else {
+          {{ projects().length }} {{ projects().length === 1 ? 'PFC' : 'PFCs' }}
+        }
+      </span>
     }
     <div class="card__actions">
       <div class="field picker">
@@ -18,7 +24,25 @@
     </p>
   }
 
-  @if (!store.program()) {
+  @if (usersError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar os nomes de integrantes e orientadores. {{ usersError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="retryUsers()">Tentar novamente</button>
+    </p>
+  }
+
+  @if (penaltiesError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar o status dos PFCs. {{ penaltiesError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="retryPenalties()">Tentar novamente</button>
+    </p>
+  }
+
+  @if (store.loadError()) {
+    <p class="notice">Os PFCs aparecem aqui depois que as turmas e os programas forem carregados.</p>
+  } @else if (!store.program()) {
     <p class="notice">
       @if (store.isAdmin()) {
         Esta turma ainda não tem programa de PFC. Crie o programa na aba "Programas de PFC" para que os alunos possam cadastrar seus projetos.
@@ -27,6 +51,50 @@
       }
     </p>
   } @else {
+    @if (projects().length) {
+      <div class="filters">
+        <div class="field filters__search">
+          <label class="field__label" for="pfc-search">Buscar</label>
+          <div class="control-wrap">
+            <app-icon name="search" class="control-wrap__icon" />
+            <input
+              id="pfc-search"
+              type="search"
+              class="control"
+              placeholder="Nome do PFC, integrante ou RGM"
+              [value]="search()"
+              (input)="setSearch($event)"
+            />
+          </div>
+        </div>
+        @if (store.isAdmin()) {
+          <div class="field">
+            <label class="field__label" for="pfc-advisor-filter">Orientador</label>
+            <select id="pfc-advisor-filter" class="control" [value]="advisorFilter()" (change)="setAdvisorFilter($event)">
+              <option value="TODOS">Todos</option>
+              <option value="NENHUM">Sem orientador</option>
+              @for (a of advisors(); track a.id) {
+                <option [value]="a.id">{{ a.nome }}</option>
+              }
+            </select>
+          </div>
+        }
+        <div class="field">
+          <label class="field__label" for="pfc-status-filter">Status</label>
+          <select
+            id="pfc-status-filter"
+            class="control"
+            [value]="statusFilter()"
+            [disabled]="!statusKnown()"
+            (change)="setStatusFilter($event)"
+          >
+            <option value="TODOS">Todos</option>
+            <option value="EM_ANDAMENTO">Em andamento</option>
+            <option value="REPROVADO">Reprovado</option>
+          </select>
+        </div>
+      </div>
+    }
     <div class="table-scroll">
       <table class="data-table">
         <thead>
@@ -35,15 +103,18 @@
             <th scope="col">Integrantes</th>
             @if (store.isAdmin()) {
               <th scope="col">Orientador</th>
+            }
+            <th scope="col">Status</th>
+            @if (store.isAdmin()) {
               <th scope="col"><span class="sr-only">Ações</span></th>
             }
           </tr>
         </thead>
         <tbody>
-          @for (p of projects(); track p.id) {
+          @for (p of visibleProjects(); track p.id) {
             @if (editingId() === p.id) {
               <tr>
-                <td [attr.colspan]="store.isAdmin() ? 4 : 2">
+                <td [attr.colspan]="store.isAdmin() ? 5 : 3">
                   <app-project-editor
                     [project]="p"
                     [nameByRgm]="nameByRgm"
@@ -104,6 +175,24 @@
                       </div>
                     }
                   </td>
+                }
+                <td>
+                  @if (penalties() === undefined) {
+                    <span class="pending">Carregando…</span>
+                  } @else if (penalties()?.get(p.id); as s) {
+                    @if (s.reprovado) {
+                      <span class="status-text status-text--bad">Reprovado</span>
+                    } @else {
+                      <span class="status-text status-text--ok">Em andamento</span>
+                      @if (s.ativas > 0) {
+                        <span class="muted text-sm"> · {{ s.ativas }} de {{ s.limite }} penalidades</span>
+                      }
+                    }
+                  } @else {
+                    <span class="muted">—</span>
+                  }
+                </td>
+                @if (store.isAdmin()) {
                   <td class="row-actions">
                     <div class="row">
                       <button
@@ -131,8 +220,10 @@
             }
           } @empty {
             <tr>
-              <td class="table-empty" [attr.colspan]="store.isAdmin() ? 4 : 2">
-                @if (store.isAdmin()) {
+              <td class="table-empty" [attr.colspan]="store.isAdmin() ? 5 : 3">
+                @if (filtering()) {
+                  Nenhum PFC encontrado com esses filtros.
+                } @else if (store.isAdmin()) {
                   Nenhum PFC criado pelos alunos desta turma ainda.
                 } @else {
                   Nenhum PFC desta turma tem você como orientador.

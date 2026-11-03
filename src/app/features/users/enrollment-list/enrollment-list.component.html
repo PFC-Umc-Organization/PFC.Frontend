@@ -2,7 +2,9 @@
   <div class="card__head card__head--wrap">
     <h2 class="section-title">RGMs pré-autorizados</h2>
     @if (enrollments(); as list) {
-      <span class="card__count">{{ list.length }} {{ list.length === 1 ? 'RGM' : 'RGMs' }}</span>
+      @if (list.length || !error()) {
+        <span class="card__count">{{ list.length }} {{ list.length === 1 ? 'RGM' : 'RGMs' }}</span>
+      }
     }
     <div class="card__actions">
       @if (cohorts().length > 0) {
@@ -31,12 +33,20 @@
     </p>
   }
 
+  @if (usersError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível verificar quais RGMs já têm conta. {{ usersError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="retryUsers()">Tentar novamente</button>
+    </p>
+  }
+
   <div class="table-scroll">
     <table class="data-table">
       <thead>
         <tr>
           <th scope="col">RGM</th>
-          <th scope="col">Situação</th>
+          <th scope="col">Status</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
@@ -45,7 +55,9 @@
           <tr>
             <td class="cell-strong">{{ m.rgm }}</td>
             <td>
-              @if (users() === undefined) {
+              @if (usersError()) {
+                <span class="muted">Não verificado</span>
+              } @else if (users() === undefined) {
                 <span class="pending">Verificando…</span>
               } @else if (accountOf(m.rgm); as account) {
                 @if (account.confirmado === false) {
@@ -74,6 +86,8 @@
           <tr>
             @if (enrollments() === undefined) {
               <td class="table-empty pending" colspan="3">{{ cohorts().length ? 'Carregando os RGMs da turma…' : 'Cadastre uma turma para pré-autorizar RGMs.' }}</td>
+            } @else if (error()) {
+              <td class="table-empty" colspan="3">Os RGMs desta turma não foram carregados.</td>
             } @else {
               <td class="table-empty" colspan="3">Nenhum RGM pré-autorizado nesta turma.</td>
             }

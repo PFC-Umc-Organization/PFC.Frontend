@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { catchError, map, of, startWith, switchMap } from 'rxjs';
+import { Subject, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
 
 import { Project, ProjectPenalties, TimelineItem } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
@@ -71,12 +71,17 @@ export class StudentHomeComponent {
    * Undefined while loading, so the top of the page waits instead of showing
    * "Próxima entrega" to a failed group; null without a group or on failure.
    */
+  readonly penaltiesError = signal('');
+  private readonly reloadPenalties$ = new Subject<void>();
   private readonly loadedPenalties = toSignal(
-    toObservable(this.project).pipe(
-      switchMap((project) =>
+    combineLatest([toObservable(this.project), this.reloadPenalties$.pipe(startWith(undefined))]).pipe(
+      switchMap(([project]) =>
         project
           ? this.penaltyService.ofProject(project.id).pipe(
-              catchError(() => of(null)),
+              catchError((e: Error) => {
+                this.penaltiesError.set(e.message);
+                return of(null);
+              }),
               startWith(undefined),
             )
           : of(null),
@@ -84,6 +89,11 @@ export class StudentHomeComponent {
     ),
     { initialValue: undefined as ProjectPenalties | null | undefined },
   );
+  retryPenalties(): void {
+    this.penaltiesError.set('');
+    this.reloadPenalties$.next();
+  }
+
   readonly penaltiesReady = computed(() => !this.project() || this.loadedPenalties() !== undefined);
   readonly penalties = computed(() => this.loadedPenalties() ?? null);
   readonly failed = computed(() => this.penalties()?.reprovado ?? false);

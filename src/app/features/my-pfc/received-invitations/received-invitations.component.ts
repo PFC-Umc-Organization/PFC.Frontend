@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, catchError, of, switchMap } from 'rxjs';
+import { BehaviorSubject, catchError, of, switchMap, tap } from 'rxjs';
 
 import { Invitation } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
@@ -23,10 +23,25 @@ export class ReceivedInvitationsComponent {
   readonly joined = output();
   private readonly reload$ = new BehaviorSubject<void>(undefined);
 
+  readonly loadError = signal('');
   readonly invitations = toSignal(
-    this.reload$.pipe(switchMap(() => this.invitationService.mine().pipe(catchError(() => of([] as Invitation[]))))),
+    this.reload$.pipe(
+      tap(() => this.loadError.set('')),
+      switchMap(() =>
+        this.invitationService.mine().pipe(
+          catchError((e: Error) => {
+            this.loadError.set(e.message);
+            return of([] as Invitation[]);
+          }),
+        ),
+      ),
+    ),
     { initialValue: [] as Invitation[] },
   );
+
+  reload(): void {
+    this.reload$.next();
+  }
 
   readonly acceptingId = signal<string | null>(null);
   readonly declining = signal(false);

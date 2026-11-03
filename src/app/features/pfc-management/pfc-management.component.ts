@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
+import { IconComponent } from '../../shared/components/icon/icon.component';
 import { ActivityScheduleComponent } from './activity-schedule/activity-schedule.component';
 import { NewActivityComponent } from './new-activity/new-activity.component';
 import { PfcManagementStore } from './pfc-management.store';
@@ -11,7 +12,7 @@ type Section = 'program' | 'projects' | 'activities';
 @Component({
   selector: 'app-pfc-management',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ProgramSectionComponent, ProjectSectionComponent, NewActivityComponent, ActivityScheduleComponent],
+  imports: [IconComponent, ProgramSectionComponent, ProjectSectionComponent, NewActivityComponent, ActivityScheduleComponent],
   providers: [PfcManagementStore],
   templateUrl: './pfc-management.component.html',
 })

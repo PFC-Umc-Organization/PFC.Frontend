@@ -17,6 +17,14 @@
     }
   </nav>
 
+  @if (store.loadError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar as turmas e os programas de PFC. {{ store.loadError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="store.retryLoad()">Tentar novamente</button>
+    </p>
+  }
+
   @switch (section()) {
     @case ('program') {
       <app-program-section />

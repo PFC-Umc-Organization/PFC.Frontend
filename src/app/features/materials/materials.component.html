@@ -21,6 +21,14 @@
     </p>
   }
 
+  @if (cohortsError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar as turmas; a turma de cada material e a escolha da turma ao publicar ficam indisponíveis. {{ cohortsError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="retryCohorts()">Tentar novamente</button>
+    </p>
+  }
+
   @if (actionError()) {
     <p class="alert" role="alert">
       <app-icon name="alert" />

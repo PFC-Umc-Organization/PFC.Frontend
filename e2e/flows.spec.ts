@@ -228,7 +228,7 @@ test.describe('coordination', () => {
     await expect(page.getByRole('button', { name: 'Trocar perfil de leonardoalvino@umc.br' })).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Editar nome de ana@umc.br' }).click();
-    await page.getByLabel('Nome de ana@umc.br').fill('Ana Souza');
+    await page.getByLabel('Nome de ana@umc.br', { exact: true }).fill('Ana Souza');
     await page.getByRole('button', { name: 'Salvar' }).click();
     await expect(page.getByRole('row', { name: /Ana Souza/ })).toBeVisible();
     expect(api.db.users['ana@umc.br'].nome).toBe('Ana Souza');
@@ -546,6 +546,7 @@ test.describe('penalties', () => {
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toContainText('Com 3 de 3, o grupo fica reprovado');
     await dialog.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(dialog).toBeHidden();
     expect(api.db.penalties.filter((x) => x.motivo === 'Entrega não validada')).toHaveLength(0);
     await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
     await dialog.getByRole('button', { name: 'Aplicar penalidade' }).click();

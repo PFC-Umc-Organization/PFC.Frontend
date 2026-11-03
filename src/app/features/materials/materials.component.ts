@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, map, of, startWith } from 'rxjs';
+import { Subject, catchError, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { Cohort, Material, cohortLabel, isStaff } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
@@ -28,11 +28,31 @@ export class MaterialsComponent {
 
   readonly staff = computed(() => isStaff(this.auth.role()));
 
+  private readonly cohortService = inject(CohortService);
+  readonly cohortsError = signal('');
+  private readonly reloadCohorts$ = new Subject<void>();
   /** Only the staff sees which cohort a material is for. */
   readonly cohorts = toSignal(
-    this.staff() ? inject(CohortService).list().pipe(catchError(() => of([] as Cohort[]))) : of([] as Cohort[]),
+    this.staff()
+      ? this.reloadCohorts$.pipe(
+          startWith(undefined),
+          tap(() => this.cohortsError.set('')),
+          switchMap(() =>
+            this.cohortService.list().pipe(
+              catchError((e: Error) => {
+                this.cohortsError.set(e.message);
+                return of([] as Cohort[]);
+              }),
+            ),
+          ),
+        )
+      : of([] as Cohort[]),
     { initialValue: [] as Cohort[] },
   );
+
+  retryCohorts(): void {
+    this.reloadCohorts$.next();
+  }
 
   readonly state = toSignal(
     this.materialService.list().pipe(
@@ -78,7 +98,10 @@ export class MaterialsComponent {
       return 'Para a sua turma';
     }
     const cohort = this.cohorts().find((c) => c.id === m.cursoId);
-    return cohort ? cohortLabel(cohort) : 'Turma removida';
+    if (cohort) {
+      return cohortLabel(cohort);
+    }
+    return this.cohortsError() ? 'Turma não identificada' : 'Turma removida';
   }
 
   async remove(m: Material): Promise<void> {
