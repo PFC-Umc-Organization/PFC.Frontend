@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 
 import {
   ProjectPenalties,
@@ -77,12 +77,19 @@ export class StatusGridComponent {
   /** What the empty table says. */
   readonly emptyText = input.required<string>();
   readonly open = output<CellRef>();
+  /** The column whose title was opened, to mark it. */
+  readonly selectedActivity = input<string | null>(null);
+  readonly openActivity = output<string>();
   /** By project id, undefined while loading; a project without an entry shows no counter. */
   readonly penalties = input<Map<string, ProjectPenalties> | undefined>(new Map());
   readonly selectedPenalties = input<string | null>(null);
   readonly openPenalties = output<{ projectId: string; projectName: string }>();
 
   protected readonly legend = LEGEND;
+
+  /** The date under the pointer or focus; its activity's name shows in the footer. */
+  protected readonly hovered = signal<string | null>(null);
+  protected readonly hoveredActivity = computed(() => this.grid().activities.find((a) => a.id === this.hovered()));
 
   protected readonly dense = computed(() => this.grid().activities.length >= DENSE_FROM);
 

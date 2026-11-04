@@ -1,0 +1,64 @@
+<section class="card" aria-live="polite">
+  <div class="card__body">
+    <div class="top">
+      <div>
+        <h2 class="section-title">{{ activity().titulo }}</h2>
+        <p class="meta">
+          Prazo: {{ activity().prazo | deadline: true }} ·
+          {{ delivered() }} de {{ items().length }} {{ items().length === 1 ? 'grupo entregou' : 'grupos entregaram' }}
+        </p>
+      </div>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
+        <app-icon name="close" class="btn__icon" />
+        Fechar
+      </button>
+    </div>
+
+    @if (error()) {
+      <p class="alert alert--inline" role="alert">{{ error() }}</p>
+    }
+
+    <ul class="groups">
+      @for (item of items(); track item.projectId) {
+        <li>
+          @if (item.submission; as s) {
+            <details class="group">
+              <summary class="group__head">
+                <span class="group__name">{{ item.projectName }}</span>
+                <span [class]="'group__status group__status--' + item.status.toLowerCase()">
+                  {{ statusLabel[item.status] }}
+                </span>
+                <span class="group__meta">
+                  {{ s.entregueEm | date: 'dd/MM/yyyy HH:mm' }}@if (s.entreguePor) { · {{ s.entreguePor }}}
+                  · {{ validationText(item.validation) }}
+                </span>
+              </summary>
+              <div class="group__body">
+                <app-answer-list [activity]="activity()" [submission]="s" (download)="download(item.projectId, $event)" />
+                <button
+                  type="button"
+                  class="btn btn--outline btn--sm"
+                  (click)="openGroup.emit({ projectId: item.projectId, projectName: item.projectName })"
+                >
+                  Validar ou devolver
+                </button>
+              </div>
+            </details>
+          } @else {
+            <div class="group group--empty">
+              <div class="group__head">
+                <span class="group__name">{{ item.projectName }}</span>
+                <span [class]="'group__status group__status--' + item.status.toLowerCase()">
+                  {{ statusLabel[item.status] }}
+                </span>
+                <span class="group__meta">Sem entrega</span>
+              </div>
+            </div>
+          }
+        </li>
+      } @empty {
+        <li class="meta">Nenhum projeto para mostrar com os filtros atuais.</li>
+      }
+    </ul>
+  </div>
+</section>

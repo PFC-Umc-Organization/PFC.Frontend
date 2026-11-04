@@ -10,6 +10,7 @@ import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
 import { PenaltyPanelComponent } from '../penalty-panel/penalty-panel.component';
+import { ActivityGroupItem, ActivitySubmissionsComponent } from '../activity-submissions/activity-submissions.component';
 import { CellRef, StatusGridComponent } from '../status-grid/status-grid.component';
 import { SubmissionDetailComponent } from '../submission-detail/submission-detail.component';
 
@@ -21,7 +22,7 @@ export type RowFilter = 'all' | 'late' | 'awaiting' | 'rejected';
 @Component({
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent],
+  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent],
   templateUrl: './staff-home.component.html',
   styleUrl: './staff-home.component.scss',
 })
@@ -175,13 +176,52 @@ export class StaffHomeComponent {
     return chosen && penalties ? { ...chosen, penalties } : null;
   });
 
+  readonly selectedActivity = signal<string | null>(null);
+
+  /** Every visible group's delivery for the chosen activity, from the grid: no call. */
+  readonly activityDetail = computed(() => {
+    const activityId = this.selectedActivity();
+    const grid = this.visibleGrid();
+    const activity = activityId ? grid.activities.find((a) => a.id === activityId) : undefined;
+    if (!activity) {
+      return null;
+    }
+    const items = grid.rows.flatMap<ActivityGroupItem>((row) => {
+      const cell = row.cells.find((c) => c.activityId === activity.id);
+      if (!cell) {
+        return [];
+      }
+      const submission =
+        grid.submissions.find((s) => s.projetoId === row.project.id && s.atividadeId === activity.id) ?? null;
+      return [
+        { projectId: row.project.id, projectName: row.project.nome, status: cell.status, validation: cell.validation, submission },
+      ];
+    });
+    return { activity, items };
+  });
+
+  openActivity(activityId: string): void {
+    this.selected.set(null);
+    this.penaltiesOf.set(null);
+    this.selectedActivity.set(this.selectedActivity() === activityId ? null : activityId);
+  }
+
+  openGroupOf(project: { projectId: string; projectName: string }): void {
+    const activityId = this.selectedActivity();
+    if (activityId) {
+      this.openCell({ ...project, activityId });
+    }
+  }
+
   openCell(cell: CellRef): void {
     this.penaltiesOf.set(null);
+    this.selectedActivity.set(null);
     this.selected.set(cell);
   }
 
   openPenalties(project: { projectId: string; projectName: string }): void {
     this.selected.set(null);
+    this.selectedActivity.set(null);
     this.penaltiesOf.set(project);
   }
 

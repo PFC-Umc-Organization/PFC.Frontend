@@ -53,9 +53,20 @@
   [emptyText]="emptyText()"
   [penalties]="penalties()"
   [selectedPenalties]="penaltiesOf()?.projectId ?? null"
+  [selectedActivity]="selectedActivity()"
   (open)="openCell($event)"
+  (openActivity)="openActivity($event)"
   (openPenalties)="openPenalties($event)"
 />
+
+@if (activityDetail(); as d) {
+  <app-activity-submissions
+    [activity]="d.activity"
+    [items]="d.items"
+    (closed)="selectedActivity.set(null)"
+    (openGroup)="openGroupOf($event)"
+  />
+}
 
 @if (detail(); as d) {
   <app-submission-detail

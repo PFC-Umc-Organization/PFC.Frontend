@@ -39,8 +39,8 @@
 }
 
 .matrix thead th {
-  padding: 0.875rem 0.75rem 0.75rem;
-  vertical-align: bottom;
+  padding: 0.5rem 0.75rem;
+  vertical-align: middle;
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--muted-foreground);
@@ -68,7 +68,37 @@
 }
 
 .matrix thead .matrix__activity {
-  padding-inline: 0.375rem;
+  padding: 0.375rem;
+}
+
+/* The header is just the date, so every column lines up. */
+.activity {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.375rem;
+  text-align: left;
+  font: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.activity:hover,
+.activity--active {
+  background: color-mix(in oklch, var(--primary) 7%, transparent);
+}
+
+.activity--active {
+  box-shadow: inset 0 -2px 0 var(--primary);
+}
+
+.activity:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
 }
 
 @media (max-width: 1099px) {
@@ -79,23 +109,42 @@
 
 .activity__due {
   display: block;
-  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   color: var(--bronze);
 }
 
-.activity__title {
-  display: -webkit-box;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
-  font-size: 0.75rem;
+/* Under the table: the name of the activity whose date is hovered or focused. */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0.5rem 1.25rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
+  font-size: 0.875rem;
+}
+
+.footer__due {
+  flex: none;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--bronze);
+}
+
+.footer__title {
+  min-width: 0;
   font-weight: 500;
-  line-height: 1.3;
   overflow-wrap: anywhere;
   color: var(--foreground);
+}
+
+.footer__hint {
+  color: var(--muted-foreground);
 }
 
 .matrix tbody th,

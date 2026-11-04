@@ -26,8 +26,19 @@
             <th scope="col" class="matrix__penalties">Penalidades</th>
             @for (a of grid().activities; track a.id) {
               <th scope="col" class="matrix__activity">
-                <span class="activity__due">{{ a.prazo | date: 'dd/MM' }}</span>
-                <span class="activity__title" [attr.title]="a.titulo">{{ a.titulo }}</span>
+                <button
+                  type="button"
+                  class="activity"
+                  [class.activity--active]="selectedActivity() === a.id"
+                  [attr.aria-label]="a.titulo + ', prazo ' + (a.prazo | date: 'dd/MM') + '. Ver o que cada grupo entregou'"
+                  (click)="openActivity.emit(a.id)"
+                  (mouseenter)="hovered.set(a.id)"
+                  (mouseleave)="hovered.set(null)"
+                  (focus)="hovered.set(a.id)"
+                  (blur)="hovered.set(null)"
+                >
+                  <span class="activity__due">{{ a.prazo | date: 'dd/MM' }}</span>
+                </button>
               </th>
             }
           </tr>
@@ -76,6 +87,14 @@
           }
         </tbody>
       </table>
+    </div>
+    <div class="footer" aria-hidden="true">
+      @if (hoveredActivity(); as a) {
+        <span class="footer__due">{{ a.prazo | date: 'dd/MM' }}</span>
+        <span class="footer__title">{{ a.titulo }}</span>
+      } @else {
+        <span class="footer__hint">Passe o mouse sobre uma data para ver o nome do entregável. Clique para ver o que cada grupo entregou.</span>
+      }
     </div>
     <ul class="legend" aria-label="Legenda">
       @for (l of legend; track l.state) {
