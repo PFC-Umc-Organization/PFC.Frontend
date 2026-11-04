@@ -1,5 +1,5 @@
 import { Activity } from '../models';
-import { editedLater, submissionStatus, submittedFileName } from './submission-status';
+import { cellStates, editedLater, submissionStatus, submittedFileName } from './submission-status';
 
 describe('submissionStatus', () => {
   const deadline = '2026-10-15T23:59';
@@ -45,5 +45,28 @@ describe('editedLater', () => {
 
   it('has nothing to show without an edit', () => {
     expect(editedLater({ entregueEm: '2026-10-23T17:47:02Z' })).toBe(false);
+  });
+});
+
+describe('cellStates', () => {
+  it('marks the first open activity as waiting and the next ones as blocked by it', () => {
+    expect(cellStates(['ENTREGUE', 'PENDENTE', 'PENDENTE', 'PENDENTE'])).toEqual([
+      { state: 'done' },
+      { state: 'waiting' },
+      { state: 'blocked', blockedBy: 1 },
+      { state: 'blocked', blockedBy: 1 },
+    ]);
+  });
+
+  it('blocks what is still due while an earlier activity is overdue', () => {
+    expect(cellStates(['ATRASADO', 'PENDENTE'])).toEqual([{ state: 'late' }, { state: 'blocked', blockedBy: 0 }]);
+  });
+
+  it('does not block anything when every earlier activity was submitted, late or not', () => {
+    expect(cellStates(['ENTREGUE_COM_ATRASO', 'PENDENTE'])).toEqual([{ state: 'done-late' }, { state: 'waiting' }]);
+  });
+
+  it('keeps a submission as done even after an open activity', () => {
+    expect(cellStates(['ATRASADO', 'ENTREGUE'])).toEqual([{ state: 'late' }, { state: 'done' }]);
   });
 });

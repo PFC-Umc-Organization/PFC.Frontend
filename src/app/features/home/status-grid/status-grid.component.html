@@ -19,7 +19,7 @@
     <p class="empty">{{ emptyText() }}</p>
   } @else {
     <div class="table-scroll" data-sticky-start>
-      <table class="matrix">
+      <table class="matrix" [class.matrix--dense]="dense()">
         <thead>
           <tr>
             <th scope="col" class="matrix__project">Projeto</th>
@@ -33,7 +33,7 @@
           </tr>
         </thead>
         <tbody>
-          @for (row of grid().rows; track row.project.id) {
+          @for (row of rows(); track row.project.id) {
             <tr>
               <th scope="row" class="matrix__project">{{ row.project.nome }}</th>
               <td class="matrix__penalties">
@@ -58,9 +58,12 @@
                     class="cell"
                     [class.cell--active]="isSelected(row.project.id, c.activityId)"
                     (click)="open.emit({ projectId: row.project.id, projectName: row.project.nome, activityId: c.activityId })"
-                    [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + label(c.status) + validationText(c.validation)"
+                    [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + label(c.status) + (c.state === 'blocked' ? ', bloqueada' : '') + validationText(c.validation)"
                   >
-                    <app-status-badge [status]="c.status" />
+                    <span class="pill" [class]="'pill pill--' + c.state" [attr.title]="hint(c)">
+                      <app-icon [name]="icon(c.state)" [strokeWidth]="2.5" />
+                      <span class="pill__text">{{ text(c.state) }}</span>
+                    </span>
                     @if (c.validation) {
                       <span class="validation" [class.validation--rejected]="c.validation === 'NAO_VALIDADA'">
                         {{ c.validation === 'VALIDADA' ? 'Validada' : 'Não validada' }}
@@ -74,5 +77,10 @@
         </tbody>
       </table>
     </div>
+    <ul class="legend" aria-label="Legenda">
+      @for (l of legend; track l.state) {
+        <li class="legend__item"><span [class]="'swatch swatch--' + l.state" aria-hidden="true"></span>{{ l.text }}</li>
+      }
+    </ul>
   }
 </section>
