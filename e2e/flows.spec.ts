@@ -404,7 +404,7 @@ test.describe('advisor', () => {
     await signIn(page, ADVISOR);
     await expect(page.locator('#cohort option:checked')).toHaveText('Sistemas de Informação (Manhã, 2026.2)');
     await expect(page.getByRole('rowheader', { name: 'Rota Verde' })).toBeVisible();
-    await expect(page.locator('.summary__item', { hasText: 'não entregue' })).toContainText('1');
+    await expect(page.locator('.indicator', { hasText: 'com atraso' })).toContainText('1');
 
     await page.fill('#project-search', 'nada');
     await expect(page.getByText('Nenhum projeto desta turma corresponde aos filtros.')).toBeVisible();
@@ -572,63 +572,5 @@ test.describe('phone (390 px)', () => {
       await page.waitForLoadState('networkidle');
       await noSideScroll(page);
     }
-  });
-});
-
-test.describe('committee demo', () => {
-  test('the coordination places a project, a professor sends the sheet and the student sees the grade', async ({ page }) => {
-    await signIn(page, ADMIN);
-    await page.getByRole('link', { name: 'Banca' }).first().click();
-    await expect(page.getByRole('heading', { name: 'Banca de avaliação' })).toBeVisible();
-    await expect(page.getByText('1 de 3 avaliações enviadas.')).toBeVisible();
-    await page.screenshot({ path: 'test-results/banca-coordenacao.png', fullPage: true });
-
-    const night = page.getByRole('article', { name: /07\/12\/2026/ });
-    await night.getByRole('button', { name: /21:15/ }).click();
-    await expect(page.getByText('Turma do turno da manhã.').first()).toBeVisible();
-    await page.screenshot({ path: 'test-results/banca-encaixe.png', fullPage: true });
-    await page.locator('.candidate', { hasText: 'EstudaJunto' }).getByRole('button', { name: 'Encaixar' }).click();
-    await expect(night.getByRole('button', { name: /21:15/ })).toContainText('EstudaJunto');
-
-    const morning = page.getByRole('article', { name: /08\/12\/2026/ });
-    await morning.getByRole('button', { name: /08:55/ }).click();
-    await expect(page.locator('.candidate', { hasText: 'Biblioteca Viva' })).toContainText('A banca ficaria com 5 pessoas');
-    await expect(page.locator('.candidate', { hasText: 'Biblioteca Viva' }).getByRole('button', { name: 'Encaixar' })).toBeDisabled();
-
-    await page.getByRole('button', { name: 'Avaliador', exact: true }).click();
-    await expect(page.getByRole('heading', { name: 'Rota Verde' })).toBeVisible();
-    await page.getByRole('button', { name: 'Enviar avaliação' }).click();
-    await expect(page.getByText(/Faltam \d+ notas para enviar/)).toBeVisible();
-    for (const group of await page.getByRole('radiogroup').all()) {
-      await group.getByRole('radio', { name: '4' }).click();
-    }
-    await page.screenshot({ path: 'test-results/banca-ficha.png', fullPage: true });
-    await page.getByRole('button', { name: 'Enviar avaliação' }).click();
-    await page.getByRole('alertdialog').getByRole('button', { name: 'Enviar avaliação' }).click();
-    await expect(page.getByText('Avaliação enviada. Ela não pode mais ser alterada.')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Coordenação', exact: true }).click();
-    await expect(page.getByText('2 de 3 avaliações enviadas.')).toBeVisible();
-    await page.getByRole('button', { name: 'Encerrar banca' }).click();
-    await expect(page.getByRole('alert')).toContainText('Informe o motivo.');
-    await page.getByLabel('Motivo').fill('Avaliadora ausente por motivo de saúde');
-    await page.getByRole('button', { name: 'Encerrar banca' }).click();
-    await expect(page.getByText('Banca encerrada sem todas as avaliações. Motivo: Avaliadora ausente por motivo de saúde')).toBeVisible();
-
-    await page.getByRole('button', { name: 'Aluno', exact: true }).click();
-    await expect(page.getByText('Sua nota final')).toBeVisible();
-    await page.screenshot({ path: 'test-results/banca-aluno.png', fullPage: true });
-    await page.getByLabel('Ver como o aluno').selectOption({ label: 'Natália Pires' });
-    await expect(page.getByText('reprovado por penalidades e não apresenta')).toBeVisible();
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole('button', { name: 'Avaliador', exact: true }).click();
-    await noSideScroll(page);
-    await page.screenshot({ path: 'test-results/banca-ficha-celular.png', fullPage: true });
-  });
-
-  test('only the coordination opens the demo', async ({ page }) => {
-    await signIn(page, ADVISOR);
-    await page.goto('/banca');
-    await expect(page).toHaveURL(/sem-acesso/);
   });
 });

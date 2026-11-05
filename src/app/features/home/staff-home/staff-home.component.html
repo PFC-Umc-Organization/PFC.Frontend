@@ -20,13 +20,34 @@
 
 @if (grid().rows.length) {
   <section class="overview" aria-label="Resumo e filtros">
-    <dl class="summary">
-      <div class="summary__item"><dt>{{ summary().submitted === 1 ? 'entrega feita' : 'entregas feitas' }}</dt><dd>{{ summary().submitted }}</dd></div>
-      <div class="summary__item"><dt>aguardando validação</dt><dd>{{ summary().awaiting }}</dd></div>
-      <div class="summary__item"><dt>{{ summary().rejected === 1 ? 'não validada' : 'não validadas' }}</dt><dd>{{ summary().rejected }}</dd></div>
-      <div class="summary__item"><dt>no prazo, sem entrega</dt><dd>{{ summary().open }}</dd></div>
-      <div class="summary__item summary__item--bad"><dt>{{ summary().missed === 1 ? 'não entregue' : 'não entregues' }}</dt><dd>{{ summary().missed }}</dd></div>
-    </dl>
+    <div class="indicators">
+      <button type="button" class="indicator" [class.indicator--active]="filter() === 'all'" [attr.aria-pressed]="filter() === 'all'" (click)="filter.set('all')">
+        <span class="indicator__value">{{ indicators().total }}</span>
+        <span class="indicator__label">{{ indicators().total === 1 ? 'projeto' : 'projetos' }}</span>
+      </button>
+      <button type="button" class="indicator indicator--bad" [class.indicator--active]="filter() === 'failed'" [attr.aria-pressed]="filter() === 'failed'" (click)="toggleFilter('failed')">
+        <span class="indicator__value">{{ indicators().failed ?? '—' }}</span>
+        <span class="indicator__label">{{ indicators().failed === 1 ? 'reprovado' : 'reprovados' }}</span>
+      </button>
+      <button type="button" class="indicator indicator--bad" [class.indicator--active]="filter() === 'late'" [attr.aria-pressed]="filter() === 'late'" (click)="toggleFilter('late')">
+        <span class="indicator__value">{{ indicators().late }}</span>
+        <span class="indicator__label">com atraso</span>
+      </button>
+      <button type="button" class="indicator" [class.indicator--active]="filter() === 'awaiting'" [attr.aria-pressed]="filter() === 'awaiting'" (click)="toggleFilter('awaiting')">
+        <span class="indicator__value">{{ indicators().awaiting }}</span>
+        <span class="indicator__label">com entrega a validar</span>
+      </button>
+      <div class="indicator indicator--next">
+        <span class="indicator__label">Próxima entrega</span>
+        @if (indicators().next; as n) {
+          <span class="next__title">{{ n.title }}</span>
+          <span class="next__meta">{{ n.deadline | deadline: true }} · {{ n.delivered }} de {{ n.of }} já entregaram</span>
+          <span class="next__bar" aria-hidden="true"><span [style.width.%]="n.of ? (n.delivered / n.of) * 100 : 0"></span></span>
+        } @else {
+          <span class="next__meta">Nenhuma atividade com prazo à frente.</span>
+        }
+      </div>
+    </div>
     <div class="filters">
       <div class="field">
         <label class="field__label" for="project-search">Buscar projeto</label>
@@ -36,6 +57,7 @@
         <label class="field__label" for="project-filter">Mostrar</label>
         <select id="project-filter" class="control" [value]="filter()" (change)="setFilter($event)">
           <option value="all">Todos os projetos</option>
+          <option value="failed">Reprovados</option>
           <option value="late">Com atividade não entregue</option>
           <option value="awaiting">Com entrega aguardando validação</option>
           <option value="rejected">Com entrega não validada</option>

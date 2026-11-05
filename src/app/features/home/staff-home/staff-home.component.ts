@@ -9,6 +9,7 @@ import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
+import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { PenaltyPanelComponent } from '../penalty-panel/penalty-panel.component';
 import { ActivityGroupItem, ActivitySubmissionsComponent } from '../activity-submissions/activity-submissions.component';
 import { CellRef, StatusGridComponent } from '../status-grid/status-grid.component';
@@ -16,13 +17,13 @@ import { SubmissionDetailComponent } from '../submission-detail/submission-detai
 
 const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
 
-export type RowFilter = 'all' | 'late' | 'awaiting' | 'rejected';
+export type RowFilter = 'all' | 'failed' | 'late' | 'awaiting' | 'rejected';
 
 /** Each group's submissions in the chosen cohort, activity by activity. */
 @Component({
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent],
+  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent, DeadlinePipe],
   templateUrl: './staff-home.component.html',
   styleUrl: './staff-home.component.scss',
 })
@@ -102,16 +103,25 @@ export class StaffHomeComponent {
   readonly filter = signal<RowFilter>('all');
   readonly filtering = computed(() => this.search().trim() !== '' || this.filter() !== 'all');
 
-  /** Counted over every cell of the cohort, regardless of the filters. */
-  readonly summary = computed(() => {
-    const cells = this.grid().rows.flatMap((r) => r.cells);
-    const submitted = cells.filter((c) => c.status === 'ENTREGUE' || c.status === 'ENTREGUE_COM_ATRASO');
+  /**
+   * Counted in projects, not cells: a cohort of hundreds of groups would turn
+   * a cell count into noise. Failed is undefined while the penalties load.
+   */
+  readonly indicators = computed(() => {
+    const { rows, activities } = this.grid();
+    const submitted = (s: string) => s === 'ENTREGUE' || s === 'ENTREGUE_COM_ATRASO';
+    const penalties = this.penalties();
+    const now = new Date();
+    const upcoming = activities.find((a) => new Date(a.prazo) > now);
+    const delivered = upcoming
+      ? rows.filter((r) => submitted(r.cells.find((c) => c.activityId === upcoming.id)?.status ?? '')).length
+      : 0;
     return {
-      submitted: submitted.length,
-      open: cells.filter((c) => c.status === 'PENDENTE').length,
-      missed: cells.filter((c) => c.status === 'ATRASADO').length,
-      awaiting: submitted.filter((c) => !c.validation).length,
-      rejected: submitted.filter((c) => c.validation === 'NAO_VALIDADA').length,
+      total: rows.length,
+      failed: penalties ? rows.filter((r) => penalties.get(r.project.id)?.reprovado).length : undefined,
+      late: rows.filter((r) => r.cells.some((c) => c.status === 'ATRASADO')).length,
+      awaiting: rows.filter((r) => r.cells.some((c) => submitted(c.status) && !c.validation)).length,
+      next: upcoming ? { title: upcoming.titulo, deadline: upcoming.prazo, delivered, of: rows.length } : null,
     };
   });
 
@@ -124,6 +134,8 @@ export class StaffHomeComponent {
       }
       const submitted = (s: string) => s === 'ENTREGUE' || s === 'ENTREGUE_COM_ATRASO';
       switch (this.filter()) {
+        case 'failed':
+          return !!this.penalties()?.get(row.project.id)?.reprovado;
         case 'late':
           return row.cells.some((c) => c.status === 'ATRASADO');
         case 'awaiting':
@@ -142,6 +154,11 @@ export class StaffHomeComponent {
 
   setFilter(event: Event): void {
     this.filter.set((event.target as HTMLSelectElement).value as RowFilter);
+  }
+
+  /** An indicator card filters the grid; clicking the active one clears it. */
+  toggleFilter(filter: RowFilter): void {
+    this.filter.set(this.filter() === filter ? 'all' : filter);
   }
 
   readonly emptyText = computed(() => {
