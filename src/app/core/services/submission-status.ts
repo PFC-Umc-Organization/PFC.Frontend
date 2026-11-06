@@ -1,4 +1,4 @@
-import { Activity, Submission, SubmissionStatus, fileNameOf } from '../models';
+import { Activity, ProjectStatusRow, Submission, SubmissionStatus, fileNameOf } from '../models';
 
 export function submissionStatus(
   deadline: string,
@@ -32,36 +32,56 @@ export function editedLater(s: Pick<Submission, 'entregueEm' | 'atualizadaEm'>):
 }
 
 /**
- * What a grid cell shows. `blocked` is only a hint: a group can still submit
- * an activity whose predecessor is open, the backend does not hold it back.
+ * What a grid cell shows. `blocked` mirrors the backend: a group's first
+ * submission of an activity waits for every earlier one still open.
  */
 export type CellState = 'done' | 'done-late' | 'late' | 'waiting' | 'blocked';
 
 /**
- * The cells of one project, in activity order. A submission still on time is
- * `waiting`, or `blocked` once any earlier activity is open (not submitted,
- * on time or not); `blockedBy` is the index of the first one.
+ * The cells of one project, in activity order. An activity still on time is
+ * `waiting`, or `blocked` while an earlier one is also on time and not
+ * submitted (`blockedBy` is the nearest such one). An earlier overdue activity
+ * blocks nothing: it can no longer be submitted and already cost a penalty.
  */
 export function cellStates(statuses: SubmissionStatus[]): { state: CellState; blockedBy?: number }[] {
-  let firstOpen: number | undefined;
+  let firstWaiting: number | undefined;
   return statuses.map((status, i) => {
-    let result: { state: CellState; blockedBy?: number };
     switch (status) {
       case 'ENTREGUE':
-        result = { state: 'done' };
-        break;
+        return { state: 'done' };
       case 'ENTREGUE_COM_ATRASO':
-        result = { state: 'done-late' };
-        break;
+        return { state: 'done-late' };
       case 'ATRASADO':
-        result = { state: 'late' };
-        break;
+        return { state: 'late' };
       default:
-        result = firstOpen === undefined ? { state: 'waiting' } : { state: 'blocked', blockedBy: firstOpen };
+        if (firstWaiting === undefined) {
+          firstWaiting = i;
+          return { state: 'waiting' };
+        }
+        return { state: 'blocked', blockedBy: firstWaiting };
     }
-    if ((status === 'PENDENTE' || status === 'ATRASADO') && firstOpen === undefined) {
-      firstOpen = i;
-    }
-    return result;
   });
+}
+
+/** Project × activity grid; `submissions` may hold more projects than `projects`. */
+export function buildStatusGrid(
+  activities: Activity[],
+  projects: { id: string; nome: string; orientadorId?: string }[],
+  submissions: Submission[],
+): { activities: Activity[]; rows: ProjectStatusRow[]; submissions: Submission[] } {
+  return {
+    activities,
+    submissions,
+    rows: projects.map<ProjectStatusRow>((project) => ({
+      project: { id: project.id, nome: project.nome, orientadorId: project.orientadorId },
+      cells: activities.map((activity) => {
+        const submission = submissions.find((s) => s.projetoId === project.id && s.atividadeId === activity.id);
+        return {
+          activityId: activity.id,
+          status: submissionStatus(activity.prazo, submission?.entregueEm),
+          validation: submission?.validacao?.status,
+        };
+      }),
+    })),
+  };
 }

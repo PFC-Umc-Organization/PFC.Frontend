@@ -58,7 +58,7 @@ export const LEGEND: { state: CellState; text: string }[] = [
   { state: 'done-late', text: 'Concluído com atraso' },
   { state: 'late', text: 'Atrasado, sem entrega' },
   { state: 'waiting', text: 'Aguardando entrega' },
-  { state: 'blocked', text: 'Bloqueado: há entrega anterior em aberto' },
+  { state: 'blocked', text: 'Bloqueado: só abre depois da entrega anterior' },
 ];
 
 /** One row per project, its penalties, then one column per activity; a cell opens its detail. */
@@ -72,6 +72,12 @@ export const LEGEND: { state: CellState; text: string }[] = [
 export class StatusGridComponent {
   readonly grid = input.required<StatusGrid>();
   readonly loading = input(false);
+  readonly heading = input('Entregas por projeto');
+  /** The "N projetos" count: pointless for a student, who sees only their own. */
+  readonly showCount = input(true);
+  /** Cells and dates do nothing when false (a failed group can no longer submit). */
+  readonly interactive = input(true);
+  readonly footerHint = input('Passe o mouse sobre uma data para ver o nome do entregável. Clique para ver o que cada grupo entregou.');
   readonly error = input('');
   readonly selected = input<CellRef | null>(null);
   /** What the empty table says. */
@@ -80,6 +86,12 @@ export class StatusGridComponent {
   /** The column whose title was opened, to mark it. */
   readonly selectedActivity = input<string | null>(null);
   readonly openActivity = output<string>();
+  /** A line under a project's name, by project id (the advisor). */
+  readonly projectNotes = input<Map<string, string>>(new Map());
+  /** The coordination opens a project from its name. */
+  readonly projectsOpenable = input(false);
+  readonly selectedProject = input<string | null>(null);
+  readonly openProject = output<{ projectId: string; projectName: string }>();
   /** By project id, undefined while loading; a project without an entry shows no counter. */
   readonly penalties = input<Map<string, ProjectPenalties> | undefined>(new Map());
   readonly selectedPenalties = input<string | null>(null);
@@ -137,7 +149,7 @@ export class StatusGridComponent {
       case 'waiting':
         return 'Aguardando a entrega do grupo';
       case 'blocked':
-        return c.blockedBy ? `Bloqueado: falta a entrega "${c.blockedBy}"` : 'Bloqueado: há entrega anterior em aberto';
+        return c.blockedBy ? `Bloqueado: o grupo precisa entregar antes "${c.blockedBy}"` : 'Bloqueado: há entrega anterior em aberto';
       default:
         return 'Concluído no prazo';
     }

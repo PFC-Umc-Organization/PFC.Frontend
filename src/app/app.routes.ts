@@ -72,13 +72,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/my-pfc/my-pfc.component').then((m) => m.MyPfcComponent),
       },
       {
-        path: 'gestao',
-        canActivate: [roleGuard(['ORIENTADOR', 'ADMIN'])],
-        title: 'Gestão de PFC | Rafa Manager',
-        loadComponent: () =>
-          import('./features/pfc-management/pfc-management.component').then((m) => m.PfcManagementComponent),
-      },
-      {
         path: 'usuarios',
         canActivate: [roleGuard(['ADMIN'])],
         title: 'Usuários | Rafa Manager',

@@ -1,37 +1,44 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { catchError, map, of, startWith, switchMap, tap } from 'rxjs';
+import { Subject, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 
-import { Program, Project, ProjectPenalties, ProjectStatusRow, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
+import { Program, Project, ProjectPenalties, ProjectStatusRow, User, cohortLabel, currentTerm, isInTerm, isStaff } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CohortService } from '../../../core/services/cohort.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
+import { UserService } from '../../../core/services/user.service';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { PenaltyPanelComponent } from '../penalty-panel/penalty-panel.component';
+import { ProjectPanelComponent } from '../project-panel/project-panel.component';
 import { ActivityGroupItem, ActivitySubmissionsComponent } from '../activity-submissions/activity-submissions.component';
 import { CellRef, StatusGridComponent } from '../status-grid/status-grid.component';
 import { SubmissionDetailComponent } from '../submission-detail/submission-detail.component';
 
 const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
 
-export type RowFilter = 'all' | 'failed' | 'late' | 'awaiting' | 'rejected';
+export type RowFilter = 'all' | 'failed' | 'late' | 'awaiting' | 'rejected' | 'no-advisor';
 
 /** Each group's submissions in the chosen cohort, activity by activity. */
 @Component({
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent, DeadlinePipe],
+  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent, ProjectPanelComponent, DeadlinePipe],
   templateUrl: './staff-home.component.html',
   styleUrl: './staff-home.component.scss',
 })
 export class StaffHomeComponent {
   private readonly submissionService = inject(SubmissionService);
   private readonly penaltyService = inject(PenaltyService);
+  private readonly userService = inject(UserService);
   private readonly auth = inject(AuthService);
   private readonly isAdvisor = computed(() => this.auth.role() === 'ORIENTADOR');
+  readonly isAdmin = computed(() => this.auth.role() === 'ADMIN');
+  private readonly projectService = inject(ProjectService);
+  /** Asks the grid and the project list to read again, after a change in a project. */
+  private readonly refresh$ = new Subject<void>();
 
   protected readonly cohortLabel = cohortLabel;
   readonly cohorts = toSignal(inject(CohortService).list(), { initialValue: [] });
@@ -79,9 +86,9 @@ export class StaffHomeComponent {
   readonly error = signal('');
 
   readonly grid = toSignal(
-    toObservable(this.programId).pipe(
+    combineLatest([toObservable(this.programId), this.refresh$.pipe(startWith(undefined))]).pipe(
       tap(() => this.error.set('')),
-      switchMap((programId) => {
+      switchMap(([programId]) => {
         if (!programId) {
           return of(EMPTY_GRID);
         }
@@ -98,6 +105,53 @@ export class StaffHomeComponent {
     ),
     { initialValue: EMPTY_GRID },
   );
+
+  /** The coordination's view: who advises each group, and the data to manage one. */
+  private readonly users = toSignal(
+    this.isAdmin() ? this.userService.list().pipe(catchError(() => of([] as User[]))) : of([] as User[]),
+    { initialValue: [] as User[] },
+  );
+  readonly advisors = computed(() => this.users().filter((u) => isStaff(u.perfil)));
+  readonly nameByRgm = (rgm: string): string => this.users().find((u) => u.rgm === rgm)?.nome ?? rgm;
+
+  readonly projects = toSignal(
+    combineLatest([toObservable(this.programId), this.refresh$.pipe(startWith(undefined))]).pipe(
+      switchMap(([programId]) =>
+        programId && this.isAdmin()
+          ? this.projectService.list(programId).pipe(catchError(() => of([] as Project[])))
+          : of([] as Project[]),
+      ),
+    ),
+    { initialValue: [] as Project[] },
+  );
+
+  /** The line under each group's name; empty until the accounts load, so it never says "sem orientador" by mistake. */
+  readonly projectNotes = computed(() => {
+    const notes = new Map<string, string>();
+    if (!this.isAdmin() || !this.users().length) {
+      return notes;
+    }
+    for (const row of this.grid().rows) {
+      const advisor = this.users().find((u) => u.id === row.project.orientadorId);
+      notes.set(row.project.id, advisor ? `Orientador: ${advisor.nome}` : 'Sem orientador');
+    }
+    return notes;
+  });
+
+  readonly selectedProject = signal<string | null>(null);
+  readonly projectDetail = computed(() => this.projects().find((p) => p.id === this.selectedProject()) ?? null);
+
+  openProject(project: { projectId: string }): void {
+    this.selected.set(null);
+    this.penaltiesOf.set(null);
+    this.selectedActivity.set(null);
+    this.selectedProject.set(this.selectedProject() === project.projectId ? null : project.projectId);
+  }
+
+  /** After editing, assigning an advisor or deleting a group. */
+  projectChanged(): void {
+    this.refresh$.next();
+  }
 
   readonly search = signal('');
   readonly filter = signal<RowFilter>('all');
@@ -136,6 +190,8 @@ export class StaffHomeComponent {
       switch (this.filter()) {
         case 'failed':
           return !!this.penalties()?.get(row.project.id)?.reprovado;
+        case 'no-advisor':
+          return !row.project.orientadorId;
         case 'late':
           return row.cells.some((c) => c.status === 'ATRASADO');
         case 'awaiting':
@@ -166,7 +222,7 @@ export class StaffHomeComponent {
       return 'Nenhum projeto desta turma corresponde aos filtros.';
     }
     if (!this.programId()) {
-      return 'Esta turma ainda não tem programa de PFC. Crie o programa em Gestão de PFC.';
+      return 'Esta turma ainda não tem programa de PFC. Crie o programa em Turmas e PFC.';
     }
     return this.isAdvisor() ? 'Nenhum projeto desta turma tem você como orientador.' : 'Nenhum projeto cadastrado nesta turma.';
   });
@@ -220,6 +276,7 @@ export class StaffHomeComponent {
   openActivity(activityId: string): void {
     this.selected.set(null);
     this.penaltiesOf.set(null);
+    this.selectedProject.set(null);
     this.selectedActivity.set(this.selectedActivity() === activityId ? null : activityId);
   }
 
@@ -233,12 +290,14 @@ export class StaffHomeComponent {
   openCell(cell: CellRef): void {
     this.penaltiesOf.set(null);
     this.selectedActivity.set(null);
+    this.selectedProject.set(null);
     this.selected.set(cell);
   }
 
   openPenalties(project: { projectId: string; projectName: string }): void {
     this.selected.set(null);
     this.selectedActivity.set(null);
+    this.selectedProject.set(null);
     this.penaltiesOf.set(project);
   }
 

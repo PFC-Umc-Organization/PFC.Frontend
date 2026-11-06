@@ -80,7 +80,7 @@ test('fields side by side line up on every screen', async ({ page }) => {
   for (const email of ['leonardoalvino@umc.br', 'ana@umc.br']) {
     await page.evaluate(() => localStorage.clear());
     await signIn(page, email);
-    for (const route of ['/', '/gestao', '/materiais', '/referencias', '/turmas', '/usuarios']) {
+    for (const route of ['/', '/materiais', '/referencias', '/turmas', '/usuarios']) {
       await page.goto(route);
       if (!page.url().endsWith(route)) continue;
       found.push(...(await misaligned(page, `${email} ${route}`)));

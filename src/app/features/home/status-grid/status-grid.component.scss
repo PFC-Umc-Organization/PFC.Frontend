@@ -306,3 +306,48 @@
 .validation--rejected {
   color: var(--destructive);
 }
+
+.cell:disabled,
+.activity:disabled {
+  cursor: default;
+}
+
+.cell:disabled:hover,
+.activity:disabled:hover {
+  background: none;
+}
+
+.project {
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.project:hover .project__name,
+.project--active .project__name {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.project:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.project__name {
+  display: block;
+}
+
+.project__note {
+  display: block;
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}

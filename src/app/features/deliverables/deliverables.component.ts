@@ -7,6 +7,7 @@ import { Activity, Project, ProjectPenalties, Submission, TimelineItem } from '.
 import { ActivityService } from '../../core/services/activity.service';
 import { PenaltyService } from '../../core/services/penalty.service';
 import { ProjectService } from '../../core/services/project.service';
+import { cellStates } from '../../core/services/submission-status';
 import { SubmissionService } from '../../core/services/submission.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { TimelineComponent } from '../../shared/components/timeline/timeline.component';
@@ -83,8 +84,23 @@ export class DeliverablesComponent {
     { initialValue: [] as Submission[] },
   );
 
-  /** A late activity without a submission is closed; a submitted one stays editable. */
-  readonly available = computed(() => this.timeline().filter((item) => item.status !== 'ATRASADO'));
+  private readonly ordered = computed(() => {
+    const items = [...this.timeline()].sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+    const states = cellStates(items.map((i) => i.status));
+    return items.map((item, i) => ({ item, state: states[i].state }));
+  });
+
+  /**
+   * A late activity without a submission is closed; a submitted one stays
+   * editable. Of the ones still to do, only the nearest opens: the backend
+   * refuses a first submission while an earlier one is open.
+   */
+  readonly available = computed(() =>
+    this.ordered()
+      .filter(({ item, state }) => item.status !== 'ATRASADO' && state !== 'blocked')
+      .map(({ item }) => item),
+  );
+  readonly blockedCount = computed(() => this.ordered().filter(({ state }) => state === 'blocked').length);
 
   readonly sent = computed(() =>
     this.submissions()

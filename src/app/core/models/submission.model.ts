@@ -74,7 +74,7 @@ export const STATUS_LEGEND: { tone: StatusTone; text: string }[] = [
 ];
 
 export interface ProjectStatusRow {
-  project: { id: string; nome: string };
+  project: { id: string; nome: string; orientadorId?: string };
   cells: { activityId: string; status: SubmissionStatus; validation?: ValidationStatus }[];
 }
 

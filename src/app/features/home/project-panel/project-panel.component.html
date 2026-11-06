@@ -1,0 +1,63 @@
+<section class="card" aria-live="polite">
+  <div class="card__body">
+    <div class="top">
+      <div>
+        <h2 class="section-title">{{ project().nome }}</h2>
+        @if (project().descricao) {
+          <p class="meta">{{ project().descricao }}</p>
+        }
+      </div>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
+        <app-icon name="close" class="btn__icon" />
+        Fechar
+      </button>
+    </div>
+
+    @if (error()) {
+      <p class="alert alert--inline" role="alert">
+        <app-icon name="alert" />
+        <span>{{ error() }}</span>
+      </p>
+    }
+
+    @if (editing()) {
+      <app-project-editor
+        [project]="project()"
+        [nameByRgm]="nameByRgm()"
+        (saved)="saved()"
+        (membersChanged)="changed.emit()"
+        (cancelled)="editing.set(false)"
+      />
+    } @else {
+      <div class="field advisor">
+        <label class="field__label" for="project-advisor">Orientador</label>
+        <select id="project-advisor" class="control" [value]="project().orientadorId ?? ''" (change)="setAdvisor($event)">
+          <option value="" [selected]="!project().orientadorId">Sem orientador</option>
+          @for (a of advisors(); track a.id) {
+            <option [value]="a.id" [selected]="a.id === project().orientadorId">{{ a.nome }}</option>
+          }
+        </select>
+      </div>
+
+      <h3 class="subtitle">Integrantes</h3>
+      <ul class="members">
+        @for (m of members(); track m.rgm) {
+          <li>{{ m.nome }}@if (m.nome !== m.rgm) { <span class="muted"> · RGM {{ m.rgm }}</span> }</li>
+        } @empty {
+          <li class="muted">Nenhum integrante ainda.</li>
+        }
+      </ul>
+
+      <div class="actions">
+        <button type="button" class="btn btn--outline btn--sm" (click)="editing.set(true)">
+          <app-icon name="edit" class="btn__icon" />
+          Editar
+        </button>
+        <button type="button" class="btn btn--outline btn--sm" (click)="remove()">
+          <app-icon name="trash" class="btn__icon" />
+          Excluir PFC
+        </button>
+      </div>
+    }
+  </div>
+</section>

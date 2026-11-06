@@ -5,11 +5,12 @@ import { Observable, of, throwError } from 'rxjs';
 import { Cohort, Program, Project, ProjectPenalties, User } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { CohortService } from '../../core/services/cohort.service';
+import { CourseService } from '../../core/services/course.service';
 import { PenaltyService } from '../../core/services/penalty.service';
 import { ProgramService } from '../../core/services/program.service';
 import { ProjectService } from '../../core/services/project.service';
 import { UserService } from '../../core/services/user.service';
-import { PfcManagementComponent } from './pfc-management.component';
+import { CohortsComponent } from '../cohorts/cohorts.component';
 
 const cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE', periodo: '2026.2' } as Cohort;
 const program: Program = { id: 'p1', cursoId: 't1' };
@@ -37,13 +38,14 @@ async function render(answers: Answers = {}) {
       provideZonelessChangeDetection(),
       { provide: AuthService, useValue: { role: signal(answers.role ?? 'ADMIN') } },
       { provide: CohortService, useValue: { list: answers.cohorts ?? (() => of([cohort])) } },
+      { provide: CourseService, useValue: { list: () => of([]) } },
       { provide: ProgramService, useValue: { list: answers.programs ?? (() => of([program])) } },
       { provide: ProjectService, useValue: { list: answers.projects ?? (() => of([project])) } },
       { provide: UserService, useValue: { list: answers.users ?? (() => of([])) } },
       { provide: PenaltyService, useValue: { ofProgram: answers.penalties ?? (() => of([])) } },
     ],
   });
-  const fixture = TestBed.createComponent(PfcManagementComponent);
+  const fixture = TestBed.createComponent(CohortsComponent);
   await fixture.whenStable();
   const host = fixture.nativeElement as HTMLElement;
   const button = (label: string) =>
@@ -52,10 +54,11 @@ async function render(answers: Answers = {}) {
     button(label).click();
     await fixture.whenStable();
   };
+  await click('PFCs dos alunos');
   return { host, button, click };
 }
 
-describe('PfcManagementComponent load errors', () => {
+describe('PFC management load errors (Turmas e PFC)', () => {
   beforeAll(() => {
     // The table's scroll hint needs it; the test environment has no layout.
     globalThis.ResizeObserver ??= class {

@@ -1,7 +1,7 @@
 <section class="card card--flush">
   <div class="card__head">
-    <h2 class="section-title">Entregas por projeto</h2>
-    @if (!loading() && grid().rows.length) {
+    <h2 class="section-title">{{ heading() }}</h2>
+    @if (showCount() && !loading() && grid().rows.length) {
       <span class="count">{{ grid().rows.length }} {{ grid().rows.length === 1 ? 'projeto' : 'projetos' }}</span>
     }
   </div>
@@ -29,6 +29,7 @@
                 <button
                   type="button"
                   class="activity"
+                  [disabled]="!interactive()"
                   [class.activity--active]="selectedActivity() === a.id"
                   [attr.aria-label]="a.titulo + ', prazo ' + (a.prazo | date: 'dd/MM') + '. Ver o que cada grupo entregou'"
                   (click)="openActivity.emit(a.id)"
@@ -46,7 +47,27 @@
         <tbody>
           @for (row of rows(); track row.project.id) {
             <tr>
-              <th scope="row" class="matrix__project">{{ row.project.nome }}</th>
+              <th scope="row" class="matrix__project">
+                @if (projectsOpenable()) {
+                  <button
+                    type="button"
+                    class="project"
+                    [class.project--active]="selectedProject() === row.project.id"
+                    [attr.aria-label]="'Abrir o projeto ' + row.project.nome"
+                    (click)="openProject.emit({ projectId: row.project.id, projectName: row.project.nome })"
+                  >
+                    <span class="project__name">{{ row.project.nome }}</span>
+                    @if (projectNotes().get(row.project.id); as note) {
+                      <span class="project__note">{{ note }}</span>
+                    }
+                  </button>
+                } @else {
+                  <span class="project__name">{{ row.project.nome }}</span>
+                  @if (projectNotes().get(row.project.id); as note) {
+                    <span class="project__note">{{ note }}</span>
+                  }
+                }
+              </th>
               <td class="matrix__penalties">
                 @if (penalties() === undefined) {
                   <span class="pending cell-pending">Carregando…</span>
@@ -67,6 +88,7 @@
                   <button
                     type="button"
                     class="cell"
+                    [disabled]="!interactive()"
                     [class.cell--active]="isSelected(row.project.id, c.activityId)"
                     (click)="open.emit({ projectId: row.project.id, projectName: row.project.nome, activityId: c.activityId })"
                     [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + label(c.status) + (c.state === 'blocked' ? ', bloqueada' : '') + validationText(c.validation)"
@@ -93,7 +115,7 @@
         <span class="footer__due">{{ a.prazo | date: 'dd/MM' }}</span>
         <span class="footer__title">{{ a.titulo }}</span>
       } @else {
-        <span class="footer__hint">Passe o mouse sobre uma data para ver o nome do entregável. Clique para ver o que cada grupo entregou.</span>
+        <span class="footer__hint">{{ footerHint() }}</span>
       }
     </div>
     <ul class="legend" aria-label="Legenda">

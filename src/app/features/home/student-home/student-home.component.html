@@ -84,13 +84,28 @@
         }
       </section>
     }
-    <app-timeline
-      eyebrow="Entregáveis"
-      heading="Cronograma de entregas"
-      [description]="description()"
-      [items]="items()"
-      [showLegend]="items().length > 0"
-      [interactive]="!!project() && !failed()"
-    />
+    @if (project()) {
+      <app-status-grid
+        heading="Cronograma de entregas"
+        footerHint="Passe o mouse sobre uma data para ver o nome do entregável. Clique para ver ou enviar a entrega."
+        emptyText="Nenhuma atividade cadastrada."
+        [grid]="grid()"
+        [showCount]="false"
+        [interactive]="!failed()"
+        [penalties]="penaltiesByProject()"
+        (open)="openActivity($event.activityId)"
+        (openActivity)="openActivity($event)"
+        (openPenalties)="showPenalties()"
+      />
+    } @else {
+      <app-timeline
+        eyebrow="Entregáveis"
+        heading="Cronograma de entregas"
+        [description]="description()"
+        [items]="items()"
+        [showLegend]="items().length > 0"
+        [interactive]="!!project() && !failed()"
+      />
+    }
   }
 }

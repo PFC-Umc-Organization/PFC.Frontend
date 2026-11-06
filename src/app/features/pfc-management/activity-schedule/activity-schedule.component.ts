@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { catchError, of } from 'rxjs';
 
@@ -8,19 +8,21 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ActivityEditorComponent } from '../activity-editor/activity-editor.component';
+import { CohortPickerComponent } from '../cohort-picker/cohort-picker.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 import { PfcManagementStore } from '../pfc-management.store';
 
 @Component({
   selector: 'app-activity-schedule',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, DeadlinePipe, ActivityEditorComponent, ScrollHintDirective],
+  imports: [IconComponent, DeadlinePipe, ActivityEditorComponent, ScrollHintDirective, CohortPickerComponent],
   templateUrl: './activity-schedule.component.html',
 })
 export class ActivityScheduleComponent {
   private readonly activityService = inject(ActivityService);
-  /** Activities are global: only the coordination creates, edits and deletes them. */
-  protected readonly manage = inject(PfcManagementStore).isAdmin;
+  private readonly store = inject(PfcManagementStore);
+  /** Only the coordination creates, edits and deletes activities. */
+  protected readonly manage = this.store.isAdmin;
   private readonly confirmation = inject(ConfirmationService);
 
   readonly loadError = signal('');
@@ -29,7 +31,7 @@ export class ActivityScheduleComponent {
   readonly canAdd = input(true);
   readonly add = output();
 
-  readonly activities = toSignal(
+  private readonly all = toSignal(
     this.activityService.list().pipe(
       catchError((e: Error) => {
         this.loadError.set(e.message);
@@ -38,6 +40,12 @@ export class ActivityScheduleComponent {
     ),
     { initialValue: [] as Activity[] },
   );
+
+  /** Those of the chosen cohort, and the old ones that apply to every cohort. */
+  readonly activities = computed(() => {
+    const cohort = this.store.cohortId();
+    return this.all().filter((a) => !a.turmaId || a.turmaId === cohort);
+  });
 
   async remove(id: string, title: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({

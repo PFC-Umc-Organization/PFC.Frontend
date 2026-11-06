@@ -61,6 +61,9 @@
           <option value="late">Com atividade não entregue</option>
           <option value="awaiting">Com entrega aguardando validação</option>
           <option value="rejected">Com entrega não validada</option>
+          @if (isAdmin()) {
+            <option value="no-advisor">Sem orientador</option>
+          }
         </select>
       </div>
     </div>
@@ -76,10 +79,24 @@
   [penalties]="penalties()"
   [selectedPenalties]="penaltiesOf()?.projectId ?? null"
   [selectedActivity]="selectedActivity()"
+  [projectNotes]="projectNotes()"
+  [projectsOpenable]="isAdmin()"
+  [selectedProject]="selectedProject()"
+  (openProject)="openProject($event)"
   (open)="openCell($event)"
   (openActivity)="openActivity($event)"
   (openPenalties)="openPenalties($event)"
 />
+
+@if (projectDetail(); as p) {
+  <app-project-panel
+    [project]="p"
+    [advisors]="advisors()"
+    [nameByRgm]="nameByRgm"
+    (closed)="selectedProject.set(null)"
+    (changed)="projectChanged()"
+  />
+}
 
 @if (activityDetail(); as d) {
   <app-activity-submissions

@@ -5,11 +5,12 @@ import { Observable, of, throwError } from 'rxjs';
 import { Cohort, Program, Project, ProjectPenalties, User } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CohortService } from '../../../core/services/cohort.service';
+import { CourseService } from '../../../core/services/course.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { UserService } from '../../../core/services/user.service';
-import { PfcManagementComponent } from '../pfc-management.component';
+import { CohortsComponent } from '../../cohorts/cohorts.component';
 
 const cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE', periodo: '2026.2' } as Cohort;
 const program: Program = { id: 'p1', cursoId: 't1' };
@@ -31,15 +32,18 @@ async function render(role: 'ADMIN' | 'ORIENTADOR', ofProgram: () => Observable<
       provideZonelessChangeDetection(),
       { provide: AuthService, useValue: { role: signal(role) } },
       { provide: CohortService, useValue: { list: () => of([cohort]) } },
+      { provide: CourseService, useValue: { list: () => of([]) } },
       { provide: ProgramService, useValue: { list: () => of([program]) } },
       { provide: ProjectService, useValue: { list: () => of([athena, hermes]) } },
       { provide: UserService, useValue: { list: () => of(users) } },
       { provide: PenaltyService, useValue: { ofProgram } },
     ],
   });
-  const fixture = TestBed.createComponent(PfcManagementComponent);
+  const fixture = TestBed.createComponent(CohortsComponent);
   await fixture.whenStable();
   const host = fixture.nativeElement as HTMLElement;
+  Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes('PFCs dos alunos'))!.click();
+  await fixture.whenStable();
   const type = async (text: string) => {
     const input = host.querySelector<HTMLInputElement>('#pfc-search')!;
     input.value = text;

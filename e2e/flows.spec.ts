@@ -90,7 +90,22 @@ test.describe('student with a group', () => {
     expect(api.failed).toEqual([]);
   });
 
+  test('only the nearest open activity can be submitted; the next one opens after it', async ({ page, api }) => {
+    await signIn(page, STUDENT_WITH_GROUP);
+    await page.goto('/entregaveis');
+    await expect(page.locator('#activity option', { hasText: 'Monografia final' })).toHaveCount(0);
+    await expect(page.locator('#activity option', { hasText: '1º CRUD' })).toHaveCount(1);
+    await expect(page.getByText('As entregas seguem a ordem dos prazos')).toBeVisible();
+
+    await page.locator('#activity').selectOption('a2');
+    await page.fill('#field-c2', 'https://github.com/x/y');
+    await page.getByRole('button', { name: 'Enviar entrega' }).click();
+    await expect(page.locator('#activity option', { hasText: 'Monografia final' })).toHaveCount(1);
+    await expect(page.getByText('As entregas seguem a ordem dos prazos')).toHaveCount(0);
+  });
+
   test('uploads straight to the bucket, submits and downloads without the token', async ({ page, api }) => {
+    api.db.submissions.push({ atividadeId: 'a2', projetoId: 'pr1', entregueEm: '2026-10-09T12:00:00Z', entreguePor: 'Bia Lima', respostas: { c2: 'https://github.com/x/y' } });
     await signIn(page, STUDENT_WITH_GROUP);
     await page.goto('/entregaveis?atividade=a3');
     await expect(page.locator('#activity option:checked')).toContainText('Monografia final');
@@ -180,9 +195,9 @@ test.describe('coordination', () => {
     expect(download.url().endsWith('tcc.pdf')).toBe(true);
   });
 
-  test('Gestão shows an orphan program as "Turma removida"', async ({ page }) => {
+  test('Turmas e PFC shows an orphan program as "Turma removida"', async ({ page }) => {
     await signIn(page, ADMIN);
-    await page.goto('/gestao');
+    await page.goto('/turmas');
     await page.getByRole('button', { name: 'Programas de PFC' }).click();
     await expect(page.getByText('Turma removida')).toBeVisible();
   });
@@ -310,7 +325,7 @@ test.describe('coordination', () => {
 test.describe('management', () => {
   test('publishes an activity with an extra field and edits title and fields', async ({ page, api }) => {
     await signIn(page, ADMIN);
-    await page.goto('/gestao');
+    await page.goto('/turmas');
     await page.getByRole('button', { name: 'Atividades', exact: true }).click();
     await page.getByRole('button', { name: 'Nova atividade' }).click();
 
@@ -343,7 +358,8 @@ test.describe('management', () => {
 
   test('sets the advisor and renames a PFC', async ({ page, api }) => {
     await signIn(page, ADMIN);
-    await page.goto('/gestao');
+    await page.goto('/turmas');
+    await page.getByRole('button', { name: 'PFCs dos alunos' }).click();
     await expect(page.getByRole('button', { name: 'PFCs dos alunos' })).toHaveAttribute('aria-pressed', 'true');
 
     await page.getByRole('button', { name: 'Adicionar orientador de Web-Cursos' }).click();
@@ -359,6 +375,29 @@ test.describe('management', () => {
   });
 });
 
+test.describe('coordination: group panel on the home', () => {
+  test('shows the advisor under the name, filters by "sem orientador" and manages the group from the panel', async ({ page, api }) => {
+    await signIn(page, ADMIN);
+    const athena = page.getByRole('rowheader', { name: 'Athena' });
+    await expect(athena).toContainText(/Orientador|Sem orientador/);
+
+    await page.locator('#project-filter').selectOption('no-advisor');
+    await page.locator('#project-filter').selectOption('all');
+
+    await page.getByRole('button', { name: 'Abrir o projeto Athena' }).click();
+    await expect(page.getByRole('heading', { name: 'Athena', exact: true })).toBeVisible();
+    await page.locator('#project-advisor').selectOption({ label: 'Orientadora Ana' });
+    await expect.poll(() => api.db.projects.find((x) => x.id === 'pr1')?.orientadorId).toBe('u-ana');
+    await expect(athena).toContainText('Orientador: Orientadora Ana');
+
+    await page.getByRole('button', { name: 'Editar', exact: true }).click();
+    await page.fill('#edit-name', 'Athena 2');
+    await page.getByRole('button', { name: 'Salvar' }).click();
+    await expect(page.getByRole('rowheader', { name: 'Athena 2' })).toBeVisible();
+    expect(api.failed).toEqual([]);
+  });
+});
+
 test.describe('advisor', () => {
   test('sees and manages only the groups they advise, without admin actions', async ({ page, api }) => {
     await signIn(page, ADVISOR);
@@ -366,16 +405,12 @@ test.describe('advisor', () => {
     await expect(page.getByText('Web-Cursos')).toHaveCount(0);
 
     await page.goto('/gestao');
-    await expect(page.getByRole('button', { name: 'Meus orientandos' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Programas de PFC' })).toHaveCount(0);
-    await expect(page.getByText('Web-Cursos')).toHaveCount(0);
-    await expect(page.locator('[aria-label^="Excluir PFC"], [aria-label^="Editar PFC"]')).toHaveCount(0);
-
-    await page.getByRole('button', { name: 'Atividades', exact: true }).click();
-    await expect(page.getByRole('cell', { name: 'Monografia', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Nova atividade' })).toHaveCount(0);
-    await expect(page.locator('[aria-label^="Editar atividade"], [aria-label^="Excluir atividade"]')).toHaveCount(0);
-    await expect(page.getByText('definidas pela coordenação')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Página não encontrada' })).toBeVisible();
+    await page.goto('/turmas');
+    await expect(page).toHaveURL(/sem-acesso/);
+    await page.goto('/');
+    await expect(page.locator('[aria-label^="Abrir o projeto"]')).toHaveCount(0);
+    await expect(page.getByText('Sem orientador')).toHaveCount(0);
 
     await page.goto('/materiais');
     await expect(page.locator('.material__remove')).toHaveCount(1);
@@ -386,8 +421,7 @@ test.describe('advisor', () => {
 
   test('the account list only has the students of the groups they advise', async ({ page, api }) => {
     await signIn(page, ADVISOR);
-    await page.goto('/gestao');
-    await expect(page.getByRole('row', { name: /Athena/ })).toContainText('Bia Lima');
+    await expect(page.getByRole('rowheader', { name: 'Athena' })).toBeVisible();
     const listed = await page.evaluate(async () => {
       const { token } = JSON.parse(localStorage.getItem('athena.sessao')!);
       const r = await fetch('https://376uriw318.execute-api.us-east-1.amazonaws.com/usuarios', { headers: { Authorization: `Bearer ${token}` } });

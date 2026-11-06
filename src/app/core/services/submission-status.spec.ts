@@ -49,7 +49,7 @@ describe('editedLater', () => {
 });
 
 describe('cellStates', () => {
-  it('marks the first open activity as waiting and the next ones as blocked by it', () => {
+  it('marks the nearest open activity as waiting and the next ones as blocked by it', () => {
     expect(cellStates(['ENTREGUE', 'PENDENTE', 'PENDENTE', 'PENDENTE'])).toEqual([
       { state: 'done' },
       { state: 'waiting' },
@@ -58,15 +58,19 @@ describe('cellStates', () => {
     ]);
   });
 
-  it('blocks what is still due while an earlier activity is overdue', () => {
-    expect(cellStates(['ATRASADO', 'PENDENTE'])).toEqual([{ state: 'late' }, { state: 'blocked', blockedBy: 0 }]);
+  it('does not let an overdue activity block the ones still on time', () => {
+    expect(cellStates(['ATRASADO', 'PENDENTE', 'PENDENTE'])).toEqual([
+      { state: 'late' },
+      { state: 'waiting' },
+      { state: 'blocked', blockedBy: 1 },
+    ]);
   });
 
   it('does not block anything when every earlier activity was submitted, late or not', () => {
     expect(cellStates(['ENTREGUE_COM_ATRASO', 'PENDENTE'])).toEqual([{ state: 'done-late' }, { state: 'waiting' }]);
   });
 
-  it('keeps a submission as done even after an open activity', () => {
-    expect(cellStates(['ATRASADO', 'ENTREGUE'])).toEqual([{ state: 'late' }, { state: 'done' }]);
+  it('keeps a submission as done after an open activity', () => {
+    expect(cellStates(['PENDENTE', 'ENTREGUE'])).toEqual([{ state: 'waiting' }, { state: 'done' }]);
   });
 });

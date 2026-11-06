@@ -144,11 +144,15 @@ export function fakeApi() {
     const project = (id) => db.projects.find((x) => x.id === id);
     if (p.startsWith('/atividades') && m !== 'GET' && role !== 'ADMIN') return json(403, { erro: 'Apenas a coordenação cria, altera e exclui atividades.' });
     if (p === '/atividades' && m === 'POST') {
-      const a = { id: `a${db.activities.length + 10}`, titulo: body.titulo, descricao: body.descricao, prazo: body.prazo, publicadaEm: new Date().toISOString(), campos: (body.campos ?? []).map((c, i) => ({ id: `n${i}`, ...c })) };
+      const a = { id: `a${db.activities.length + 10}`, titulo: body.titulo, descricao: body.descricao, prazo: body.prazo, publicadaEm: new Date().toISOString(), campos: (body.campos ?? []).map((c, i) => ({ id: `n${i}`, ...c })), ...(body.turmaId ? { turmaId: body.turmaId } : {}) };
       db.activities.push(a);
       return json(201, a);
     }
-    if (p === '/atividades') return json(200, db.activities);
+    if (p === '/atividades') {
+      if (role !== 'ALUNO') return json(200, db.activities);
+      const cohort = db.enrollments[rgm];
+      return json(200, db.activities.filter((a) => !a.turmaId || a.turmaId === cohort));
+    }
     if ((mm = p.match(/^\/atividades\/([^/]+)$/)) && m === 'PUT') return json(200, Object.assign(activity(mm[1]), body));
     if ((mm = p.match(/^\/atividades\/([^/]+)\/campos$/)) && m === 'POST') {
       const c = { id: `f${Date.now()}`, ...body };
@@ -196,6 +200,13 @@ export function fakeApi() {
       const previous = db.submissions.find((x) => x.projetoId === mm[1] && x.atividadeId === mm[2]);
       const due = db.activities.find((a) => a.id === mm[2]).prazo;
       if (!previous && new Date(due) < new Date()) return json(409, { erro: 'O prazo desta atividade acabou e ela não recebe mais entregas' });
+      if (!previous) {
+        const cohortOf = db.programs.find((x) => x.id === project(mm[1])?.programaId)?.cursoId;
+        const blocker = db.activities
+          .filter((a) => (!a.turmaId || a.turmaId === cohortOf) && a.id !== mm[2] && a.prazo < due && new Date(a.prazo) > new Date() && !db.submissions.some((x) => x.projetoId === mm[1] && x.atividadeId === a.id))
+          .sort((a, b) => a.prazo.localeCompare(b.prazo))[0];
+        if (blocker) return json(409, { erro: `Esta entrega ainda não está liberada. Antes, envie a atividade "${blocker.titulo}".` });
+      }
       const now = new Date().toISOString();
       const e = previous
         ? { ...previous, atualizadaEm: now, atualizadaPor: me.name, respostas: body.respostas, validacao: undefined }

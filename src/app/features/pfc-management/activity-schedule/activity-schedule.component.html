@@ -2,6 +2,7 @@
   <div class="card__head card__head--wrap">
     <h2 class="section-title">Atividades</h2>
     <span class="card__count">{{ activities().length }} {{ activities().length === 1 ? 'atividade' : 'atividades' }}</span>
+    <app-cohort-picker />
     @if (manage() && canAdd()) {
       <div class="card__actions">
         <button type="button" class="btn btn--primary btn--sm" (click)="add.emit()">
@@ -13,7 +14,7 @@
   </div>
 
   @if (!manage()) {
-    <p class="notice card__alert">As atividades valem para todas as turmas e são definidas pela coordenação do curso.</p>
+    <p class="notice card__alert">As atividades de cada turma são definidas pela coordenação do curso.</p>
   }
   @if (loadError()) {
     <p class="alert card__alert" role="alert">
@@ -49,7 +50,12 @@
             </tr>
           } @else {
             <tr>
-              <td class="cell-strong">{{ a.titulo }}</td>
+              <td class="cell-strong">
+                {{ a.titulo }}
+                @if (!a.turmaId) {
+                  <span class="muted text-sm"> · vale para todas as turmas</span>
+                }
+              </td>
               <td>{{ a.prazo | deadline }}</td>
               @if (manage()) {
                 <td>

@@ -31,14 +31,13 @@ contra outra API, troque `apiBaseUrl` ali.
 | `/criar-conta`, `/confirmar-conta` | visitante | Cadastro do aluno (RGM pré-autorizado) e confirmação pelo código do e-mail |
 | `/esqueci-senha` | visitante | Pede o código por e-mail e define a senha nova |
 | `/nova-senha` | visitante | Troca da senha temporária (orientador e admin, primeiro acesso) |
-| `/` | todos | Equipe: status de entrega de cada grupo da turma (o orientador vê só os grupos que orienta). Aluno: cronograma das atividades (mesmo sem grupo) |
+| `/` | todos | Equipe: grade de entregas de cada grupo da turma (o orientador vê só os grupos que orienta); a coordenação abre um grupo pelo nome (orientador, integrantes, editar, excluir). Aluno: a mesma grade, só com o grupo dele |
 | `/meu-pfc` | aluno | Grupo com nomes, orientador e turma (uma chamada, `GET /meu-pfc`); sem grupo, cria o PFC ou aceita um convite |
 | `/entregaveis` | aluno | Envio das entregas do grupo (arquivo sobe direto para o S3, com progresso) e o que já foi entregue, com download |
 | `/materiais` | todos | Equipe publica materiais (link ou arquivo, por turma ou para todas); aluno lê os gerais e os da turma dele |
 | `/referencias` | todos | Busca de artigos (OpenAlex/Crossref) e lista ABNT do grupo |
-| `/gestao` | orientador, admin | Admin: programa de PFC por turma, PFCs dos alunos e atividades. Orientador: os PFCs que orienta e as atividades |
 | `/usuarios` | admin | Cadastro de orientador/admin, pré-autorização de RGMs e contas |
-| `/turmas` | admin | Cursos e turmas |
+| `/turmas` | admin | Cursos e turmas e, por turma, o programa de PFC, os PFCs dos alunos (status e filtros) e as atividades |
 
 ## Estrutura
 
@@ -60,7 +59,7 @@ src/app/
     ├── deliverables/  # /entregaveis
     ├── materials/     # /materiais
     ├── references/    # /referencias: busca por tema, por DOI e a lista
-    ├── pfc-management/# /gestao: programas, projetos e atividades
+    ├── pfc-management/# seções reaproveitadas pela tela de turmas: programas, projetos e atividades
     ├── users/         # /usuarios
     ├── cohorts/       # /turmas: cursos e turmas
     └── notice/        # página não encontrada e área restrita

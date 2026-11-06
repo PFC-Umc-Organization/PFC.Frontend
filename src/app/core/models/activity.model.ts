@@ -31,6 +31,8 @@ export interface Activity {
   publicadaEm: string;
   /** Never empty. */
   campos: Field[];
+  /** The cohort that delivers it; absent on an old activity, which applies to every cohort. */
+  turmaId?: string;
 }
 
 export interface NewActivity {
@@ -39,6 +41,8 @@ export interface NewActivity {
   prazo: string;
   /** Without it the activity gets the default field. */
   campos?: NewField[];
+  /** The cohort the activity belongs to. */
+  turmaId?: string;
 }
 
 export interface ActivityUpdate {

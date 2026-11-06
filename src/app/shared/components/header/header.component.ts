@@ -57,7 +57,6 @@ export class HeaderComponent {
 
   private readonly advisorNav: NavItem[] = [
     { label: 'Início', route: '/', icon: 'dashboard' },
-    { label: 'Gestão de PFC', route: '/gestao', icon: 'landmark' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];
@@ -67,7 +66,6 @@ export class HeaderComponent {
     { label: 'Início', route: '/', icon: 'dashboard' },
     { label: 'Turmas', route: '/turmas', icon: 'calendar' },
     { label: 'Usuários', route: '/usuarios', icon: 'users' },
-    { label: 'Gestão de PFC', route: '/gestao', icon: 'landmark' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];

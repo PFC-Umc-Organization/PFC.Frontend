@@ -6,8 +6,9 @@ import { environment } from '../../../environments/environment';
 import { Activity, Answers, ProjectStatusRow, Submission, TimelineItem, UploadEvent, ValidationInput } from '../models';
 import { ActivityService } from './activity.service';
 import { toApiError } from './http-error';
+import { ProgramService } from './program.service';
 import { ProjectService } from './project.service';
-import { submissionStatus, submittedFileName } from './submission-status';
+import { buildStatusGrid, submissionStatus, submittedFileName } from './submission-status';
 import { UploadTicket, uploadToBucket } from './upload';
 
 export interface StatusGrid {
@@ -44,6 +45,7 @@ export class SubmissionHttpService extends SubmissionService {
   private readonly http = inject(HttpClient);
   private readonly activities = inject(ActivityService);
   private readonly projects = inject(ProjectService);
+  private readonly programs = inject(ProgramService);
   private readonly reload$ = new BehaviorSubject<void>(undefined);
   private readonly base = `${environment.apiBaseUrl}/projetos`;
 
@@ -82,22 +84,16 @@ export class SubmissionHttpService extends SubmissionService {
           .pipe(catchError(toApiError)),
       ),
     );
-    return combineLatest([this.projects.list(programId), this.activities.list(), submissions$]).pipe(
-      map(([projects, activities, submissions]) => ({
-        activities,
-        submissions,
-        rows: projects.map<ProjectStatusRow>((project) => ({
-          project: { id: project.id, nome: project.nome },
-          cells: activities.map((activity) => {
-            const submission = submissions.find((s) => s.projetoId === project.id && s.atividadeId === activity.id);
-            return {
-              activityId: activity.id,
-              status: submissionStatus(activity.prazo, submission?.entregueEm),
-              validation: submission?.validacao?.status,
-            };
-          }),
-        })),
-      })),
+    return combineLatest([this.projects.list(programId), this.activities.list(), submissions$, this.programs.list()]).pipe(
+      map(([projects, activities, submissions, programs]) => {
+        // An activity belongs to a cohort; the old ones (no cohort) apply to all.
+        const cohortId = programs.find((p) => p.id === programId)?.cursoId;
+        return buildStatusGrid(
+          activities.filter((a) => !a.turmaId || a.turmaId === cohortId),
+          projects,
+          submissions,
+        );
+      }),
     );
   }
 

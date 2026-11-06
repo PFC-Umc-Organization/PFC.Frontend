@@ -1,19 +1,22 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Subject, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
 
 import { Project, ProjectPenalties, TimelineItem } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProjectService } from '../../../core/services/project.service';
-import { SubmissionService } from '../../../core/services/submission.service';
-import { submissionStatus } from '../../../core/services/submission-status';
+import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
+import { buildStatusGrid, submissionStatus } from '../../../core/services/submission-status';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
+import { StatusGridComponent } from '../status-grid/status-grid.component';
 import { TimelineComponent } from '../../../shared/components/timeline/timeline.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
+
+const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
 
 type State =
   | { kind: 'loading' }
@@ -28,7 +31,7 @@ type State =
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TimelineComponent, IconComponent, RouterLink, DeadlinePipe, PenaltyCounterComponent, PenaltyListComponent],
+  imports: [StatusGridComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, PenaltyCounterComponent, PenaltyListComponent],
   templateUrl: './student-home.component.html',
   styleUrl: './student-home.component.scss',
 })
@@ -36,6 +39,7 @@ export class StudentHomeComponent {
   private readonly submissionService = inject(SubmissionService);
   private readonly activityService = inject(ActivityService);
   private readonly penaltyService = inject(PenaltyService);
+  private readonly router = inject(Router);
 
   readonly state = toSignal(
     inject(ProjectService)
@@ -62,6 +66,36 @@ export class StudentHomeComponent {
       ),
     { initialValue: { kind: 'loading' } as State },
   );
+
+  /** The group's own row, in the same grid the staff reads. */
+  readonly grid = toSignal(
+    toObservable(computed(() => this.project()?.id ?? null)).pipe(
+      switchMap((id) => {
+        const project = this.project();
+        return id && project
+          ? combineLatest([this.activityService.list(), this.submissionService.ofProject(id)]).pipe(
+              map(([activities, submissions]) => buildStatusGrid(activities, [project], submissions)),
+            )
+          : of(EMPTY_GRID);
+      }),
+      catchError(() => of(EMPTY_GRID)),
+    ),
+    { initialValue: EMPTY_GRID },
+  );
+
+  /** The group's penalties by project id, as the grid reads them. */
+  readonly penaltiesByProject = computed(() => {
+    const p = this.penalties();
+    return p ? new Map([[p.projetoId, p]]) : new Map<string, ProjectPenalties>();
+  });
+
+  openActivity(activityId: string): void {
+    void this.router.navigate(['/entregaveis'], { queryParams: { atividade: activityId } });
+  }
+
+  showPenalties(): void {
+    document.getElementById('penalties-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
   readonly project = computed(() => {
     const s = this.state();
