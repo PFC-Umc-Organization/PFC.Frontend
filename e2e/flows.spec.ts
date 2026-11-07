@@ -214,7 +214,8 @@ test.describe('coordination', () => {
     await expect(page.getByText('Verificando…').first()).toBeVisible();
     await expect(page.getByText('Aguardando cadastro')).toHaveCount(0);
     release();
-    await expect(page.getByText('Conta criada: André Novaes')).toBeVisible();
+    await expect(page.getByRole('cell', { name: 'André Novaes' })).toBeVisible();
+    await expect(page.getByText('Conta criada')).toBeVisible();
     await expect(page.getByText('Aguardando cadastro')).toHaveCount(1);
   });
 

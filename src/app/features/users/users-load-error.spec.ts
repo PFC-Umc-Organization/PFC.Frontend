@@ -99,7 +99,8 @@ describe('UsersComponent load errors', () => {
 
     await click('Tentar novamente');
     expect(host.querySelector('.alert')).toBeNull();
-    expect(host.textContent).toContain('Conta criada: Ana');
+    expect(host.textContent).toContain('Conta criada');
+    expect(host.textContent).toContain('Ana');
   });
 
   it('enrollments: does not claim a cohort has no RGMs when loading failed', async () => {

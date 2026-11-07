@@ -109,9 +109,10 @@ button.indicator:focus-visible {
   grid-template-columns: 1fr;
 }
 
+/* Search, advisor and filter share one row; the advisor one only exists for the coordination. */
 @media (min-width: 720px) {
   .filters {
-    grid-template-columns: minmax(0, 24rem) minmax(0, 20rem);
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 20rem));
     align-items: end;
   }
 }

@@ -46,6 +46,7 @@
       <thead>
         <tr>
           <th scope="col">RGM</th>
+          <th scope="col">Nome</th>
           <th scope="col">Status</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
@@ -54,6 +55,17 @@
         @for (m of enrollments() ?? []; track m.rgm) {
           <tr>
             <td class="cell-strong">{{ m.rgm }}</td>
+            <td>
+              @if (usersError()) {
+                <span class="muted">—</span>
+              } @else if (users() === undefined) {
+                <span class="pending">Verificando…</span>
+              } @else if (accountOf(m.rgm); as account) {
+                {{ account.nome || '—' }}
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
             <td>
               @if (usersError()) {
                 <span class="muted">Não verificado</span>
@@ -65,7 +77,7 @@
                     Conta não confirmada
                   </span>
                 } @else {
-                  <span class="status-text status-text--ok">Conta criada{{ account.nome ? ': ' + account.nome : '' }}</span>
+                  <span class="status-text status-text--ok">Conta criada</span>
                 }
               } @else {
                 <span class="status-text">Aguardando cadastro</span>
@@ -85,11 +97,11 @@
         } @empty {
           <tr>
             @if (enrollments() === undefined) {
-              <td class="table-empty pending" colspan="3">{{ cohorts().length ? 'Carregando os RGMs da turma…' : 'Cadastre uma turma para pré-autorizar RGMs.' }}</td>
+              <td class="table-empty pending" colspan="4">{{ cohorts().length ? 'Carregando os RGMs da turma…' : 'Cadastre uma turma para pré-autorizar RGMs.' }}</td>
             } @else if (error()) {
-              <td class="table-empty" colspan="3">Os RGMs desta turma não foram carregados.</td>
+              <td class="table-empty" colspan="4">Os RGMs desta turma não foram carregados.</td>
             } @else {
-              <td class="table-empty" colspan="3">Nenhum RGM pré-autorizado nesta turma.</td>
+              <td class="table-empty" colspan="4">Nenhum RGM pré-autorizado nesta turma.</td>
             }
           </tr>
         }
