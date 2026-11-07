@@ -32,6 +32,8 @@ export class CohortFieldsComponent {
   readonly form = input.required<CohortForm>();
   readonly courses = input.required<Course[]>();
   readonly idPrefix = input.required<string>();
+  /** When the course is already known, from the course row's button. */
+  readonly hideCourse = input(false);
 
   invalid(name: 'nome' | 'periodo'): boolean {
     const c = this.form().controls[name];

@@ -125,18 +125,20 @@ export class StaffHomeComponent {
     { initialValue: [] as Project[] },
   );
 
-  /** The line under each group's name; empty until the accounts load, so it never says "sem orientador" by mistake. */
-  readonly projectNotes = computed(() => {
-    const notes = new Map<string, string>();
-    if (!this.isAdmin() || !this.users().length) {
-      return notes;
-    }
-    for (const row of this.grid().rows) {
-      const advisor = this.users().find((u) => u.id === row.project.orientadorId);
-      notes.set(row.project.id, advisor ? `Orientador: ${advisor.nome}` : 'Sem orientador');
-    }
-    return notes;
+  /** Advisors of at least one group of this cohort, for the filter; empty until projects and accounts load. */
+  readonly gridAdvisors = computed(() => {
+    const ids = new Set(this.projects().map((p) => p.orientadorId));
+    return this.advisors().filter((a) => ids.has(a.id));
   });
+  readonly advisorFilter = signal('');
+  /** The chosen advisor, only while they advise a group of the cohort on screen. */
+  private readonly activeAdvisor = computed(() =>
+    this.gridAdvisors().some((a) => a.id === this.advisorFilter()) ? this.advisorFilter() : '',
+  );
+
+  setAdvisorFilter(event: Event): void {
+    this.advisorFilter.set((event.target as HTMLSelectElement).value);
+  }
 
   readonly selectedProject = signal<string | null>(null);
   readonly projectDetail = computed(() => this.projects().find((p) => p.id === this.selectedProject()) ?? null);
@@ -155,7 +157,9 @@ export class StaffHomeComponent {
 
   readonly search = signal('');
   readonly filter = signal<RowFilter>('all');
-  readonly filtering = computed(() => this.search().trim() !== '' || this.filter() !== 'all');
+  readonly filtering = computed(
+    () => this.search().trim() !== '' || this.filter() !== 'all' || this.activeAdvisor() !== '',
+  );
 
   /**
    * Counted in projects, not cells: a cohort of hundreds of groups would turn
@@ -184,6 +188,9 @@ export class StaffHomeComponent {
     const term = this.search().trim().toLocaleLowerCase('pt-BR');
     const keep = (row: ProjectStatusRow): boolean => {
       if (term && !row.project.nome.toLocaleLowerCase('pt-BR').includes(term)) {
+        return false;
+      }
+      if (this.activeAdvisor() && row.project.orientadorId !== this.activeAdvisor()) {
         return false;
       }
       const submitted = (s: string) => s === 'ENTREGUE' || s === 'ENTREGUE_COM_ATRASO';

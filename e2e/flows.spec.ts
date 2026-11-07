@@ -198,7 +198,6 @@ test.describe('coordination', () => {
   test('Turmas e PFC shows an orphan program as "Turma removida"', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.goto('/turmas');
-    await page.getByRole('button', { name: 'Programas de PFC' }).click();
     await expect(page.getByText('Turma removida')).toBeVisible();
   });
 
@@ -277,31 +276,33 @@ test.describe('coordination', () => {
   test('an invalid term is flagged before sending', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.goto('/turmas');
-    await page.getByRole('button', { name: 'Turmas', exact: true }).first().click();
-    await page.getByRole('button', { name: 'Nova turma' }).click();
+    await page.getByRole('button', { name: /^Nova turma de/ }).first().click();
     await page.fill('#new-term', '2026.3');
     await page.locator('#new-term').blur();
     await expect(page.getByText('Use ano e semestre')).toBeVisible();
   });
 
-  test('registers a course and a cohort; a course with cohorts cannot be deleted', async ({ page, api }) => {
+  test('registers a course, a cohort and its program in one list; a course with cohorts cannot be deleted', async ({ page, api }) => {
     await signIn(page, ADMIN);
     await page.goto('/turmas');
     await page.getByRole('button', { name: 'Novo curso' }).click();
     await page.fill('#new-course-name', 'Direito');
     await page.getByRole('button', { name: 'Criar curso' }).click();
-    await expect(page.getByRole('row', { name: /Direito/ })).toContainText('0');
+    await expect(page.getByRole('row', { name: /Direito/ })).toContainText('0 turmas');
 
-    await page.getByRole('button', { name: 'Turmas', exact: true }).first().click();
-    await page.getByRole('button', { name: 'Nova turma' }).click();
-    await page.locator('#new-course').selectOption('Direito');
+    await page.getByRole('button', { name: 'Nova turma de Direito' }).click();
+    await expect(page.locator('#new-course')).toHaveCount(0);
     await page.locator('#new-shift').selectOption('NOITE');
     await page.fill('#new-term', '2026.2');
     await page.getByRole('button', { name: 'Criar turma' }).click();
-    await expect(page.getByRole('cell', { name: 'Direito', exact: true })).toBeVisible();
+    await expect(page.getByRole('row', { name: /Direito/ }).first()).toContainText('1 turma');
     expect(api.db.cohorts.at(-1)).toMatchObject({ nome: 'Direito', turno: 'NOITE', graduacaoId: 'k12' });
 
-    await page.getByRole('button', { name: 'Cursos', exact: true }).click();
+    // The new cohort shows right away, with the button for its program.
+    await page.getByRole('button', { name: 'Criar programa de Direito (Noite, 2026.2)' }).click();
+    await expect(page.getByRole('button', { name: 'Excluir programa de Direito (Noite, 2026.2)' })).toBeVisible();
+    expect(api.db.programs.at(-1)).toMatchObject({ cursoId: api.db.cohorts.at(-1).id });
+
     await expect(page.getByRole('button', { name: 'Excluir curso Direito' })).toBeDisabled();
     expect(api.failed).toEqual([]);
   });
@@ -376,19 +377,34 @@ test.describe('management', () => {
 });
 
 test.describe('coordination: group panel on the home', () => {
-  test('shows the advisor under the name, filters by "sem orientador" and manages the group from the panel', async ({ page, api }) => {
+  test('keeps the advisor out of the grid, filters by advisor and manages the group from the panel', async ({ page, api }) => {
     await signIn(page, ADMIN);
     const athena = page.getByRole('rowheader', { name: 'Athena' });
-    await expect(athena).toContainText(/Orientador|Sem orientador/);
+    await expect(athena).not.toContainText('Orientador');
+    await expect(athena).not.toContainText('Sem orientador');
+
+    // Athena starts with an advisor, so the advisor filter lists them.
+    const advisorFilter = page.locator('#advisor-filter');
+    await expect(advisorFilter.locator('option', { hasText: 'Orientadora Ana' })).toHaveCount(1);
+    await advisorFilter.selectOption({ label: 'Orientadora Ana' });
+    await expect(athena).toBeVisible();
+    await advisorFilter.selectOption('');
 
     await page.locator('#project-filter').selectOption('no-advisor');
+    await expect(athena).toHaveCount(0);
     await page.locator('#project-filter').selectOption('all');
 
     await page.getByRole('button', { name: 'Abrir o projeto Athena' }).click();
     await expect(page.getByRole('heading', { name: 'Athena', exact: true })).toBeVisible();
-    await page.locator('#project-advisor').selectOption({ label: 'Orientadora Ana' });
-    await expect.poll(() => api.db.projects.find((x) => x.id === 'pr1')?.orientadorId).toBe('u-ana');
-    await expect(athena).toContainText('Orientador: Orientadora Ana');
+    await expect(page.locator('#project-advisor')).toHaveValue('u-ana');
+    await page.locator('#project-advisor').selectOption('');
+    await expect.poll(() => api.db.projects.find((x) => x.id === 'pr1')?.orientadorId).toBeUndefined();
+    await expect(athena).not.toContainText('Orientador');
+    // Without an advisor, the group is the only one under "Sem orientador" and the advisor filter is gone.
+    await expect(page.locator('#advisor-filter')).toHaveCount(0);
+    await page.locator('#project-filter').selectOption('no-advisor');
+    await expect(athena).toBeVisible();
+    await page.locator('#project-filter').selectOption('all');
 
     await page.getByRole('button', { name: 'Editar', exact: true }).click();
     await page.fill('#edit-name', 'Athena 2');
@@ -477,10 +493,9 @@ test.describe('validation seen by the group and the coordination', () => {
       validacao: { status, comentario: status === 'NAO_VALIDADA' ? 'Falta a seção de resultados.' : undefined, por: 'u-ana', porNome: 'Orientadora Ana', em: '2026-10-11T12:00:00Z' },
     });
 
-  test('the student reads the advisor comment in Entregáveis and on the home', async ({ page, api }) => {
+  test('the student reads the advisor comment in Entregáveis', async ({ page, api }) => {
     validated(api, 'NAO_VALIDADA');
     await signIn(page, STUDENT_WITH_GROUP);
-    await expect(page.locator('app-deliverable-card', { hasText: 'Monografia' }).first()).toContainText('Não validada pelo orientador');
     await page.goto('/entregaveis');
     const sent = page.locator('.sent', { hasText: 'Monografia' });
     await expect(sent).toContainText('Não validada pelo orientador');

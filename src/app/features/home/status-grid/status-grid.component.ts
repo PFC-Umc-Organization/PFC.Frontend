@@ -86,8 +86,6 @@ export class StatusGridComponent {
   /** The column whose title was opened, to mark it. */
   readonly selectedActivity = input<string | null>(null);
   readonly openActivity = output<string>();
-  /** A line under a project's name, by project id (the advisor). */
-  readonly projectNotes = input<Map<string, string>>(new Map());
   /** The coordination opens a project from its name. */
   readonly projectsOpenable = input(false);
   readonly selectedProject = input<string | null>(null);

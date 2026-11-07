@@ -17,7 +17,7 @@
     }
   </nav>
 
-  @if (store.loadError() && section() !== 'courses' && section() !== 'cohorts') {
+  @if (store.loadError()) {
     <p class="alert" role="alert">
       <app-icon name="alert" />
       <span>Não foi possível carregar as turmas e os programas de PFC. {{ store.loadError() }}</span>
@@ -26,14 +26,8 @@
   }
 
   @switch (section()) {
-    @case ('courses') {
-      <app-course-section />
-    }
-    @case ('cohorts') {
-      <app-cohort-section (goToCourses)="section.set('courses')" />
-    }
-    @case ('program') {
-      <app-program-section />
+    @case ('structure') {
+      <app-structure-section />
     }
     @case ('projects') {
       <app-project-section />

@@ -1,20 +1,22 @@
-<div class="field">
-  <label class="field__label" [for]="idPrefix() + '-course'">Curso</label>
-  <select
-    [id]="idPrefix() + '-course'"
-    class="control"
-    [formControl]="form().controls.nome"
-    [class.control--invalid]="invalid('nome')"
-  >
-    <option value="" disabled>Selecione o curso</option>
-    @for (c of courses(); track c.id) {
-      <option [value]="c.nome">{{ c.nome }}</option>
+@if (!hideCourse()) {
+  <div class="field">
+    <label class="field__label" [for]="idPrefix() + '-course'">Curso</label>
+    <select
+      [id]="idPrefix() + '-course'"
+      class="control"
+      [formControl]="form().controls.nome"
+      [class.control--invalid]="invalid('nome')"
+    >
+      <option value="" disabled>Selecione o curso</option>
+      @for (c of courses(); track c.id) {
+        <option [value]="c.nome">{{ c.nome }}</option>
+      }
+    </select>
+    @if (invalid('nome')) {
+      <span class="field__error">Selecione o curso.</span>
     }
-  </select>
-  @if (invalid('nome')) {
-    <span class="field__error">Selecione o curso.</span>
-  }
-</div>
+  </div>
+}
 
 <div class="field">
   <label class="field__label" [for]="idPrefix() + '-shift'">Turno</label>

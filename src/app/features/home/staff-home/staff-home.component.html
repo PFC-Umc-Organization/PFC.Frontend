@@ -53,6 +53,17 @@
         <label class="field__label" for="project-search">Buscar projeto</label>
         <input id="project-search" type="search" class="control" placeholder="Nome do projeto" [value]="search()" (input)="setSearch($event)" />
       </div>
+      @if (isAdmin() && gridAdvisors().length) {
+        <div class="field">
+          <label class="field__label" for="advisor-filter">Orientador</label>
+          <select id="advisor-filter" class="control" [value]="advisorFilter()" (change)="setAdvisorFilter($event)">
+            <option value="">Todos os orientadores</option>
+            @for (a of gridAdvisors(); track a.id) {
+              <option [value]="a.id">{{ a.nome }}</option>
+            }
+          </select>
+        </div>
+      }
       <div class="field">
         <label class="field__label" for="project-filter">Mostrar</label>
         <select id="project-filter" class="control" [value]="filter()" (change)="setFilter($event)">
@@ -79,7 +90,6 @@
   [penalties]="penalties()"
   [selectedPenalties]="penaltiesOf()?.projectId ?? null"
   [selectedActivity]="selectedActivity()"
-  [projectNotes]="projectNotes()"
   [projectsOpenable]="isAdmin()"
   [selectedProject]="selectedProject()"
   (openProject)="openProject($event)"

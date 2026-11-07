@@ -116,6 +116,11 @@ export function fakeApi() {
       db.materials = db.materials.filter((y) => y !== x);
       return json(200, { mensagem: 'Material removido' });
     }
+    if (p === '/programas' && m === 'POST') {
+      const pg = { id: `pg${db.programs.length + 10}`, cursoId: body.cursoId };
+      db.programs.push(pg);
+      return json(201, pg);
+    }
     if (p === '/programas') return json(200, db.programs);
     if ((mm = p.match(/^\/programas\/([^/]+)\/projetos$/))) return staff ? json(200, visible(mm[1])) : forbidden();
     if ((mm = p.match(/^\/programas\/([^/]+)\/entregas$/))) {

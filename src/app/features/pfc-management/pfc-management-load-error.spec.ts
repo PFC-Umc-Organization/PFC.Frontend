@@ -90,11 +90,11 @@ describe('PFC management load errors (Turmas e PFC)', () => {
     expect(host.textContent).not.toContain('ainda não tem programa');
   });
 
-  it('does not claim there are no cohorts on the programs tab when loading failed', async () => {
-    const { host, click } = await render({ cohorts: failure });
-    await click('Programas de PFC');
-    expect(host.textContent).not.toContain('Nenhuma turma cadastrada');
-    expect(host.textContent).toContain('Os programas aparecem aqui depois que as turmas forem carregadas');
+  it('does not offer to create a program when programs failed to load', async () => {
+    const { host, click } = await render({ programs: failure });
+    await click('Cursos e turmas');
+    expect(host.textContent).not.toContain('Criar programa');
+    expect(host.textContent).toContain('Engenharia de Software');
   });
 
   it('warns when user names failed to load and recovers on retry', async () => {
@@ -151,11 +151,13 @@ describe('PFC management load errors (Turmas e PFC)', () => {
 
   it('keeps move and remove locked when the project count is unknown, until a retry works', async () => {
     // Only the count asks for every project; the default tab asks for one program.
-    const allProjects = failingOnce([] as Project[]);
+    // The first two reads fail: the one the screen opens with and the one when coming back to this tab.
+    let reads = 0;
+    const allProjects = () => (++reads <= 2 ? failure<Project[]>() : of([] as Project[]));
     const { host, click } = await render({
       projects: (programId) => (programId ? of([project]) : allProjects()),
     });
-    await click('Programas de PFC');
+    await click('Cursos e turmas');
     expect(host.textContent).toContain('Não foi possível contar os PFCs');
     const remove = () => host.querySelector<HTMLButtonElement>('button[aria-label^="Excluir programa"]')!;
     expect(remove().disabled).toBe(true);
