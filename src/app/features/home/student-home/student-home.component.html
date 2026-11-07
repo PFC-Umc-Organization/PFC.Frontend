@@ -91,7 +91,6 @@
         emptyText="Nenhuma atividade cadastrada."
         [grid]="grid()"
         [showCount]="false"
-        [interactive]="!failed()"
         [penalties]="penaltiesByProject()"
         (open)="openActivity($event.activityId)"
         (openActivity)="openActivity($event)"

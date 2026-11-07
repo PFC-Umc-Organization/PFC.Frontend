@@ -573,7 +573,13 @@ test.describe('penalties', () => {
     await expect(page.getByRole('heading', { name: 'Grupo reprovado por penalidades' })).toBeVisible();
     await expect(page.getByText('Motivo 3')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Enviar entrega' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^Athena, 1º CRUD:/ })).toBeDisabled();
+    // A failed group still opens its activities to read them, but cannot send or edit.
+    await page.getByRole('button', { name: /^Athena, 1º CRUD:/ }).click();
+    await expect(page.locator('app-delivery-panel')).toContainText('O envio de entregas está encerrado');
+    await expect(page.locator('#field-c2')).toHaveCount(0);
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    await expect(page.locator('app-delivery-panel')).toContainText('Aguardando validação do orientador');
+    await expect(page.getByRole('button', { name: 'Editar', exact: true })).toHaveCount(0);
   });
 
   test('the advisor waives one from the panel and applies another, with a reason', async ({ page, api }) => {
