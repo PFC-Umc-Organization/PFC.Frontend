@@ -1,9 +1,9 @@
 import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 
-import { Field, fileNameOf } from '../../../core/models';
-import { ApiError } from '../../../core/services/http-error';
-import { SubmissionService } from '../../../core/services/submission.service';
-import { FilePickerComponent } from '../../../shared/components/file-picker/file-picker.component';
+import { Field, fileNameOf } from '../../../../core/models';
+import { ApiError } from '../../../../core/services/http-error';
+import { SubmissionService } from '../../../../core/services/submission.service';
+import { FilePickerComponent } from '../../../../shared/components/file-picker/file-picker.component';
 
 /**
  * One field of the submission form. A file goes straight to the bucket when

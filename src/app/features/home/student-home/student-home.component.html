@@ -53,9 +53,9 @@
             }
           </p>
         </div>
-        <a class="btn btn--primary next__action" routerLink="/entregaveis" [queryParams]="{ atividade: n.activityId }">
+        <button type="button" class="btn btn--primary next__action" (click)="openActivity(n.activityId)">
           Enviar entrega
-        </a>
+        </button>
       </section>
     } @else if (items().length > 0) {
       <p class="notice" role="status">
@@ -87,7 +87,7 @@
     @if (project()) {
       <app-status-grid
         heading="Cronograma de entregas"
-        footerHint="Passe o mouse sobre uma data para ver o nome do entregável. Clique para ver ou enviar a entrega."
+        footerHint="Passe o mouse sobre uma data para ver o nome do entregável. Clique para ver a entrega abaixo e enviá-la ou editá-la."
         emptyText="Nenhuma atividade cadastrada."
         [grid]="grid()"
         [showCount]="false"
@@ -95,8 +95,19 @@
         [penalties]="penaltiesByProject()"
         (open)="openActivity($event.activityId)"
         (openActivity)="openActivity($event)"
+        [selectedActivity]="selectedActivity()"
         (openPenalties)="showPenalties()"
       />
+      @if (delivery(); as d) {
+        <app-delivery-panel
+          [project]="d.project"
+          [activity]="d.activity"
+          [submission]="d.submission"
+          [mode]="d.mode"
+          [blockedBy]="d.blockedBy"
+          (closed)="selectedActivity.set(null)"
+        />
+      }
     } @else {
       <app-timeline
         eyebrow="Entregáveis"
@@ -104,7 +115,6 @@
         [description]="description()"
         [items]="items()"
         [showLegend]="items().length > 0"
-        [interactive]="!!project() && !failed()"
       />
     }
   }

@@ -64,7 +64,7 @@ test('fields side by side line up on every screen', async ({ page }) => {
   const found: string[] = [];
 
   await signIn(page, '11231101229@alunos.umc.br');
-  for (const route of ['/', '/meu-pfc', '/materiais', '/referencias', '/entregaveis']) {
+  for (const route of ['/', '/meu-pfc', '/materiais', '/referencias']) {
     await page.goto(route);
     found.push(...(await misaligned(page, route)));
     for (const tab of await page.locator('.tabs__item, .segmented__item').all()) {
@@ -72,9 +72,11 @@ test('fields side by side line up on every screen', async ({ page }) => {
       found.push(...(await misaligned(page, `${route} ${await tab.textContent()}`)));
     }
   }
-  for (const option of await page.locator('#activity option:not([value=""])').all()) {
-    await page.selectOption('#activity', (await option.getAttribute('value'))!);
-    found.push(...(await misaligned(page, `/entregaveis ${await option.textContent()}`)));
+  // The delivery form under the home's grid, for each activity the group can open.
+  await page.goto('/');
+  for (const title of ['1º CRUD', 'Monografia']) {
+    await page.getByRole('button', { name: new RegExp(`^Athena, ${title}:`) }).click();
+    found.push(...(await misaligned(page, `/ entrega ${title}`)));
   }
 
   for (const email of ['leonardoalvino@umc.br', 'ana@umc.br']) {

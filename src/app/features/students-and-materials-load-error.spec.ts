@@ -11,7 +11,6 @@ import { MaterialService } from '../core/services/material.service';
 import { PenaltyService } from '../core/services/penalty.service';
 import { ProjectService } from '../core/services/project.service';
 import { SubmissionService } from '../core/services/submission.service';
-import { DeliverablesComponent } from './deliverables/deliverables.component';
 import { StudentHomeComponent } from './home/student-home/student-home.component';
 import { MaterialsComponent } from './materials/materials.component';
 
@@ -37,7 +36,7 @@ function studentProviders(ofProject: () => Observable<ProjectPenalties>) {
     { provide: ProjectService, useValue: { myProject: () => of(project) } },
     { provide: PenaltyService, useValue: { ofProject } },
     { provide: ActivityService, useValue: { list: () => of([]) } },
-    { provide: SubmissionService, useValue: { projectTimeline: () => of([]), ofProject: () => of([]) } },
+    { provide: SubmissionService, useValue: { projectTimeline: () => of([]), ofProject: () => of([]), changes: () => of(undefined) } },
   ];
 }
 
@@ -60,22 +59,6 @@ describe('StudentHomeComponent load errors', () => {
     const fixture = TestBed.createComponent(StudentHomeComponent);
     await fixture.whenStable();
     expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('Não foi possível');
-  });
-});
-
-describe('DeliverablesComponent load errors', () => {
-  it('warns when penalties failed to load', async () => {
-    TestBed.configureTestingModule({ providers: studentProviders(failure) });
-    const fixture = TestBed.createComponent(DeliverablesComponent);
-    await fixture.whenStable();
-    expect((fixture.nativeElement as HTMLElement).querySelector('.alert')?.textContent).toContain('serviço fora do ar');
-  });
-
-  it('shows no warning when penalties load', async () => {
-    TestBed.configureTestingModule({ providers: studentProviders(() => of(penalties)) });
-    const fixture = TestBed.createComponent(DeliverablesComponent);
-    await fixture.whenStable();
-    expect((fixture.nativeElement as HTMLElement).querySelector('.alert')).toBeNull();
   });
 });
 

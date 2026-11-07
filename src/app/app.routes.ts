@@ -54,13 +54,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/materials/materials.component').then((m) => m.MaterialsComponent),
       },
       {
-        path: 'entregaveis',
-        canActivate: [roleGuard(['ALUNO'])],
-        title: 'Entregáveis | Rafa Manager',
-        loadComponent: () =>
-          import('./features/deliverables/deliverables.component').then((m) => m.DeliverablesComponent),
-      },
-      {
         path: 'referencias',
         title: 'Referências | Rafa Manager',
         loadComponent: () => import('./features/references/references.component').then((m) => m.ReferencesComponent),

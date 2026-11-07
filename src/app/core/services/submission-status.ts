@@ -65,10 +65,12 @@ export function cellStates(statuses: SubmissionStatus[]): { state: CellState; bl
 
 /** Project × activity grid; `submissions` may hold more projects than `projects`. */
 export function buildStatusGrid(
-  activities: Activity[],
+  unordered: Activity[],
   projects: { id: string; nome: string; orientadorId?: string }[],
   submissions: Submission[],
 ): { activities: Activity[]; rows: ProjectStatusRow[]; submissions: Submission[] } {
+  // The order rule and the columns follow the deadlines, whatever order the API answers in.
+  const activities = [...unordered].sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime());
   return {
     activities,
     submissions,

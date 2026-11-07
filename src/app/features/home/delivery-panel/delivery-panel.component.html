@@ -1,0 +1,117 @@
+<section class="card" aria-labelledby="delivery-title" aria-live="polite">
+  <div class="card__body">
+    <div class="top">
+      <div>
+        <h2 id="delivery-title" class="section-title">{{ activity().titulo }}</h2>
+        <p class="meta">Prazo: {{ activity().prazo | deadline: true }}</p>
+      </div>
+      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
+        <app-icon name="close" class="btn__icon" />
+        Fechar
+      </button>
+    </div>
+
+    @switch (mode()) {
+      @case ('blocked') {
+        <p class="notice" role="status">
+          <app-icon name="lock" />
+          <span>Esta entrega ainda não está liberada. Antes, envie a atividade "{{ blockedBy() }}".</span>
+        </p>
+      }
+      @case ('closed') {
+        <p class="notice" role="status">
+          <app-icon name="alert" />
+          <span>O prazo desta atividade encerrou sem entrega, e ela não aceita mais envio.</span>
+        </p>
+      }
+      @case ('failed') {
+        <p class="notice" role="status">
+          <app-icon name="alert" />
+          <span>O envio de entregas está encerrado porque o grupo foi reprovado por penalidades.</span>
+        </p>
+      }
+    }
+
+    @if (message()) {
+      <p class="result" role="status">{{ message() }}</p>
+    }
+
+    @if (submission(); as s) {
+      @if (!showForm()) {
+        <div class="sent__top">
+          <p class="sent__meta">
+            Enviada em {{ s.entregueEm | date: 'dd/MM/yyyy HH:mm' }}
+            @if (s.entreguePor) {
+              por {{ s.entreguePor }}
+            }
+            @if (editedLater(s)) {
+              · editada em {{ s.atualizadaEm | date: 'dd/MM/yyyy HH:mm' }}
+              @if (s.atualizadaPor) {
+                por {{ s.atualizadaPor }}
+              }
+            }
+          </p>
+          @if (mode() === 'submitted') {
+            <button type="button" class="btn btn--outline btn--sm" (click)="edit()">Editar</button>
+          }
+        </div>
+        <div class="validation" [class]="'validation validation--' + (s.validacao?.status ?? 'pending')">
+          <p class="validation__title">
+            {{ validationLabel(s.validacao) }}
+            @if (s.validacao; as v) {
+              <span class="validation__meta">· {{ v.porNome }}, em {{ v.em | date: 'dd/MM/yyyy HH:mm' }}</span>
+            }
+          </p>
+          @if (s.validacao?.comentario; as comment) {
+            <p class="validation__comment"><span class="sr-only">Comentário do orientador: </span>{{ comment }}</p>
+          }
+        </div>
+        @if (downloadError()) {
+          <p class="alert" role="alert">
+            <app-icon name="alert" />
+            <span>{{ downloadError() }}</span>
+          </p>
+        }
+        <app-answer-list [activity]="activity()" [submission]="s" (download)="download($event)" />
+        <p class="field__hint">Entregas feitas dentro do prazo podem ser editadas mesmo após o encerramento.</p>
+      }
+    }
+
+    @if (showForm()) {
+      <div class="form-grid form-grid--2 mt-6">
+        @for (f of fields(); track f.id) {
+          <app-answer-field
+            [class.form-grid__full]="f.tipo === 'TEXTO_LONGO'"
+            [field]="f"
+            [value]="answers()[f.id]"
+            [projectId]="project().id"
+            [activityId]="activity().id"
+            (changed)="setAnswer(f.id, $event)"
+            (uploading)="setUploading(f.id, $event)"
+          />
+        }
+
+        <p class="form-grid__full field__hint">
+          O conteúdo enviado fica visível para o grupo, para o orientador e para a coordenação. Não inclua dados de saúde nem outros dados pessoais sensíveis.
+        </p>
+
+        <div class="form-grid__full">
+          <div class="row">
+            <button type="button" class="btn btn--primary" [disabled]="!canSend()" (click)="send()">
+              <app-icon name="plus" class="btn__icon" />
+              {{ submission() ? 'Salvar alterações' : 'Enviar entrega' }}
+            </button>
+            @if (submission()) {
+              <button type="button" class="btn btn--outline" (click)="cancelEdit()">Cancelar</button>
+            }
+          </div>
+          <div #outcome tabindex="-1">
+            @if (error()) {
+              <p class="result result--error" role="alert">{{ error() }}</p>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</section>

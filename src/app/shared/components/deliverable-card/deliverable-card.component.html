@@ -23,12 +23,8 @@
       }
     } @else if (late()) {
       <p class="outcome outcome--late">Prazo encerrado sem entrega</p>
-    } @else if (!interactive()) {
-      <p class="outcome">Prazo aberto</p>
     } @else {
-      <a class="btn btn--primary btn--sm btn--block" routerLink="/entregaveis" [queryParams]="{ atividade: item().activityId }">
-        Enviar entrega
-      </a>
+      <p class="outcome">Prazo aberto</p>
     }
   </div>
 </article>

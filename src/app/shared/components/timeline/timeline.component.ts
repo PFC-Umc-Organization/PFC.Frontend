@@ -14,7 +14,6 @@ import { DeliverableCardComponent } from '../deliverable-card/deliverable-card.c
 })
 export class TimelineComponent {
   readonly items = input<TimelineItem[]>([]);
-  readonly interactive = input(true);
   readonly eyebrow = input('Entregáveis');
   readonly heading = input('Cronograma de entregas');
   readonly description = input('');

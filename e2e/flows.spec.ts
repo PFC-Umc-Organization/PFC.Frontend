@@ -48,12 +48,6 @@ test.describe('student without a group', () => {
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
   });
 
-  test('Entregáveis explains that submitting is done by the group', async ({ page }) => {
-    await signIn(page, STUDENT_WITHOUT_GROUP);
-    await page.goto('/entregaveis');
-    await expect(page.getByText('Você ainda não participa de um PFC')).toBeVisible();
-  });
-
   test('reads only general and own-cohort materials, without form or removal', async ({ page }) => {
     await signIn(page, STUDENT_WITHOUT_GROUP);
     await page.goto('/materiais');
@@ -65,14 +59,19 @@ test.describe('student without a group', () => {
 });
 
 test.describe('student with a group', () => {
-  test('the home highlights the closest open deadline and links to it', async ({ page }) => {
+  const cell = (page: Page, title: string) => page.getByRole('button', { name: new RegExp(`^Athena, ${title}:`) });
+
+  test('the home highlights the closest open deadline and opens it below the grid', async ({ page }) => {
     await signIn(page, STUDENT_WITH_GROUP);
     const next = page.locator('.next');
     await expect(next.getByRole('heading', { name: '1º CRUD' })).toBeVisible();
     await expect(next).toContainText('outra entrega pendente');
     await page.screenshot({ path: 'test-results/next.png' });
-    await next.getByRole('link', { name: 'Enviar entrega' }).click();
-    await expect(page).toHaveURL(/\/entregaveis\?atividade=a2/);
+    await next.getByRole('button', { name: 'Enviar entrega' }).click();
+    await expect(page.locator('#delivery-title')).toHaveText('1º CRUD');
+    await expect(page.locator('#field-c2')).toBeVisible();
+    await page.getByRole('button', { name: 'Fechar' }).click();
+    await expect(page.locator('#delivery-title')).toHaveCount(0);
   });
 
   test('Meu PFC shows names, advisor and cohort in a single call', async ({ page, api }) => {
@@ -90,25 +89,27 @@ test.describe('student with a group', () => {
     expect(api.failed).toEqual([]);
   });
 
-  test('only the nearest open activity can be submitted; the next one opens after it', async ({ page, api }) => {
+  test('only the nearest open activity can be submitted; the next one opens after it', async ({ page }) => {
     await signIn(page, STUDENT_WITH_GROUP);
-    await page.goto('/entregaveis');
-    await expect(page.locator('#activity option', { hasText: 'Monografia final' })).toHaveCount(0);
-    await expect(page.locator('#activity option', { hasText: '1º CRUD' })).toHaveCount(1);
-    await expect(page.getByText('As entregas seguem a ordem dos prazos')).toBeVisible();
+    await cell(page, 'Monografia final').click();
+    await expect(page.getByText('Esta entrega ainda não está liberada')).toBeVisible();
+    await expect(page.locator('#field-c3')).toHaveCount(0);
 
-    await page.locator('#activity').selectOption('a2');
+    await cell(page, '1º CRUD').click();
     await page.fill('#field-c2', 'https://github.com/x/y');
-    await page.getByRole('button', { name: 'Enviar entrega' }).click();
-    await expect(page.locator('#activity option', { hasText: 'Monografia final' })).toHaveCount(1);
-    await expect(page.getByText('As entregas seguem a ordem dos prazos')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Enviar entrega' }).last().click();
+    await expect(page.getByText('Entrega enviada com sucesso.')).toBeVisible();
+
+    await cell(page, 'Monografia final').click();
+    await expect(page.locator('#field-c3')).toBeVisible();
+    await expect(page.getByText('Esta entrega ainda não está liberada')).toHaveCount(0);
   });
 
   test('uploads straight to the bucket, submits and downloads without the token', async ({ page, api }) => {
     api.db.submissions.push({ atividadeId: 'a2', projetoId: 'pr1', entregueEm: '2026-10-09T12:00:00Z', entreguePor: 'Bia Lima', respostas: { c2: 'https://github.com/x/y' } });
     await signIn(page, STUDENT_WITH_GROUP);
-    await page.goto('/entregaveis?atividade=a3');
-    await expect(page.locator('#activity option:checked')).toContainText('Monografia final');
+    await cell(page, 'Monografia final').click();
+    await expect(page.locator('#delivery-title')).toHaveText('Monografia final');
 
     await page.setInputFiles('#field-c3', { name: 'virus.exe', mimeType: 'application/octet-stream', buffer: Buffer.from('MZ') });
     await expect(page.getByText('Tipo de arquivo não aceito')).toBeVisible();
@@ -119,12 +120,10 @@ test.describe('student with a group', () => {
     const upload = api.s3.find((r) => r.method === 'POST');
     expect(upload?.auth).toBe(false);
 
-    await page.getByRole('button', { name: 'Enviar entrega' }).click();
+    await page.getByRole('button', { name: 'Enviar entrega' }).last().click();
     await expect(page.getByRole('button', { name: 'Monografia Final.pdf' })).toBeVisible();
     expect(api.db.submissions.find((e) => e.atividadeId === 'a3')?.respostas?.c3).toBe('entregas/pr1/a3/c3/u1/Monografia Final.pdf');
-    await expect(page.locator('#activity')).toHaveValue('');
     await expect(page.locator('#field-c3')).toHaveCount(0);
-    await expect(page.getByText('anterior ao envio de arquivos')).toBeVisible();
 
     const [download] = await Promise.all([
       page.waitForRequest((r) => r.url().includes('fake-bucket') && r.method() === 'GET'),
@@ -136,13 +135,15 @@ test.describe('student with a group', () => {
 });
 
 test.describe('deadline', () => {
-  test('a submission made in time stays editable after the deadline; a late activity without one disappears', async ({ page, api }) => {
+  test('a submission made in time stays editable after the deadline; a late activity without one is closed', async ({ page, api }) => {
     api.db.activities.push({ id: 'a4', titulo: 'Banca', descricao: '', prazo: '2026-01-10T23:59', publicadaEm: '2026-01-01T00:00:00Z', campos: [{ id: 'c4', rotulo: 'Link', tipo: 'LINK', obrigatorio: true }] });
     await signIn(page, STUDENT_WITH_GROUP);
-    await page.goto('/entregaveis');
-    await expect(page.locator('#activity option', { hasText: 'Banca' })).toHaveCount(0);
+    await page.getByRole('button', { name: /^Athena, Banca:/ }).click();
+    await expect(page.getByText('O prazo desta atividade encerrou sem entrega')).toBeVisible();
+    await expect(page.locator('#field-c4')).toHaveCount(0);
 
-    await page.locator('#activity').selectOption('a1');
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    await page.getByRole('button', { name: 'Editar', exact: true }).click();
     await page.getByRole('button', { name: 'Salvar alterações' }).click();
     const edited = api.db.submissions.find((e) => e.atividadeId === 'a1');
     expect(edited?.entregueEm).toBe('2026-10-09T12:00:00Z');
@@ -494,20 +495,20 @@ test.describe('validation seen by the group and the coordination', () => {
       validacao: { status, comentario: status === 'NAO_VALIDADA' ? 'Falta a seção de resultados.' : undefined, por: 'u-ana', porNome: 'Orientadora Ana', em: '2026-10-11T12:00:00Z' },
     });
 
-  test('the student reads the advisor comment in Entregáveis', async ({ page, api }) => {
+  test('the student reads the advisor comment below the grid', async ({ page, api }) => {
     validated(api, 'NAO_VALIDADA');
     await signIn(page, STUDENT_WITH_GROUP);
-    await page.goto('/entregaveis');
-    const sent = page.locator('.sent', { hasText: 'Monografia' });
-    await expect(sent).toContainText('Não validada pelo orientador');
-    await expect(sent).toContainText('Falta a seção de resultados.');
-    await expect(sent).toContainText('Orientadora Ana');
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    const panel = page.locator('app-delivery-panel');
+    await expect(panel).toContainText('Não validada pelo orientador');
+    await expect(panel).toContainText('Falta a seção de resultados.');
+    await expect(panel).toContainText('Orientadora Ana');
   });
 
   test('a submission without a verdict waits for the advisor', async ({ page }) => {
     await signIn(page, STUDENT_WITH_GROUP);
-    await page.goto('/entregaveis');
-    await expect(page.locator('.sent', { hasText: 'Monografia' })).toContainText('Aguardando validação do orientador');
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    await expect(page.locator('app-delivery-panel')).toContainText('Aguardando validação do orientador');
   });
 
   test('the coordination sees the verdict in the cell and its detail, without validating', async ({ page, api }) => {
@@ -571,11 +572,8 @@ test.describe('penalties', () => {
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Grupo reprovado por penalidades' })).toBeVisible();
     await expect(page.getByText('Motivo 3')).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Enviar entrega' })).toHaveCount(0);
-    await page.goto('/entregaveis');
-    await expect(page.getByRole('alert')).toContainText('o grupo foi reprovado por penalidades');
-    await expect(page.locator('#activity')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Editar' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Enviar entrega' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Athena, 1º CRUD:/ })).toBeDisabled();
   });
 
   test('the advisor waives one from the panel and applies another, with a reason', async ({ page, api }) => {
@@ -617,7 +615,7 @@ test.describe('phone (390 px)', () => {
     }
     await signIn(page, STUDENT_WITHOUT_GROUP);
     await noSideScroll(page);
-    for (const route of ['/materiais', '/entregaveis', '/meu-pfc']) {
+    for (const route of ['/materiais', '/meu-pfc']) {
       await page.goto(route);
       await page.waitForLoadState('networkidle');
       await noSideScroll(page);

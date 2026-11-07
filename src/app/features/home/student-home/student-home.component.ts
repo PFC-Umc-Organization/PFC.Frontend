@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { Subject, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
 
 import { Project, ProjectPenalties, TimelineItem } from '../../../core/models';
@@ -8,10 +8,11 @@ import { ActivityService } from '../../../core/services/activity.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
-import { buildStatusGrid, submissionStatus } from '../../../core/services/submission-status';
+import { buildStatusGrid, cellStates, submissionStatus } from '../../../core/services/submission-status';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
+import { DeliveryMode, DeliveryPanelComponent } from '../delivery-panel/delivery-panel.component';
 import { StatusGridComponent } from '../status-grid/status-grid.component';
 import { TimelineComponent } from '../../../shared/components/timeline/timeline.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
@@ -31,7 +32,7 @@ type State =
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, PenaltyCounterComponent, PenaltyListComponent],
+  imports: [StatusGridComponent, DeliveryPanelComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, PenaltyCounterComponent, PenaltyListComponent],
   templateUrl: './student-home.component.html',
   styleUrl: './student-home.component.scss',
 })
@@ -39,7 +40,6 @@ export class StudentHomeComponent {
   private readonly submissionService = inject(SubmissionService);
   private readonly activityService = inject(ActivityService);
   private readonly penaltyService = inject(PenaltyService);
-  private readonly router = inject(Router);
 
   readonly state = toSignal(
     inject(ProjectService)
@@ -67,10 +67,10 @@ export class StudentHomeComponent {
     { initialValue: { kind: 'loading' } as State },
   );
 
-  /** The group's own row, in the same grid the staff reads. */
+  /** The group's own row, in the same grid the staff reads; read again after every submit. */
   readonly grid = toSignal(
-    toObservable(computed(() => this.project()?.id ?? null)).pipe(
-      switchMap((id) => {
+    combineLatest([toObservable(computed(() => this.project()?.id ?? null)), this.submissionService.changes()]).pipe(
+      switchMap(([id]) => {
         const project = this.project();
         return id && project
           ? combineLatest([this.activityService.list(), this.submissionService.ofProject(id)]).pipe(
@@ -89,8 +89,46 @@ export class StudentHomeComponent {
     return p ? new Map([[p.projetoId, p]]) : new Map<string, ProjectPenalties>();
   });
 
+  /** The activity opened below the grid, to read, send or edit its submission. */
+  readonly selectedActivity = signal<string | null>(null);
+
+  readonly delivery = computed(() => {
+    const project = this.project();
+    const id = this.selectedActivity();
+    const row = this.grid().rows[0];
+    const index = this.grid().activities.findIndex((a) => a.id === id);
+    if (!project || !row || index < 0) {
+      return null;
+    }
+    const activity = this.grid().activities[index];
+    const cell = cellStates(row.cells.map((c) => c.status))[index];
+    const blockedBy = cell.blockedBy === undefined ? '' : this.grid().activities[cell.blockedBy].titulo;
+    const mode: DeliveryMode = this.failed()
+      ? 'failed'
+      : cell.state === 'done' || cell.state === 'done-late'
+        ? 'submitted'
+        : cell.state === 'waiting'
+          ? 'open'
+          : cell.state === 'blocked'
+            ? 'blocked'
+            : 'closed';
+    return {
+      project,
+      activity,
+      mode,
+      blockedBy,
+      submission: this.grid().submissions.find((s) => s.projetoId === project.id && s.atividadeId === activity.id),
+    };
+  });
+
+  /** A cell or a date opens the activity below the grid; the same one again closes it. */
   openActivity(activityId: string): void {
-    void this.router.navigate(['/entregaveis'], { queryParams: { atividade: activityId } });
+    this.selectedActivity.set(this.selectedActivity() === activityId ? null : activityId);
+    if (this.selectedActivity()) {
+      queueMicrotask(() =>
+        document.getElementById('delivery-title')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }),
+      );
+    }
   }
 
   showPenalties(): void {
@@ -132,8 +170,19 @@ export class StudentHomeComponent {
   readonly penalties = computed(() => this.loadedPenalties() ?? null);
   readonly failed = computed(() => this.penalties()?.reprovado ?? false);
 
+  /** With a group, read from the grid so it follows every submit; without one, from the plain schedule. */
   readonly items = computed(() => {
     const s = this.state();
+    const row = this.grid().rows[0];
+    if (this.project() && row) {
+      return this.grid().activities.map<TimelineItem>((a, i) => ({
+        activityId: a.id,
+        title: a.titulo,
+        projectName: row.project.nome,
+        deadline: a.prazo,
+        status: row.cells[i].status,
+      }));
+    }
     return s.kind === 'ready' ? s.items : [];
   });
   readonly error = computed(() => {

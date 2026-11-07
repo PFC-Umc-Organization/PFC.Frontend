@@ -31,9 +31,8 @@ contra outra API, troque `apiBaseUrl` ali.
 | `/criar-conta`, `/confirmar-conta` | visitante | Cadastro do aluno (RGM pré-autorizado) e confirmação pelo código do e-mail |
 | `/esqueci-senha` | visitante | Pede o código por e-mail e define a senha nova |
 | `/nova-senha` | visitante | Troca da senha temporária (orientador e admin, primeiro acesso) |
-| `/` | todos | Equipe: grade de entregas de cada grupo da turma (o orientador vê só os grupos que orienta); a coordenação abre um grupo pelo nome (orientador, integrantes, editar, excluir). Aluno: a mesma grade, só com o grupo dele |
+| `/` | todos | Equipe: grade de entregas de cada grupo da turma (o orientador vê só os grupos que orienta); a coordenação abre um grupo pelo nome (orientador, integrantes, editar, excluir). Aluno: a mesma grade, só com o grupo dele; clicar numa data abre a entrega logo abaixo, para ler, enviar (arquivo sobe direto para o S3, com progresso, e há download) ou editar, só da atividade em aberto mais próxima |
 | `/meu-pfc` | aluno | Grupo com nomes, orientador e turma (uma chamada, `GET /meu-pfc`); sem grupo, cria o PFC ou aceita um convite |
-| `/entregaveis` | aluno | Envio das entregas do grupo (arquivo sobe direto para o S3, com progresso) e o que já foi entregue, com download |
 | `/materiais` | todos | Equipe publica materiais (link ou arquivo, por turma ou para todas); aluno lê os gerais e os da turma dele |
 | `/referencias` | todos | Busca de artigos (OpenAlex/Crossref) e lista ABNT do grupo |
 | `/usuarios` | admin | Cadastro de orientador/admin, pré-autorização de RGMs e contas |
@@ -56,7 +55,6 @@ src/app/
     ├── auth/          # login, sign-up, confirm-account, forgot-password, new-password
     ├── home/          # início: painel do aluno e da equipe (matriz + detalhe)
     ├── my-pfc/        # /meu-pfc: grupo, convites, criar o PFC
-    ├── deliverables/  # /entregaveis
     ├── materials/     # /materiais
     ├── references/    # /referencias: busca por tema, por DOI e a lista
     ├── pfc-management/# seções reaproveitadas pela tela de turmas: programas, projetos e atividades
