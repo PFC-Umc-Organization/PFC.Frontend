@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
 
 import { FormattedReference } from '../../../core/models';
 import { ReferenceService } from '../../../core/services/reference.service';
+import { action } from '../../../core/state/action';
 import { AddReferenceComponent } from '../add-reference/add-reference.component';
 
 /** Looks a DOI up on Crossref and previews the ABNT reference. */
@@ -22,8 +23,13 @@ export class DoiLookupComponent {
 
   readonly doi = signal('');
   readonly preview = signal<FormattedReference | null>(null);
-  readonly looking = signal(false);
   readonly error = signal('');
+  private readonly lookup = action((doi: string) => this.referenceService.byDoi(doi), {
+    onSuccess: (reference) => this.preview.set(reference),
+    onError: (e) => this.error.set(e.message),
+    concurrency: 'switch',
+  });
+  readonly looking = this.lookup.pending;
 
   typeDoi(event: Event): void {
     this.doi.set((event.target as HTMLInputElement).value);
@@ -36,18 +42,8 @@ export class DoiLookupComponent {
       return;
     }
     this.started.emit();
-    this.looking.set(true);
     this.error.set('');
     this.preview.set(null);
-    this.referenceService.byDoi(doi).subscribe({
-      next: (reference) => {
-        this.looking.set(false);
-        this.preview.set(reference);
-      },
-      error: (e: Error) => {
-        this.looking.set(false);
-        this.error.set(e.message);
-      },
-    });
+    this.lookup.run(doi);
   }
 }

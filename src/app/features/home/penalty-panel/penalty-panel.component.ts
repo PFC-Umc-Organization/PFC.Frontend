@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Activity, ProjectPenalties } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
@@ -47,14 +48,19 @@ export class PenaltyPanelComponent {
     return { title: left === 1 ? 'Em risco' : 'Dentro do limite', text: `O grupo será reprovado se receber mais ${plural(left)}.` };
   });
 
-  readonly applying = signal(false);
-  readonly error = signal('');
+  private readonly applyAction = action(
+    (projectId: string, body: Parameters<PenaltyService['apply']>[1]) => this.penaltyService.apply(projectId, body),
+    { onSuccess: () => this.form.reset() },
+  );
+  readonly applying = this.applyAction.pending;
+  private readonly missingReason = signal('');
+  readonly error = computed(() => this.missingReason() || this.applyAction.error());
 
   async apply(): Promise<void> {
     const { motivo, atividadeId } = this.form.getRawValue();
     if (!motivo.trim()) {
       this.form.markAllAsTouched();
-      this.error.set('Informe o motivo da penalidade.');
+      this.missingReason.set('Informe o motivo da penalidade.');
       return;
     }
     const { ativas, limite } = this.penalties();
@@ -72,19 +78,7 @@ export class PenaltyPanelComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.applying.set(true);
-    this.penaltyService
-      .apply(this.penalties().projetoId, { motivo: motivo.trim(), ...(atividadeId ? { atividadeId } : {}) })
-      .subscribe({
-        next: () => {
-          this.applying.set(false);
-          this.form.reset();
-        },
-        error: (e: Error) => {
-          this.applying.set(false);
-          this.error.set(e.message);
-        },
-      });
+    this.missingReason.set('');
+    this.applyAction.run(this.penalties().projetoId, { motivo: motivo.trim(), ...(atividadeId ? { atividadeId } : {}) });
   }
 }

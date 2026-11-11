@@ -5,6 +5,7 @@ import { ConfirmationService } from '../../../core/services/confirmation.service
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { UserService } from '../../../core/services/user.service';
+import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CohortPickerComponent } from '../cohort-picker/cohort-picker.component';
@@ -31,7 +32,27 @@ export class ProjectSectionComponent {
   private readonly projectService = inject(ProjectService);
   private readonly confirmation = inject(ConfirmationService);
 
-  readonly error = signal('');
+  private readonly advisorAction = action(
+    (projectId: string, advisorId: string) =>
+      advisorId ? this.projectService.setAdvisor(projectId, advisorId) : this.projectService.removeAdvisor(projectId),
+    {
+      onSuccess: () => {
+        this.editingAdvisorId.set(null);
+        this.reload();
+      },
+      concurrency: 'merge',
+    },
+  );
+  private readonly removeAdvisorAction = action((projectId: string) => this.projectService.removeAdvisor(projectId), {
+    onSuccess: () => this.reload(),
+    concurrency: 'merge',
+  });
+  private readonly removeAction = action((projectId: string) => this.projectService.remove(projectId), {
+    onSuccess: () => this.reload(),
+    concurrency: 'merge',
+  });
+  /** The failure of the last change made on a row; load failures are `projects.error()`. */
+  readonly error = computed(() => this.advisorAction.error() || this.removeAdvisorAction.error() || this.removeAction.error());
   readonly editingId = signal<string | null>(null);
   readonly editingAdvisorId = signal<string | null>(null);
 
@@ -74,11 +95,14 @@ export class ProjectSectionComponent {
 
   readonly advisors = computed(() => this.users().filter((u) => isStaff(u.perfil)));
 
+  private readonly nameById = computed(() => new Map(this.users().map((u) => [u.id, u.nome])));
+  private readonly nameOfRgm = computed(() => new Map(this.users().map((u) => [u.rgm, u.nome])));
+
   userName(id: string): string {
-    return this.users().find((u) => u.id === id)?.nome ?? '—';
+    return this.nameById().get(id) ?? '—';
   }
 
-  readonly nameByRgm = (rgm: string): string => this.users().find((u) => u.rgm === rgm)?.nome ?? rgm;
+  readonly nameByRgm = (rgm: string): string => this.nameOfRgm().get(rgm) ?? rgm;
 
   readonly search = signal('');
   /** 'TODOS', 'NENHUM' or an advisor's id. */
@@ -139,25 +163,11 @@ export class ProjectSectionComponent {
 
   setAdvisor(projectId: string, event: Event): void {
     const advisorId = (event.target as HTMLSelectElement).value;
-    this.error.set('');
-    const change = advisorId
-      ? this.projectService.setAdvisor(projectId, advisorId)
-      : this.projectService.removeAdvisor(projectId);
-    change.subscribe({
-      next: () => {
-        this.editingAdvisorId.set(null);
-        this.reload();
-      },
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.advisorAction.run(projectId, advisorId);
   }
 
   removeAdvisor(projectId: string): void {
-    this.error.set('');
-    this.projectService.removeAdvisor(projectId).subscribe({
-      next: () => this.reload(),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.removeAdvisorAction.run(projectId);
   }
 
   async remove(projectId: string, name: string): Promise<void> {
@@ -170,10 +180,6 @@ export class ProjectSectionComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.projectService.remove(projectId).subscribe({
-      next: () => this.reload(),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.removeAction.run(projectId);
   }
 }

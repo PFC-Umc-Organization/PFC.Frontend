@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, input, output, signal } fro
 import { Field, fileNameOf } from '../../../../core/models';
 import { ApiError } from '../../../../core/services/http-error';
 import { SubmissionService } from '../../../../core/services/submission.service';
+import { action } from '../../../../core/state/action';
 import { FilePickerComponent } from '../../../../shared/components/file-picker/file-picker.component';
 
 /**
@@ -30,6 +31,25 @@ export class AnswerFieldComponent {
   readonly uploading = output<boolean>();
 
   readonly progress = signal<number | null>(null);
+  private readonly uploadAction = action(
+    (projectId: string, activityId: string, fieldId: string, file: File) =>
+      this.submissionService.uploadFile(projectId, activityId, fieldId, file),
+    {
+      onSuccess: (ev) => {
+        if (ev.kind === 'progress') {
+          this.progress.set(ev.percent);
+        } else {
+          this.changed.emit(ev.key);
+          this.setProgress(null);
+        }
+      },
+      onError: (e) => {
+        this.setProgress(null);
+        this.error.set(`O arquivo não foi enviado. ${(e as ApiError).message || 'Tente novamente em instantes.'}`);
+      },
+      concurrency: 'switch',
+    },
+  );
   readonly error = signal('');
   protected readonly fileNameOf = fileNameOf;
 
@@ -44,20 +64,7 @@ export class AnswerFieldComponent {
   upload(file: File): void {
     this.error.set('');
     this.setProgress(0);
-    this.submissionService.uploadFile(this.projectId(), this.activityId(), this.field().id, file).subscribe({
-      next: (ev) => {
-        if (ev.kind === 'progress') {
-          this.progress.set(ev.percent);
-        } else {
-          this.changed.emit(ev.key);
-          this.setProgress(null);
-        }
-      },
-      error: (e: ApiError) => {
-        this.setProgress(null);
-        this.error.set(`O arquivo não foi enviado. ${e.message || 'Tente novamente em instantes.'}`);
-      },
-    });
+    this.uploadAction.run(this.projectId(), this.activityId(), this.field().id, file);
   }
 
   private setProgress(value: number | null): void {

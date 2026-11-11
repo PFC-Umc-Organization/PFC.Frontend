@@ -6,27 +6,27 @@
   </div>
   <div class="field picker">
     <label class="field__label" for="cohort">Turma</label>
-    <select id="cohort" class="control" [value]="cohortId()" (change)="chooseCohort($event)">
-      @for (c of cohorts.value(); track c.id) {
-        <option [value]="c.id" [selected]="c.id === cohortId()">{{ cohortLabel(c) }}</option>
+    <select id="cohort" class="control" [value]="store.cohortId()" (change)="chooseCohort($event)">
+      @for (c of store.cohorts.value(); track c.id) {
+        <option [value]="c.id" [selected]="c.id === store.cohortId()">{{ cohortLabel(c) }}</option>
       }
     </select>
   </div>
 </header>
 
-@for (f of loadFailures(); track f.what) {
+@for (f of store.loadFailures(); track f.what) {
   <p class="alert" role="alert">
     <app-icon name="alert" />
     <span>Não foi possível carregar {{ f.what }}. {{ f.error }}</span>
-    <button type="button" class="btn btn--outline btn--sm" (click)="retryLoad()">Tentar novamente</button>
+    <button type="button" class="btn btn--outline btn--sm" (click)="store.retryLoad()">Tentar novamente</button>
   </p>
 }
 
-@if (choosingCohort()) {
+@if (store.choosingCohort()) {
   <p class="pending" role="status">Carregando as turmas que você acompanha…</p>
 }
 
-@if (grid().rows.length) {
+@if (store.grid().rows.length) {
   <section class="overview" aria-label="Resumo e filtros">
     <div class="indicators">
       <button type="button" class="indicator" [class.indicator--active]="filter() === 'all'" [attr.aria-pressed]="filter() === 'all'" (click)="filter.set('all')">
@@ -61,12 +61,12 @@
         <label class="field__label" for="project-search">Buscar projeto</label>
         <input id="project-search" type="search" class="control" placeholder="Nome do projeto" [value]="search()" (input)="setSearch($event)" />
       </div>
-      @if (isAdmin() && gridAdvisors().length) {
+      @if (store.isAdmin() && store.gridAdvisors().length) {
         <div class="field">
           <label class="field__label" for="advisor-filter">Orientador</label>
           <select id="advisor-filter" class="control" [value]="advisorFilter()" (change)="setAdvisorFilter($event)">
             <option value="">Todos os orientadores</option>
-            @for (a of gridAdvisors(); track a.id) {
+            @for (a of store.gridAdvisors(); track a.id) {
               <option [value]="a.id">{{ a.nome }}</option>
             }
           </select>
@@ -80,7 +80,7 @@
           <option value="late">Com atividade não entregue</option>
           <option value="awaiting">Com entrega aguardando validação</option>
           <option value="rejected">Com entrega não validada</option>
-          @if (isAdmin()) {
+          @if (store.isAdmin()) {
             <option value="no-advisor">Sem orientador</option>
           }
         </select>
@@ -91,13 +91,13 @@
 
 <app-status-grid
   [grid]="visibleGrid()"
-  [loading]="loading()"
+  [loading]="store.gridLoad.loading()"
   [selected]="selected()"
   [emptyText]="emptyText()"
-  [penalties]="penalties()"
+  [penalties]="store.penalties()"
   [selectedPenalties]="penaltiesOf()?.projectId ?? null"
   [selectedActivity]="selectedActivity()"
-  [projectsOpenable]="isAdmin()"
+  [projectsOpenable]="store.isAdmin()"
   [selectedProject]="selectedProject()"
   (openProject)="openProject($event)"
   (open)="openCell($event)"
@@ -108,10 +108,10 @@
 @if (projectDetail(); as p) {
   <app-project-panel
     [project]="p"
-    [advisors]="advisors()"
-    [nameByRgm]="nameByRgm"
+    [advisors]="store.advisors()"
+    [nameByRgm]="store.nameOf"
     (closed)="selectedProject.set(null)"
-    (changed)="projectChanged()"
+    (changed)="store.projectChanged()"
   />
 }
 
@@ -138,7 +138,7 @@
   <app-penalty-panel
     [projectName]="d.projectName"
     [penalties]="d.penalties"
-    [activities]="grid().activities"
+    [activities]="store.grid().activities"
     (closed)="penaltiesOf.set(null)"
   />
 }

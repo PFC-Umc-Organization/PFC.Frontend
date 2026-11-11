@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 
 import { Reference } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { ReferenceService } from '../../../core/services/reference.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
@@ -29,8 +30,13 @@ export class ReferenceListComponent {
   readonly changed = output();
 
   /** A failed action (remove, copy) shows without hiding the list. */
-  readonly warning = signal('');
-  readonly removingId = signal<string | null>(null);
+  private readonly copyWarning = signal('');
+  private readonly removeAction = action((projectId: string, id: string) => this.referenceService.remove(projectId, id), {
+    onSuccess: () => this.changed.emit(),
+  });
+  readonly warning = computed(() => this.copyWarning() || this.removeAction.error());
+  private readonly removing = signal<string | null>(null);
+  readonly removingId = computed(() => (this.removeAction.pending() ? this.removing() : null));
   /** The reference just copied, or 'all'; swaps the button's label. */
   readonly copied = signal<string | null>(null);
   private copiedTimer?: ReturnType<typeof setTimeout>;
@@ -58,18 +64,9 @@ export class ReferenceListComponent {
     if (!confirmed) {
       return;
     }
-    this.removingId.set(r.id);
-    this.warning.set('');
-    this.referenceService.remove(r.projetoId, r.id).subscribe({
-      next: () => {
-        this.removingId.set(null);
-        this.changed.emit();
-      },
-      error: (e: Error) => {
-        this.removingId.set(null);
-        this.warning.set(e.message);
-      },
-    });
+    this.removing.set(r.id);
+    this.copyWarning.set('');
+    this.removeAction.run(r.projetoId, r.id);
   }
 
   /** As text and HTML: pasted into Word or Google Docs, the ABNT bold comes along. */
@@ -86,10 +83,10 @@ export class ReferenceListComponent {
         await navigator.clipboard.writeText(text);
       }
     } catch {
-      this.warning.set('Não foi possível copiar. Selecione o texto e copie manualmente.');
+      this.copyWarning.set('Não foi possível copiar. Selecione o texto e copie manualmente.');
       return;
     }
-    this.warning.set('');
+    this.copyWarning.set('');
     this.copied.set(marker);
     clearTimeout(this.copiedTimer);
     this.copiedTimer = setTimeout(() => this.copied.set(null), 2000);

@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { UserService } from '../../../core/services/user.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** An advisor or coordination account; Cognito e-mails the temporary password. */
@@ -19,11 +20,17 @@ export class AccountFormComponent {
     email: ['', [Validators.required, Validators.email, Validators.pattern(/@umc\.br$/i)]],
     perfil: ['ORIENTADOR' as 'ORIENTADOR' | 'ADMIN', [Validators.required]],
   });
-  readonly saving = signal(false);
-  readonly error = signal('');
   readonly closed = output();
   /** With the backend's confirmation message. */
   readonly created = output<string>();
+  private readonly createAction = action((body: Parameters<UserService['createAccount']>[0]) => this.userService.createAccount(body), {
+    onSuccess: (response) => {
+      this.form.reset({ nome: '', email: '', perfil: 'ORIENTADOR' });
+      this.created.emit(response.mensagem);
+    },
+  });
+  readonly saving = this.createAction.pending;
+  readonly error = this.createAction.error;
 
   invalid(name: 'nome' | 'email'): boolean {
     const c = this.form.controls[name];
@@ -31,22 +38,10 @@ export class AccountFormComponent {
   }
 
   create(): void {
-    this.error.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.saving.set(true);
-    this.userService.createAccount(this.form.getRawValue()).subscribe({
-      next: (response) => {
-        this.saving.set(false);
-        this.form.reset({ nome: '', email: '', perfil: 'ORIENTADOR' });
-        this.created.emit(response.mensagem);
-      },
-      error: (e: Error) => {
-        this.saving.set(false);
-        this.error.set(e.message);
-      },
-    });
+    this.createAction.run(this.form.getRawValue());
   }
 }

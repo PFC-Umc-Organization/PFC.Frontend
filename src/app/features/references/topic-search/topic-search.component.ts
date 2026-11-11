@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 
 import { FoundArticle, shortAuthorship } from '../../../core/models';
 import { ReferenceService } from '../../../core/services/reference.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { AddReferenceComponent } from '../add-reference/add-reference.component';
 
@@ -28,9 +29,20 @@ export class TopicSearchComponent {
   readonly articles = signal<FoundArticle[]>([]);
   readonly total = signal(0);
   readonly page = signal(1);
-  readonly searching = signal(false);
   readonly done = signal(false);
-  readonly error = signal('');
+  private readonly searchAction = action((term: string, page: number) => this.referenceService.search(term, page), {
+    onSuccess: (result) => {
+      this.done.set(true);
+      this.total.set(result.total);
+      this.articles.update((current) => [...current, ...result.artigos]);
+    },
+    onError: () => this.done.set(true),
+    concurrency: 'switch',
+  });
+  readonly searching = this.searchAction.pending;
+  /** A failure of adding an article, reported by the add button. */
+  readonly addFailure = signal('');
+  readonly error = computed(() => this.searchAction.error() || this.addFailure());
 
   typeTerm(event: Event): void {
     this.term.set((event.target as HTMLInputElement).value);
@@ -63,21 +75,8 @@ export class TopicSearchComponent {
   }
 
   private load(page: number): void {
-    this.searching.set(true);
-    this.error.set('');
+    this.addFailure.set('');
     this.page.set(page);
-    this.referenceService.search(this.searched, page).subscribe({
-      next: (result) => {
-        this.searching.set(false);
-        this.done.set(true);
-        this.total.set(result.total);
-        this.articles.update((current) => [...current, ...result.artigos]);
-      },
-      error: (e: Error) => {
-        this.searching.set(false);
-        this.done.set(true);
-        this.error.set(e.message);
-      },
-    });
+    this.searchAction.run(this.searched, page);
   }
 }

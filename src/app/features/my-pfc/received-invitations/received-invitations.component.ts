@@ -4,6 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, output, signal } 
 import { Invitation } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { InvitationService } from '../../../core/services/invitation.service';
+import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
@@ -28,26 +29,23 @@ export class ReceivedInvitationsComponent {
     this.received.reload();
   }
 
-  readonly acceptingId = signal<string | null>(null);
-  readonly declining = signal(false);
+  private readonly accepting = signal<string | null>(null);
+  private readonly acceptAction = action((projectId: string) => this.invitationService.accept(projectId), {
+    onSuccess: () => this.joined.emit(),
+    onError: () => this.reload(),
+  });
+  private readonly declineAction = action((projectId: string) => this.invitationService.decline(projectId), {
+    onSuccess: () => this.reload(),
+  });
+  readonly acceptingId = computed(() => (this.acceptAction.pending() ? this.accepting() : null));
+  readonly declining = this.declineAction.pending;
   /** Any answer on the way locks every button: no joining two groups at once. */
-  readonly busy = computed(() => this.declining() || this.acceptingId() !== null);
-  readonly error = signal('');
+  readonly busy = computed(() => this.declining() || this.acceptAction.pending());
+  readonly error = computed(() => this.acceptAction.error() || this.declineAction.error());
 
   accept(invitation: Invitation): void {
-    this.error.set('');
-    this.acceptingId.set(invitation.projetoId);
-    this.invitationService.accept(invitation.projetoId).subscribe({
-      next: () => {
-        this.acceptingId.set(null);
-        this.joined.emit();
-      },
-      error: (e: Error) => {
-        this.acceptingId.set(null);
-        this.error.set(e.message);
-        this.reload();
-      },
-    });
+    this.accepting.set(invitation.projetoId);
+    this.acceptAction.run(invitation.projetoId);
   }
 
   async decline(invitation: Invitation): Promise<void> {
@@ -60,17 +58,6 @@ export class ReceivedInvitationsComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.declining.set(true);
-    this.invitationService.decline(invitation.projetoId).subscribe({
-      next: () => {
-        this.declining.set(false);
-        this.reload();
-      },
-      error: (e: Error) => {
-        this.declining.set(false);
-        this.error.set(e.message);
-      },
-    });
+    this.declineAction.run(invitation.projetoId);
   }
 }

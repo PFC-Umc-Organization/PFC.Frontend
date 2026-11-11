@@ -4,6 +4,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { PASSWORD_HINT, PASSWORD_RULE } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PasswordFieldComponent } from '../../../shared/components/password-field/password-field.component';
 import { AuthCardComponent } from '../auth-card/auth-card.component';
@@ -24,7 +25,11 @@ export class NewPasswordComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  readonly loading = signal(false);
+  private readonly saveAction = action((password: string) => this.auth.setNewPassword(password), {
+    onSuccess: () => void this.router.navigate(['/']),
+    onError: (e) => this.error.set(e.message || 'Não foi possível salvar a senha.'),
+  });
+  readonly loading = this.saveAction.pending;
   readonly error = signal('');
   protected readonly passwordHint = PASSWORD_HINT;
 
@@ -51,16 +56,6 @@ export class NewPasswordComponent {
       this.form.markAllAsTouched();
       return;
     }
-    this.loading.set(true);
-    this.auth.setNewPassword(this.form.controls.senha.value).subscribe({
-      next: () => {
-        this.loading.set(false);
-        void this.router.navigate(['/']);
-      },
-      error: (e: Error) => {
-        this.loading.set(false);
-        this.error.set(e.message || 'Não foi possível salvar a senha.');
-      },
-    });
+    this.saveAction.run(this.form.controls.senha.value);
   }
 }

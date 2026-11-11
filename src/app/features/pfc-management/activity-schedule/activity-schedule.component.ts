@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { Activity } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
+import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
@@ -24,7 +25,8 @@ export class ActivityScheduleComponent {
   protected readonly manage = this.store.isAdmin;
   private readonly confirmation = inject(ConfirmationService);
 
-  readonly removeError = signal('');
+  private readonly removeAction = action((id: string) => this.activityService.remove(id), { concurrency: 'merge' });
+  readonly removeError = this.removeAction.error;
   readonly editingId = signal<string | null>(null);
   readonly canAdd = input(true);
   readonly add = output();
@@ -53,7 +55,6 @@ export class ActivityScheduleComponent {
     if (!confirmed) {
       return;
     }
-    this.removeError.set('');
-    this.activityService.remove(id).subscribe({ error: (e: Error) => this.removeError.set(e.message) });
+    this.removeAction.run(id);
   }
 }

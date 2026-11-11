@@ -5,6 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Invitation } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { InvitationService } from '../../../core/services/invitation.service';
+import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
@@ -35,33 +36,29 @@ export class SentInvitationsComponent {
   }
 
   readonly form = new FormGroup({ rgm: new FormControl('', { nonNullable: true }) });
+  private readonly inviteAction = action((id: string, rgm: string) => this.invitationService.invite(id, rgm), {
+    onSuccess: () => {
+      this.form.reset();
+      this.reload();
+    },
+  });
+  private readonly cancelAction = action((id: string, rgm: string) => this.invitationService.cancel(id, rgm), {
+    onSuccess: () => this.reload(),
+  });
+  readonly inviting = this.inviteAction.pending;
   /** Any request on the way locks every button: no double clicks. */
-  readonly busy = signal(false);
-  readonly inviting = signal(false);
-  readonly error = signal('');
+  readonly busy = computed(() => this.inviteAction.pending() || this.cancelAction.pending());
+  private readonly missingRgm = signal('');
+  readonly error = computed(() => this.missingRgm() || this.inviteAction.error() || this.cancelAction.error());
 
   invite(): void {
     const rgm = this.form.controls.rgm.value.trim();
-    this.error.set('');
+    this.missingRgm.set('');
     if (!rgm) {
-      this.error.set('Informe o RGM do colega.');
+      this.missingRgm.set('Informe o RGM do colega.');
       return;
     }
-    this.busy.set(true);
-    this.inviting.set(true);
-    this.invitationService.invite(this.projectId(), rgm).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.inviting.set(false);
-        this.form.reset();
-        this.reload();
-      },
-      error: (e: Error) => {
-        this.busy.set(false);
-        this.inviting.set(false);
-        this.error.set(e.message);
-      },
-    });
+    this.inviteAction.run(this.projectId(), rgm);
   }
 
   async cancel(invitation: Invitation): Promise<void> {
@@ -75,17 +72,7 @@ export class SentInvitationsComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.busy.set(true);
-    this.invitationService.cancel(this.projectId(), invitation.rgm).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.reload();
-      },
-      error: (e: Error) => {
-        this.busy.set(false);
-        this.error.set(e.message);
-      },
-    });
+    this.missingRgm.set('');
+    this.cancelAction.run(this.projectId(), invitation.rgm);
   }
 }

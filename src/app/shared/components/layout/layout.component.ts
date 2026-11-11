@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
@@ -19,6 +20,6 @@ export class LayoutComponent {
   readonly policyOpen = signal(false);
 
   constructor() {
-    inject(AuthService).refreshUser().subscribe({ error: () => undefined });
+    inject(AuthService).refreshUser().pipe(takeUntilDestroyed()).subscribe({ error: () => undefined });
   }
 }

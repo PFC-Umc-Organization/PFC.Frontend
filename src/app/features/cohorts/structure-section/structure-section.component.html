@@ -26,8 +26,8 @@
         </div>
 
         <div class="form-grid__full">
-          <button type="submit" class="btn btn--primary" [disabled]="courseCreating()">
-            {{ courseCreating() ? 'Criando…' : 'Criar curso' }}
+          <button type="submit" class="btn btn--primary" [disabled]="store.courseCreating()">
+            {{ store.courseCreating() ? 'Criando…' : 'Criar curso' }}
           </button>
         </div>
       </form>
@@ -42,7 +42,7 @@
       {{ store.courses.value().length }} {{ store.courses.value().length === 1 ? 'curso' : 'cursos' }} ·
       {{ store.cohorts.value().length }} {{ store.cohorts.value().length === 1 ? 'turma' : 'turmas' }}
       @if (!pfc.loadError()) {
-        · {{ withProgram() }} com programa de PFC
+        · {{ store.withProgram() }} com programa de PFC
       }
     </span>
     @if (!courseFormOpen() && store.courses.value().length > 0) {
@@ -76,17 +76,17 @@
       <span>{{ store.actionError() }}</span>
     </p>
   }
-  @if (pfc.programsError()) {
+  @if (store.programsError()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>{{ pfc.programsError() }}</span>
+      <span>{{ store.programsError() }}</span>
     </p>
   }
-  @if (allProjects.error()) {
+  @if (store.allProjects.error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível contar os PFCs de cada programa; mover e excluir ficam bloqueados. {{ allProjects.error() }}</span>
-      <button type="button" class="btn btn--outline btn--sm" (click)="allProjects.reload()">Tentar novamente</button>
+      <span>Não foi possível contar os PFCs de cada programa; mover e excluir ficam bloqueados. {{ store.allProjects.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="store.allProjects.reload()">Tentar novamente</button>
     </p>
   }
 
@@ -101,7 +101,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (g of groups().groups; track g.course.id) {
+        @for (g of store.groups().groups; track g.course.id) {
           @if (editingCourseId() === g.course.id) {
             <tr class="course-row">
               <td colspan="4">
@@ -177,8 +177,8 @@
                 <form class="form-grid form-grid--2 editor" [formGroup]="newCohortForm" (ngSubmit)="createCohort()">
                   <app-cohort-fields [form]="newCohortForm" [courses]="store.courses.value()" idPrefix="new" [hideCourse]="true" />
                   <div class="form-grid__full row">
-                    <button type="submit" class="btn btn--primary btn--sm" [disabled]="cohortCreating()">
-                      {{ cohortCreating() ? 'Criando…' : 'Criar turma' }}
+                    <button type="submit" class="btn btn--primary btn--sm" [disabled]="store.cohortCreating()">
+                      {{ store.cohortCreating() ? 'Criando…' : 'Criar turma' }}
                     </button>
                     <button type="button" class="btn btn--outline btn--sm" (click)="newCohortFor.set(null)">
                       Cancelar
@@ -204,23 +204,23 @@
           </tr>
         }
 
-        @if (groups().loose.length) {
+        @if (store.groups().loose.length) {
           <tr class="course-row">
             <th scope="rowgroup" colspan="4" class="course-row__name">
               Turmas de curso não cadastrado
               <span class="course-row__count">cadastre o curso acima para poder editá-las</span>
             </th>
           </tr>
-          @for (r of groups().loose; track r.cohort.id) {
+          @for (r of store.groups().loose; track r.cohort.id) {
             <ng-container *ngTemplateOutlet="cohortRow; context: { $implicit: r, withCourse: true }" />
           }
         }
 
-        @if (orphans().length) {
+        @if (store.orphans().length) {
           <tr class="course-row">
             <th scope="rowgroup" colspan="4" class="course-row__name">Programas sem turma</th>
           </tr>
-          @for (o of orphans(); track o.programId) {
+          @for (o of store.orphans(); track o.programId) {
             <tr class="sub-row">
               <td class="cell-strong">Turma removida</td>
               <td colspan="3">
@@ -271,11 +271,11 @@
           <button
             type="button"
             class="btn btn--outline btn--sm"
-            [disabled]="programCreating() === r.cohort.id"
+            [disabled]="store.programCreating() === r.cohort.id"
             [attr.aria-label]="'Criar programa de ' + cohortLabel(r.cohort)"
-            (click)="createProgram(r.cohort.id)"
+            (click)="store.createProgram(r.cohort.id)"
           >
-            {{ programCreating() === r.cohort.id ? 'Criando…' : 'Criar programa' }}
+            {{ store.programCreating() === r.cohort.id ? 'Criando…' : 'Criar programa' }}
           </button>
         }
       </td>
@@ -283,7 +283,7 @@
         @if (!r.programId) {
           <span class="muted">—</span>
         } @else if (r.projects === undefined) {
-          @if (allProjects.error()) {
+          @if (store.allProjects.error()) {
             <span class="muted">—</span>
           } @else {
             <span class="pending">Contando…</span>
@@ -325,7 +325,7 @@
     <button
       type="button"
       class="icon-action"
-      [disabled]="projects !== 0 || freeCohorts().length === 0"
+      [disabled]="projects !== 0 || store.freeCohorts().length === 0"
       [attr.title]="(projects ?? 0) > 0 ? 'Não é possível mover um programa que já tem PFCs' : 'Mover para outra turma'"
       (click)="startMoveProgram(programId)"
       [attr.aria-label]="'Mover programa de ' + label"
@@ -358,7 +358,7 @@
             (change)="moveToCohortId.set($any($event.target).value)"
           >
             <option value="" disabled>Escolha a turma</option>
-            @for (c of freeCohorts(); track c.id) {
+            @for (c of store.freeCohorts(); track c.id) {
               <option [value]="c.id">{{ cohortLabel(c) }}</option>
             }
           </select>

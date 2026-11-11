@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Project } from '../../../core/models';
 import { ProjectService } from '../../../core/services/project.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** Edits a project in place: name, description and members (by RGM). */
@@ -26,9 +27,26 @@ export class ProjectEditorComponent implements OnInit {
     nome: ['', [Validators.required, Validators.minLength(3)]],
     descricao: [''],
   });
-  readonly error = signal('');
-  readonly memberError = signal('');
   readonly rgm = signal('');
+
+  private readonly saveAction = action(
+    (id: string, body: Parameters<ProjectService['update']>[1]) => this.projectService.update(id, body),
+    { onSuccess: () => this.saved.emit() },
+  );
+  private readonly addMemberAction = action((id: string, rgm: string) => this.projectService.addMember(id, rgm), {
+    onSuccess: () => {
+      this.rgm.set('');
+      this.membersChanged.emit();
+    },
+  });
+  private readonly removeMemberAction = action((id: string, rgm: string) => this.projectService.removeMember(id, rgm), {
+    onSuccess: () => this.membersChanged.emit(),
+    concurrency: 'merge',
+  });
+  readonly error = this.saveAction.error;
+  /** Validation of the typed RGM, or the failure of adding or removing one. */
+  private readonly rgmFormatError = signal('');
+  readonly memberError = computed(() => this.rgmFormatError() || this.addMemberAction.error() || this.removeMemberAction.error());
 
   /** Filled once: reloading the list after a member change keeps what was typed. */
   ngOnInit(): void {
@@ -46,10 +64,7 @@ export class ProjectEditorComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    this.projectService.update(this.project().id, this.form.getRawValue()).subscribe({
-      next: () => this.saved.emit(),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.saveAction.run(this.project().id, this.form.getRawValue());
   }
 
   /** Keeps digits only, up to 11. */
@@ -61,25 +76,16 @@ export class ProjectEditorComponent implements OnInit {
 
   addMember(): void {
     const rgm = this.rgm().trim();
-    this.memberError.set('');
+    this.rgmFormatError.set('');
     if (!/^\d{11}$/.test(rgm)) {
-      this.memberError.set('Informe um RGM válido (11 dígitos, só números).');
+      this.rgmFormatError.set('Informe um RGM válido (11 dígitos, só números).');
       return;
     }
-    this.projectService.addMember(this.project().id, rgm).subscribe({
-      next: () => {
-        this.rgm.set('');
-        this.membersChanged.emit();
-      },
-      error: (e: Error) => this.memberError.set(e.message),
-    });
+    this.addMemberAction.run(this.project().id, rgm);
   }
 
   removeMember(rgm: string): void {
-    this.memberError.set('');
-    this.projectService.removeMember(this.project().id, rgm).subscribe({
-      next: () => this.membersChanged.emit(),
-      error: (e: Error) => this.memberError.set(e.message),
-    });
+    this.rgmFormatError.set('');
+    this.removeMemberAction.run(this.project().id, rgm);
   }
 }

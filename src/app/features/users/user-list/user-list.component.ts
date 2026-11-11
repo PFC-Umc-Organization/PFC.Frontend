@@ -5,6 +5,7 @@ import { MessageResponse, ROLE_LABEL, Role, User } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { UserService } from '../../../core/services/user.service';
+import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
@@ -26,7 +27,6 @@ export class UserListComponent {
   protected readonly roleLabel = ROLE_LABEL;
   readonly search = signal('');
   readonly role = signal<Role | 'TODOS'>('TODOS');
-  readonly error = signal('');
   readonly canAdd = input(true);
   readonly add = output();
 
@@ -70,7 +70,20 @@ export class UserListComponent {
   }
 
   readonly done = signal('');
-  readonly busyId = signal<string | null>(null);
+  private readonly target = signal<string | null>(null);
+  private readonly missingName = signal('');
+  private readonly change = action(
+    (_id: string, request: Observable<MessageResponse>, _after?: () => void) => request,
+    {
+      onSuccess: ({ mensagem }, _id, _request, after) => {
+        this.done.set(mensagem);
+        after?.();
+        this.reload();
+      },
+    },
+  );
+  readonly busyId = computed(() => (this.change.pending() ? this.target() : null));
+  readonly error = computed(() => this.missingName() || this.change.error());
   readonly renamingId = signal<string | null>(null);
   readonly newName = signal('');
 
@@ -85,8 +98,9 @@ export class UserListComponent {
 
   rename(u: User): void {
     const name = this.newName().trim();
+    this.missingName.set('');
     if (!name) {
-      this.error.set('Informe o nome.');
+      this.missingName.set('Informe o nome.');
       return;
     }
     this.run(u, this.userService.rename(u.id, name), () => this.renamingId.set(null));
@@ -129,20 +143,9 @@ export class UserListComponent {
   }
 
   private run(u: User, request: Observable<MessageResponse>, after?: () => void): void {
-    this.error.set('');
+    this.missingName.set('');
     this.done.set('');
-    this.busyId.set(u.id);
-    request.subscribe({
-      next: ({ mensagem }) => {
-        this.busyId.set(null);
-        this.done.set(mensagem);
-        after?.();
-        this.reload();
-      },
-      error: (e: Error) => {
-        this.busyId.set(null);
-        this.error.set(e.message);
-      },
-    });
+    this.target.set(u.id);
+    this.change.run(u.id, request, after);
   }
 }

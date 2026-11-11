@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, viewChild } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
 
 import { Activity, NewField } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ActivityFieldsComponent, activityForm } from '../activity-fields/activity-fields.component';
 import { FieldAdderComponent } from '../field-adder/field-adder.component';
@@ -24,8 +25,18 @@ export class ActivityEditorComponent implements OnInit {
   readonly closed = output();
 
   readonly form = activityForm();
-  readonly error = signal('');
-  readonly fieldError = signal('');
+  private readonly saveAction = action(
+    (id: string, body: Parameters<ActivityService['update']>[1]) => this.activityService.update(id, body),
+    { onSuccess: () => this.closed.emit() },
+  );
+  private readonly addFieldAction = action((id: string, field: NewField) => this.activityService.addField(id, field), {
+    onSuccess: () => this.adder().reset(),
+  });
+  private readonly removeFieldAction = action((id: string, fieldId: string) => this.activityService.removeField(id, fieldId), {
+    concurrency: 'merge',
+  });
+  readonly error = this.saveAction.error;
+  readonly fieldError = computed(() => this.addFieldAction.error() || this.removeFieldAction.error());
 
   /** Filled once: the list reloads after each field change. */
   ngOnInit(): void {
@@ -34,18 +45,11 @@ export class ActivityEditorComponent implements OnInit {
   }
 
   addField(field: NewField): void {
-    this.fieldError.set('');
-    this.activityService.addField(this.activity().id, field).subscribe({
-      next: () => this.adder().reset(),
-      error: (e: Error) => this.fieldError.set(e.message),
-    });
+    this.addFieldAction.run(this.activity().id, field);
   }
 
   removeField(index: number): void {
-    this.fieldError.set('');
-    this.activityService.removeField(this.activity().id, this.activity().campos[index].id).subscribe({
-      error: (e: Error) => this.fieldError.set(e.message),
-    });
+    this.removeFieldAction.run(this.activity().id, this.activity().campos[index].id);
   }
 
   save(): void {
@@ -53,9 +57,6 @@ export class ActivityEditorComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    this.activityService.update(this.activity().id, this.form.getRawValue()).subscribe({
-      next: () => this.closed.emit(),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.saveAction.run(this.activity().id, this.form.getRawValue());
   }
 }

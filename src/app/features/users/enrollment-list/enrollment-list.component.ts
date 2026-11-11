@@ -4,6 +4,7 @@ import { Cohort, Enrollment, User, cohortLabel, currentTerm, isInTerm } from '..
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { UserService } from '../../../core/services/user.service';
+import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
@@ -22,7 +23,18 @@ export class EnrollmentListComponent {
   readonly cohorts = input.required<Cohort[]>();
   /** Empty until chosen: then the first cohort of this term, or the first one. */
   readonly cohortId = model('');
-  readonly error = signal('');
+  private readonly removeAction = action((rgm: string) => this.enrollmentService.remove([rgm]), {
+    onSuccess: (result) => {
+      const failure = result.falhas?.[0];
+      if (failure) {
+        this.removeFailure.set(`Não foi possível remover o RGM ${failure.rgm}. ${failure.erro}`);
+      }
+      this.enrollments.reload();
+    },
+    concurrency: 'merge',
+  });
+  private readonly removeFailure = signal('');
+  readonly error = computed(() => this.removeFailure() || this.removeAction.error());
   readonly canAdd = input(true);
   readonly add = output();
   protected readonly cohortLabel = cohortLabel;
@@ -41,7 +53,7 @@ export class EnrollmentListComponent {
   });
 
   choose(event: Event): void {
-    this.error.set('');
+    this.removeFailure.set('');
     this.cohortId.set((event.target as HTMLSelectElement).value);
   }
 
@@ -70,16 +82,7 @@ export class EnrollmentListComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.enrollmentService.remove([rgm]).subscribe({
-      next: (result) => {
-        const failure = result.falhas?.[0];
-        if (failure) {
-          this.error.set(`Não foi possível remover o RGM ${failure.rgm}. ${failure.erro}`);
-        }
-        this.enrollments.reload();
-      },
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.removeFailure.set('');
+    this.removeAction.run(rgm);
   }
 }

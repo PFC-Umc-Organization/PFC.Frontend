@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import { Cohort, MATERIAL_KIND_LABEL, MaterialKind, cohortLabel } from '../../../core/models';
 import { ApiError } from '../../../core/services/http-error';
 import { MaterialService } from '../../../core/services/material.service';
+import { action } from '../../../core/state/action';
 import { FilePickerComponent } from '../../../shared/components/file-picker/file-picker.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
@@ -37,9 +38,36 @@ export class MaterialFormComponent {
   /** Already in the bucket, ready to publish. */
   readonly file = signal<{ key: string; name: string } | null>(null);
   readonly progress = signal<number | null>(null);
-  readonly fileError = signal('');
-  readonly saving = signal(false);
-  readonly error = signal('');
+  private readonly uploadAction = action((file: File) => this.materialService.uploadFile(file), {
+    onSuccess: (ev, file) => {
+      if (ev.kind === 'progress') {
+        this.progress.set(ev.percent);
+      } else {
+        this.file.set({ key: ev.key, name: file.name });
+        this.progress.set(null);
+      }
+    },
+    onError: (e) => {
+      this.progress.set(null);
+      this.uploadStatus.set((e as ApiError).status ?? null);
+    },
+    concurrency: 'switch',
+  });
+  private readonly publishAction = action(
+    (body: Parameters<MaterialService['create']>[0]) => this.materialService.create(body),
+    { onSuccess: () => this.afterPublish() },
+  );
+  private lastKind: MaterialKind = 'MODELO';
+  private lastCohort = '';
+  readonly fileError = computed(() => {
+    const e = this.uploadAction.error();
+    return e && this.uploadStatus() === 503
+      ? 'O envio de arquivos ainda não está disponível. Publique o material como link.'
+      : e;
+  });
+  private readonly uploadStatus = signal<number | null>(null);
+  readonly saving = this.publishAction.pending;
+  readonly error = this.publishAction.error;
   readonly closed = output();
   readonly created = output();
 
@@ -70,26 +98,12 @@ export class MaterialFormComponent {
   }
 
   upload(file: File): void {
-    this.fileError.set('');
+    this.uploadStatus.set(null);
     this.progress.set(0);
-    this.materialService.uploadFile(file).subscribe({
-      next: (ev) => {
-        if (ev.kind === 'progress') {
-          this.progress.set(ev.percent);
-        } else {
-          this.file.set({ key: ev.key, name: file.name });
-          this.progress.set(null);
-        }
-      },
-      error: (e: ApiError) => {
-        this.progress.set(null);
-        this.fileError.set(e.status === 503 ? 'O envio de arquivos ainda não está disponível. Publique o material como link.' : e.message);
-      },
-    });
+    this.uploadAction.run(file);
   }
 
   publish(): void {
-    this.error.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -98,26 +112,20 @@ export class MaterialFormComponent {
       return;
     }
     const { titulo, tipo, url, cursoId, descricao } = this.form.getRawValue();
-    this.saving.set(true);
-    this.materialService
-      .create({
-        titulo: titulo.trim(),
-        descricao: descricao.trim(),
-        tipo,
-        cursoId: cursoId || null,
-        ...(this.source() === 'link' ? { url: url.trim() } : { arquivo: this.file()!.key }),
-      })
-      .subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.file.set(null);
-          this.form.reset({ tipo, cursoId });
-          this.created.emit();
-        },
-        error: (e: Error) => {
-          this.saving.set(false);
-          this.error.set(e.message);
-        },
-      });
+    this.lastKind = tipo;
+    this.lastCohort = cursoId;
+    this.publishAction.run({
+      titulo: titulo.trim(),
+      descricao: descricao.trim(),
+      tipo,
+      cursoId: cursoId || null,
+      ...(this.source() === 'link' ? { url: url.trim() } : { arquivo: this.file()!.key }),
+    });
+  }
+
+  private afterPublish(): void {
+    this.file.set(null);
+    this.form.reset({ tipo: this.lastKind, cursoId: this.lastCohort });
+    this.created.emit();
   }
 }

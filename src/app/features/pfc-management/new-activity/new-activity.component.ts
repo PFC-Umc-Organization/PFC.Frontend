@@ -2,8 +2,9 @@ import { ChangeDetectionStrategy, Component, computed, inject, output, signal, v
 import { ReactiveFormsModule } from '@angular/forms';
 import { catchError, forkJoin, map, of } from 'rxjs';
 
-import { DEFAULT_FIELD, NewField, cohortLabel } from '../../../core/models';
+import { Cohort, DEFAULT_FIELD, NewField, cohortLabel } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ActivityFieldsComponent, activityForm } from '../activity-fields/activity-fields.component';
 import { FieldAdderComponent } from '../field-adder/field-adder.component';
@@ -37,10 +38,41 @@ export class NewActivityComponent {
 
   readonly form = activityForm();
   readonly fields = signal<NewField[]>([{ ...DEFAULT_FIELD }]);
-  readonly saving = signal(false);
   readonly closed = output();
   readonly created = output();
-  readonly error = signal('');
+  private readonly missingCohort = signal('');
+  private readonly failure = signal('');
+  // One activity per cohort, independent afterwards: a failure in one does not undo the others.
+  private readonly publishAction = action(
+    (targets: Cohort[], body: Parameters<ActivityService['create']>[0]) =>
+      forkJoin(
+        targets.map((cohort) =>
+          this.activityService.create({ ...body, turmaId: cohort.id }).pipe(
+            map(() => null),
+            catchError((e: Error) => of({ cohort, message: e.message })),
+          ),
+        ),
+      ),
+    {
+      onSuccess: (results, targets) => {
+        const failures = results.filter((r) => r !== null);
+        if (failures.length === 0) {
+          this.form.reset();
+          this.fields.set([{ ...DEFAULT_FIELD }]);
+          this.created.emit();
+          return;
+        }
+        const names = failures.map((f) => cohortLabel(f.cohort)).join(', ');
+        this.failure.set(
+          failures.length === targets.length
+            ? failures[0].message
+            : `A atividade foi criada, mas não nas turmas: ${names}. ${failures[0].message}`,
+        );
+      },
+    },
+  );
+  readonly saving = this.publishAction.pending;
+  readonly error = computed(() => this.missingCohort() || this.failure());
 
   addField(field: NewField): void {
     this.fields.update((fields) => [...fields, field]);
@@ -52,40 +84,17 @@ export class NewActivityComponent {
   }
 
   publish(): void {
-    this.error.set('');
+    this.missingCohort.set('');
+    this.failure.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
     const targets = this.target() === ALL_COHORTS ? this.cohorts() : this.cohorts().filter((c) => c.id === this.target());
     if (!targets.length) {
-      this.error.set('Cadastre uma turma antes de criar atividades.');
+      this.missingCohort.set('Cadastre uma turma antes de criar atividades.');
       return;
     }
-    this.saving.set(true);
-    // One activity per cohort, independent afterwards: a failure in one does not undo the others.
-    forkJoin(
-      targets.map((cohort) =>
-        this.activityService.create({ ...this.form.getRawValue(), campos: this.fields(), turmaId: cohort.id }).pipe(
-          map(() => null),
-          catchError((e: Error) => of({ cohort, message: e.message })),
-        ),
-      ),
-    ).subscribe((results) => {
-      this.saving.set(false);
-      const failures = results.filter((r) => r !== null);
-      if (failures.length === 0) {
-        this.form.reset();
-        this.fields.set([{ ...DEFAULT_FIELD }]);
-        this.created.emit();
-        return;
-      }
-      const names = failures.map((f) => cohortLabel(f.cohort)).join(', ');
-      this.error.set(
-        failures.length === targets.length
-          ? failures[0].message
-          : `A atividade foi criada, mas não nas turmas: ${names}. ${failures[0].message}`,
-      );
-    });
+    this.publishAction.run(targets, { ...this.form.getRawValue(), campos: this.fields() });
   }
 }

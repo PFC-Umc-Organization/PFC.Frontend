@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 
 import { ReferenceService } from '../../../core/services/reference.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** Adds an article to the group's list by its DOI, or says it is already there. */
@@ -30,7 +31,11 @@ export class AddReferenceComponent {
   readonly added = output();
   readonly failed = output<string>();
 
-  readonly adding = signal(false);
+  private readonly addAction = action((projectId: string, doi: string) => this.referenceService.add(projectId, doi), {
+    onSuccess: () => this.added.emit(),
+    onError: (e) => this.failed.emit(e.message),
+  });
+  readonly adding = this.addAction.pending;
   readonly present = computed(() => !!this.doi() && this.inList().has(this.doi()!.toLowerCase()));
 
   add(): void {
@@ -38,16 +43,6 @@ export class AddReferenceComponent {
     if (!doi) {
       return;
     }
-    this.adding.set(true);
-    this.referenceService.add(this.projectId(), doi).subscribe({
-      next: () => {
-        this.adding.set(false);
-        this.added.emit();
-      },
-      error: (e: Error) => {
-        this.adding.set(false);
-        this.failed.emit(e.message);
-      },
-    });
+    this.addAction.run(this.projectId(), doi);
   }
 }

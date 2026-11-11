@@ -5,6 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CohortService } from '../../core/services/cohort.service';
 import { ConfirmationService } from '../../core/services/confirmation.service';
 import { MaterialService } from '../../core/services/material.service';
+import { action } from '../../core/state/action';
 import { loadable } from '../../core/state/loadable';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { MaterialCardComponent } from './material-card/material-card.component';
@@ -36,7 +37,12 @@ export class MaterialsComponent {
   readonly list = loadable({ source: () => this.materialService.list(), initial: [] as Material[] });
   readonly materials = this.list.value;
   readonly loadError = this.list.error;
-  readonly actionError = signal('');
+  private readonly removeAction = action((id: string) => this.materialService.remove(id), { concurrency: 'merge' });
+  private readonly downloadAction = action((id: string) => this.materialService.fileLink(id), {
+    onSuccess: ({ url }) => window.location.assign(url),
+    concurrency: 'merge',
+  });
+  readonly actionError = computed(() => this.removeAction.error() || this.downloadAction.error());
   readonly formOpen = signal(false);
   readonly done = signal('');
 
@@ -80,15 +86,10 @@ export class MaterialsComponent {
     if (!confirmed) {
       return;
     }
-    this.actionError.set('');
-    this.materialService.remove(m.id).subscribe({ error: (e: Error) => this.actionError.set(e.message) });
+    this.removeAction.run(m.id);
   }
 
   download(m: Material): void {
-    this.actionError.set('');
-    this.materialService.fileLink(m.id).subscribe({
-      next: ({ url }) => window.location.assign(url),
-      error: (e: Error) => this.actionError.set(e.message),
-    });
+    this.downloadAction.run(m.id);
   }
 }

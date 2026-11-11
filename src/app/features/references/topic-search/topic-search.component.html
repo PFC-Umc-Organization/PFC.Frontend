@@ -46,7 +46,7 @@
               [doi]="a.doi"
               [inList]="inList()"
               (added)="added.emit()"
-              (failed)="error.set($event)"
+              (failed)="addFailure.set($event)"
             />
           }
         </div>

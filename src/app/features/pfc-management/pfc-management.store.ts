@@ -44,8 +44,6 @@ export class PfcManagementStore {
     return (candidates.find((c) => isInTerm(c, term)) ?? candidates[0])?.id ?? '';
   });
 
-  /** A failed create, move or remove; loading has its own error below. */
-  readonly programsError = signal('');
   readonly programs = loadable({ source: () => this.programService.list(), initial: [] as Program[] });
 
   /** Without cohorts, programs or the advisor's projects, an empty list says nothing about the data. */
