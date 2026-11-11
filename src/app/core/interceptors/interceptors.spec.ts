@@ -1,4 +1,4 @@
-import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
+import { HttpClient, HttpContext, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -7,7 +7,7 @@ import { Router, provideRouter } from '@angular/router';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
 import { authInterceptor } from './auth.interceptor';
-import { dedupeInterceptor } from './dedupe.interceptor';
+import { SKIP_DEDUPE, dedupeInterceptor, resetDedupe } from './dedupe.interceptor';
 
 describe('interceptors', () => {
   const api = environment.apiBaseUrl;
@@ -16,6 +16,7 @@ describe('interceptors', () => {
   const auth = { token: signal<string | null>('student-token'), signOut: vi.fn() };
 
   beforeEach(() => {
+    resetDedupe();
     auth.signOut.mockReset();
     auth.token.set('student-token');
     TestBed.configureTestingModule({
@@ -80,5 +81,29 @@ describe('interceptors', () => {
 
     http.get(`${api}/turmas`).subscribe();
     backend.expectOne(`${api}/turmas`).flush([]);
+  });
+
+  it('does not join GETs to the same URL with different response types', () => {
+    http.get(`${api}/x`).subscribe();
+    http.get(`${api}/x`, { responseType: 'text' }).subscribe();
+    const reqs = backend.match(`${api}/x`);
+    expect(reqs).toHaveLength(2);
+    reqs.forEach((r) => r.flush(r.request.responseType === 'text' ? 'ok' : {}));
+  });
+
+  it('SKIP_DEDUPE sends its own request', () => {
+    http.get(`${api}/y`).subscribe();
+    http.get(`${api}/y`, { context: new HttpContext().set(SKIP_DEDUPE, true) }).subscribe();
+    const reqs = backend.match(`${api}/y`);
+    expect(reqs).toHaveLength(2);
+    reqs.forEach((r) => r.flush({}));
+  });
+
+  it('drops the entry when the only subscriber unsubscribes', () => {
+    http.get(`${api}/z`).subscribe().unsubscribe();
+    http.get(`${api}/z`).subscribe();
+    const reqs = backend.match(`${api}/z`);
+    expect(reqs.filter((r) => !r.cancelled)).toHaveLength(1);
+    reqs.filter((r) => !r.cancelled).forEach((r) => r.flush({}));
   });
 });
