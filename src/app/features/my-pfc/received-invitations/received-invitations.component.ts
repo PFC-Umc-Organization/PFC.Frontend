@@ -1,11 +1,10 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { BehaviorSubject, catchError, of, switchMap, tap } from 'rxjs';
 
 import { Invitation } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { InvitationService } from '../../../core/services/invitation.service';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** Invitations the student received; accepting one puts them in that group. */
@@ -21,26 +20,12 @@ export class ReceivedInvitationsComponent {
   private readonly confirmation = inject(ConfirmationService);
 
   readonly joined = output();
-  private readonly reload$ = new BehaviorSubject<void>(undefined);
-
-  readonly loadError = signal('');
-  readonly invitations = toSignal(
-    this.reload$.pipe(
-      tap(() => this.loadError.set('')),
-      switchMap(() =>
-        this.invitationService.mine().pipe(
-          catchError((e: Error) => {
-            this.loadError.set(e.message);
-            return of([] as Invitation[]);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: [] as Invitation[] },
-  );
+  private readonly received = loadable({ source: () => this.invitationService.mine(), initial: [] as Invitation[] });
+  readonly invitations = this.received.value;
+  readonly loadError = this.received.error;
 
   reload(): void {
-    this.reload$.next();
+    this.received.reload();
   }
 
   readonly acceptingId = signal<string | null>(null);
@@ -60,7 +45,7 @@ export class ReceivedInvitationsComponent {
       error: (e: Error) => {
         this.acceptingId.set(null);
         this.error.set(e.message);
-        this.reload$.next();
+        this.reload();
       },
     });
   }
@@ -80,7 +65,7 @@ export class ReceivedInvitationsComponent {
     this.invitationService.decline(invitation.projetoId).subscribe({
       next: () => {
         this.declining.set(false);
-        this.reload$.next();
+        this.reload();
       },
       error: (e: Error) => {
         this.declining.set(false);

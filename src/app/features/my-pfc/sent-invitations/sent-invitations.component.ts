@@ -1,12 +1,11 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { BehaviorSubject, catchError, combineLatest, of, switchMap, tap } from 'rxjs';
 
 import { Invitation } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { InvitationService } from '../../../core/services/invitation.service';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** The group's invitations nobody answered yet, and the form to send more. */
@@ -22,26 +21,17 @@ export class SentInvitationsComponent {
   private readonly confirmation = inject(ConfirmationService);
 
   readonly projectId = input.required<string>();
-  private readonly reload$ = new BehaviorSubject<void>(undefined);
-
-  readonly loadError = signal('');
-  readonly pending = toSignal(
-    combineLatest([toObservable(this.projectId), this.reload$]).pipe(
-      tap(() => this.loadError.set('')),
-      switchMap(([id]) =>
-        this.invitationService.ofProject(id).pipe(
-          catchError((e: Error) => {
-            this.loadError.set(e.message);
-            return of([] as Invitation[]);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: [] as Invitation[] },
-  );
+  private readonly sent = loadable({
+    source: (id: string) => this.invitationService.ofProject(id),
+    params: computed(() => this.projectId() || null),
+    initial: [] as Invitation[],
+  });
+  readonly pending = this.sent.value;
+  readonly loadError = this.sent.error;
+  readonly loading = this.sent.loading;
 
   reload(): void {
-    this.reload$.next();
+    this.sent.reload();
   }
 
   readonly form = new FormGroup({ rgm: new FormControl('', { nonNullable: true }) });
@@ -64,7 +54,7 @@ export class SentInvitationsComponent {
         this.busy.set(false);
         this.inviting.set(false);
         this.form.reset();
-        this.reload$.next();
+        this.reload();
       },
       error: (e: Error) => {
         this.busy.set(false);
@@ -90,7 +80,7 @@ export class SentInvitationsComponent {
     this.invitationService.cancel(this.projectId(), invitation.rgm).subscribe({
       next: () => {
         this.busy.set(false);
-        this.reload$.next();
+        this.reload();
       },
       error: (e: Error) => {
         this.busy.set(false);

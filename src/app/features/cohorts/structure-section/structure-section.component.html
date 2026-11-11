@@ -1,9 +1,9 @@
-@if (courseFormOpen() || store.courses().length === 0) {
+@if (courseFormOpen() || store.courses.value().length === 0) {
   <section class="card" aria-labelledby="new-course-title">
     <div class="card__body">
       <div class="form-head">
         <h2 id="new-course-title" class="section-title">Novo curso</h2>
-        @if (store.courses().length > 0) {
+        @if (store.courses.value().length > 0) {
           <button type="button" class="btn btn--ghost btn--sm" (click)="courseFormOpen.set(false)">Cancelar</button>
         }
       </div>
@@ -39,13 +39,13 @@
   <div class="card__head card__head--wrap">
     <h2 class="section-title">Cursos e turmas</h2>
     <span class="card__count">
-      {{ store.courses().length }} {{ store.courses().length === 1 ? 'curso' : 'cursos' }} ·
-      {{ store.cohorts().length }} {{ store.cohorts().length === 1 ? 'turma' : 'turmas' }}
+      {{ store.courses.value().length }} {{ store.courses.value().length === 1 ? 'curso' : 'cursos' }} ·
+      {{ store.cohorts.value().length }} {{ store.cohorts.value().length === 1 ? 'turma' : 'turmas' }}
       @if (!pfc.loadError()) {
         · {{ withProgram() }} com programa de PFC
       }
     </span>
-    @if (!courseFormOpen() && store.courses().length > 0) {
+    @if (!courseFormOpen() && store.courses.value().length > 0) {
       <div class="card__actions">
         <button type="button" class="btn btn--primary btn--sm" (click)="courseFormOpen.set(true)">
           <app-icon name="plus" class="btn__icon" />
@@ -56,16 +56,24 @@
   </div>
   <p class="intro">Os alunos só podem cadastrar o PFC do grupo depois que a turma tiver um programa.</p>
 
-  @if (store.coursesError()) {
+  @if (store.courses.error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>{{ store.coursesError() }}</span>
+      <span>Não foi possível carregar os cursos. {{ store.courses.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="store.courses.reload()">Tentar novamente</button>
     </p>
   }
-  @if (store.cohortsError()) {
+  @if (store.cohorts.error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>{{ store.cohortsError() }}</span>
+      <span>Não foi possível carregar as turmas. {{ store.cohorts.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="store.cohorts.reload()">Tentar novamente</button>
+    </p>
+  }
+  @if (store.actionError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ store.actionError() }}</span>
     </p>
   }
   @if (pfc.programsError()) {
@@ -74,11 +82,11 @@
       <span>{{ pfc.programsError() }}</span>
     </p>
   }
-  @if (countError()) {
+  @if (allProjects.error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível contar os PFCs de cada programa; mover e excluir ficam bloqueados. {{ countError() }}</span>
-      <button type="button" class="btn btn--outline btn--sm" (click)="retryCount()">Tentar novamente</button>
+      <span>Não foi possível contar os PFCs de cada programa; mover e excluir ficam bloqueados. {{ allProjects.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="allProjects.reload()">Tentar novamente</button>
     </p>
   }
 
@@ -167,7 +175,7 @@
             <tr class="sub-row">
               <td colspan="4">
                 <form class="form-grid form-grid--2 editor" [formGroup]="newCohortForm" (ngSubmit)="createCohort()">
-                  <app-cohort-fields [form]="newCohortForm" [courses]="store.courses()" idPrefix="new" [hideCourse]="true" />
+                  <app-cohort-fields [form]="newCohortForm" [courses]="store.courses.value()" idPrefix="new" [hideCourse]="true" />
                   <div class="form-grid__full row">
                     <button type="submit" class="btn btn--primary btn--sm" [disabled]="cohortCreating()">
                       {{ cohortCreating() ? 'Criando…' : 'Criar turma' }}
@@ -184,7 +192,7 @@
           @for (r of g.rows; track r.cohort.id) {
             <ng-container *ngTemplateOutlet="cohortRow; context: { $implicit: r }" />
           } @empty {
-            @if (newCohortFor() !== g.course.id && !store.cohortsError()) {
+            @if (newCohortFor() !== g.course.id && !store.cohorts.error()) {
               <tr class="sub-row">
                 <td class="muted" colspan="4">Este curso ainda não tem turmas.</td>
               </tr>
@@ -236,7 +244,7 @@
     <tr class="sub-row">
       <td colspan="4">
         <form class="form-grid form-grid--2 editor" [formGroup]="cohortEditForm" (ngSubmit)="saveCohort(r.cohort.id)">
-          <app-cohort-fields [form]="cohortEditForm" [courses]="store.courses()" idPrefix="edit" />
+          <app-cohort-fields [form]="cohortEditForm" [courses]="store.courses.value()" idPrefix="edit" />
           <div class="form-grid__full row">
             <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
             <button type="button" class="btn btn--outline btn--sm" (click)="editingCohortId.set(null)">Cancelar</button>
@@ -275,7 +283,7 @@
         @if (!r.programId) {
           <span class="muted">—</span>
         } @else if (r.projects === undefined) {
-          @if (countError()) {
+          @if (allProjects.error()) {
             <span class="muted">—</span>
           } @else {
             <span class="pending">Contando…</span>

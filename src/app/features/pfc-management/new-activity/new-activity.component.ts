@@ -26,7 +26,7 @@ export class NewActivityComponent {
 
   protected readonly cohortLabel = cohortLabel;
   protected readonly allCohorts = ALL_COHORTS;
-  protected readonly cohorts = this.store.cohorts;
+  protected readonly cohorts = this.store.cohorts.value;
   private readonly chosen = signal<string | null>(null);
   /** The cohort open on the screen, until another is picked. */
   readonly target = computed(() => this.chosen() ?? (this.store.cohortId() || ALL_COHORTS));

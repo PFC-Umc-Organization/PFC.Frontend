@@ -39,6 +39,7 @@ export class EnrollFormComponent {
   readonly created = output<string>();
 
   constructor() {
+    // Legitimate effect: bridges the cohortId signal into the Reactive Forms control.
     effect(() => {
       const id = this.cohortId();
       if (this.termCohorts().some((c) => c.id === id)) {

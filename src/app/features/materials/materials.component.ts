@@ -1,17 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Subject, catchError, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { Cohort, Material, cohortLabel, isStaff } from '../../core/models';
 import { AuthService } from '../../core/services/auth.service';
 import { CohortService } from '../../core/services/cohort.service';
 import { ConfirmationService } from '../../core/services/confirmation.service';
 import { MaterialService } from '../../core/services/material.service';
+import { loadable } from '../../core/state/loadable';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { MaterialCardComponent } from './material-card/material-card.component';
 import { MaterialFormComponent } from './material-form/material-form.component';
-
-type State = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; materials: Material[] };
 
 /** The staff publishes (link or file); everyone reads. */
 @Component({
@@ -29,47 +26,16 @@ export class MaterialsComponent {
   readonly staff = computed(() => isStaff(this.auth.role()));
 
   private readonly cohortService = inject(CohortService);
-  readonly cohortsError = signal('');
-  private readonly reloadCohorts$ = new Subject<void>();
   /** Only the staff sees which cohort a material is for. */
-  readonly cohorts = toSignal(
-    this.staff()
-      ? this.reloadCohorts$.pipe(
-          startWith(undefined),
-          tap(() => this.cohortsError.set('')),
-          switchMap(() =>
-            this.cohortService.list().pipe(
-              catchError((e: Error) => {
-                this.cohortsError.set(e.message);
-                return of([] as Cohort[]);
-              }),
-            ),
-          ),
-        )
-      : of([] as Cohort[]),
-    { initialValue: [] as Cohort[] },
-  );
-
-  retryCohorts(): void {
-    this.reloadCohorts$.next();
-  }
-
-  readonly state = toSignal(
-    this.materialService.list().pipe(
-      map((materials): State => ({ kind: 'ready', materials })),
-      catchError((e: Error) => of<State>({ kind: 'error', message: e.message })),
-      startWith<State>({ kind: 'loading' }),
-    ),
-    { initialValue: { kind: 'loading' } as State },
-  );
-  readonly materials = computed(() => {
-    const s = this.state();
-    return s.kind === 'ready' ? s.materials : [];
+  readonly cohorts = loadable({
+    source: () => this.cohortService.list(),
+    params: computed(() => (this.staff() ? true : null)),
+    initial: [] as Cohort[],
   });
-  readonly loadError = computed(() => {
-    const s = this.state();
-    return s.kind === 'error' ? s.message : '';
-  });
+
+  readonly list = loadable({ source: () => this.materialService.list(), initial: [] as Material[] });
+  readonly materials = this.list.value;
+  readonly loadError = this.list.error;
   readonly actionError = signal('');
   readonly formOpen = signal(false);
   readonly done = signal('');
@@ -97,11 +63,11 @@ export class MaterialsComponent {
     if (!this.staff()) {
       return 'Para a sua turma';
     }
-    const cohort = this.cohorts().find((c) => c.id === m.cursoId);
+    const cohort = this.cohorts.value().find((c) => c.id === m.cursoId);
     if (cohort) {
       return cohortLabel(cohort);
     }
-    return this.cohortsError() ? 'Turma não identificada' : 'Turma removida';
+    return this.cohorts.error() ? 'Turma não identificada' : 'Turma removida';
   }
 
   async remove(m: Material): Promise<void> {

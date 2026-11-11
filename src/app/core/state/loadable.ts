@@ -19,7 +19,8 @@ export function loadable<T, P = void>(opts: {
   params?: Signal<P | null | undefined>;
   initial: T;
 }): Loadable<T> {
-  const loading = signal(false);
+  // Starts true so the first frame never shows an empty list as a result; a null `params` turns it off.
+  const loading = signal(true);
   const error = signal('');
   const reload$ = new Subject<void>();
   const params$ = toObservable(opts.params ?? (signal(undefined) as Signal<P | null | undefined>));
@@ -34,6 +35,8 @@ export function loadable<T, P = void>(opts: {
         }
         loading.set(true);
         return opts.source(params as P).pipe(
+          // Some services keep a live stream open after the first answer: loading ends there, not on complete.
+          tap(() => loading.set(false)),
           catchError((e: unknown) => {
             error.set((e as Error)?.message || 'Erro ao carregar.');
             return of(opts.initial);

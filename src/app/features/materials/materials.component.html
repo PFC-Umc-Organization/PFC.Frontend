@@ -12,7 +12,7 @@
   </header>
 
   @if (staff() && formOpen()) {
-    <app-material-form [cohorts]="cohorts()" (closed)="formOpen.set(false)" (created)="published()" />
+    <app-material-form [cohorts]="cohorts.value()" (closed)="formOpen.set(false)" (created)="published()" />
   }
   @if (done()) {
     <p class="ok" role="status">
@@ -21,11 +21,11 @@
     </p>
   }
 
-  @if (cohortsError()) {
+  @if (cohorts.error()) {
     <p class="alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível carregar as turmas; a turma de cada material e a escolha da turma ao publicar ficam indisponíveis. {{ cohortsError() }}</span>
-      <button type="button" class="btn btn--outline btn--sm" (click)="retryCohorts()">Tentar novamente</button>
+      <span>Não foi possível carregar as turmas; a turma de cada material e a escolha da turma ao publicar ficam indisponíveis. {{ cohorts.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="cohorts.reload()">Tentar novamente</button>
     </p>
   }
 
@@ -36,17 +36,15 @@
     </p>
   }
 
-  @switch (state().kind) {
-    @case ('loading') {
-      <p class="muted text-sm">Carregando materiais…</p>
-    }
-    @case ('error') {
-      <p class="alert" role="alert">
-        <app-icon name="alert" />
-        <span>Não foi possível carregar os materiais. {{ loadError() }}</span>
-      </p>
-    }
-    @default {
+  @if (list.error()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar os materiais. {{ loadError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="list.reload()">Tentar novamente</button>
+    </p>
+  } @else if (list.loading()) {
+    <p class="muted text-sm">Carregando materiais…</p>
+  } @else {
       @if (staff()) {
         <div class="list-head">
           <h2 class="section-title">Publicados</h2>
@@ -80,6 +78,5 @@
           </p>
         }
       </div>
-    }
   }
 </div>

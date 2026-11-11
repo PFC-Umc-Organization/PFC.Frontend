@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Subject, catchError, of, startWith, switchMap, tap } from 'rxjs';
+import { ChangeDetectionStrategy, Component, inject, linkedSignal, signal, viewChild } from '@angular/core';
 
+import { Cohort } from '../../core/models';
 import { CohortService } from '../../core/services/cohort.service';
+import { loadable } from '../../core/state/loadable';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import { AccountFormComponent } from './account-form/account-form.component';
 import { EnrollFormComponent } from './enroll-form/enroll-form.component';
@@ -24,21 +24,12 @@ export class UsersComponent {
     { id: 'enrollments', label: 'Pré-autorização de alunos' },
   ];
   readonly section = signal<Section>('accounts');
-  readonly formOpen = signal(false);
+  /** Switching tabs closes the form and clears the previous action's message. */
+  readonly formOpen = linkedSignal({ source: this.section, computation: () => false });
   /** What the last form did, shown above the list. */
-  readonly done = signal('');
-  /** Bumped to remount the list, so it reads again what the form changed. */
-  readonly version = signal(0);
-
-  constructor() {
-    effect(() => {
-      this.section();
-      untracked(() => {
-        this.formOpen.set(false);
-        this.done.set('');
-      });
-    });
-  }
+  readonly done = linkedSignal({ source: this.section, computation: () => '' });
+  private readonly userList = viewChild(UserListComponent);
+  private readonly enrollmentList = viewChild(EnrollmentListComponent);
 
   open(): void {
     this.done.set('');
@@ -48,32 +39,14 @@ export class UsersComponent {
   finish(message: string): void {
     this.formOpen.set(false);
     this.done.set(message);
-    this.version.update((v) => v + 1);
+    // The list reads again what the form changed.
+    this.userList()?.reload();
+    this.enrollmentList()?.reload();
   }
 
+  /** `value` is empty while loading or after a failure: check `loading` and `error` before saying there is no cohort. */
   private readonly cohortService = inject(CohortService);
-  readonly cohortsError = signal('');
-  private readonly reloadCohorts$ = new Subject<void>();
-  /** Undefined while loading or after a failure: the list would otherwise say there is no cohort. */
-  readonly cohorts = toSignal(
-    this.reloadCohorts$.pipe(
-      startWith(undefined),
-      tap(() => this.cohortsError.set('')),
-      switchMap(() =>
-        this.cohortService.list().pipe(
-          catchError((e: Error) => {
-            this.cohortsError.set(e.message);
-            return of(undefined);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: undefined },
-  );
-
-  retryCohorts(): void {
-    this.reloadCohorts$.next();
-  }
+  readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
 
   /** The cohort the list shows; the form starts on it and the list follows the form. */
   readonly enrollmentCohort = signal('');

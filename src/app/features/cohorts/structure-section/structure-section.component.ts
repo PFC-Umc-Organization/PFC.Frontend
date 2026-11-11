@@ -1,15 +1,14 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, catchError, of, startWith, switchMap, tap } from 'rxjs';
 
-import { Cohort, Course, SHIFT_LABEL, cohortLabel } from '../../../core/models';
+import { Cohort, Course, Project, SHIFT_LABEL, cohortLabel } from '../../../core/models';
 import { CohortService } from '../../../core/services/cohort.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { CourseService } from '../../../core/services/course.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 import { PfcManagementStore } from '../../pfc-management/pfc-management.store';
@@ -72,36 +71,19 @@ export class StructureSectionComponent {
   readonly movingProgramId = signal<string | null>(null);
   readonly moveToCohortId = signal('');
 
-  readonly countError = signal('');
-  private readonly reloadCount$ = new Subject<void>();
   /**
-   * Every project of every program, only to count them; undefined while
-   * loading or after a failure, so an unknown count never unlocks moving or
-   * removing a program.
+   * Every project of every program, only to count them; while loading or after a
+   * failure the count is unknown, so it never unlocks moving or removing a program.
    */
-  private readonly allProjects = toSignal(
-    this.reloadCount$.pipe(
-      startWith(undefined),
-      tap(() => this.countError.set('')),
-      switchMap(() =>
-        this.projectService.list().pipe(
-          catchError((e: Error) => {
-            this.countError.set(e.message);
-            return of(undefined);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: undefined },
-  );
-
-  retryCount(): void {
-    this.reloadCount$.next();
-  }
+  readonly allProjects = loadable({ source: () => this.projectService.list(), initial: [] as Project[] });
+  private readonly projectCount = (programId: string): number | undefined =>
+    this.allProjects.loading() || this.allProjects.error()
+      ? undefined
+      : this.allProjects.value().filter((x) => x.programaId === programId).length;
 
   private rowOf(cohort: Cohort): CohortRow {
-    const program = this.pfc.programs().find((p) => p.cursoId === cohort.id);
-    const projects = program ? this.allProjects()?.filter((x) => x.programaId === program.id).length : 0;
+    const program = this.pfc.programs.value().find((p) => p.cursoId === cohort.id);
+    const projects = program ? this.projectCount(program.id) : 0;
     return { cohort, programId: program?.id ?? null, projects };
   }
 
@@ -114,9 +96,9 @@ export class StructureSectionComponent {
 
   /** Each course with its cohorts; by id, or by name for cohorts from before the course registry. */
   readonly groups = computed(() => {
-    const cohorts = this.store.cohorts();
+    const cohorts = this.store.cohorts.value();
     const placed = new Set<string>();
-    const groups = this.store.courses().map((course) => {
+    const groups = this.store.courses.value().map((course) => {
       const mine = cohorts.filter((c) => (c.graduacaoId ? c.graduacaoId === course.id : c.nome === course.nome));
       mine.forEach((c) => placed.add(c.id));
       return { course, rows: StructureSectionComponent.sorted(mine.map((c) => this.rowOf(c))) };
@@ -132,21 +114,21 @@ export class StructureSectionComponent {
     if (this.pfc.loadError()) {
       return [];
     }
-    const cohorts = this.store.cohorts();
+    const cohorts = this.store.cohorts.value();
     return this.pfc
-      .programs()
+      .programs.value()
       .filter((p) => !cohorts.some((c) => c.id === p.cursoId))
       .map((p) => ({
         programId: p.id,
-        projects: this.allProjects()?.filter((x) => x.programaId === p.id).length,
+        projects: this.projectCount(p.id),
       }));
   });
 
-  readonly withProgram = computed(() => this.store.cohorts().filter((c) => this.rowOf(c).programId).length);
+  readonly withProgram = computed(() => this.store.cohorts.value().filter((c) => this.rowOf(c).programId).length);
 
   /** Cohorts a program can move to: the ones without a program. */
   readonly freeCohorts = computed(() =>
-    this.store.cohorts().filter((c) => !this.pfc.programs().some((p) => p.cursoId === c.id)),
+    this.store.cohorts.value().filter((c) => !this.pfc.programs.value().some((p) => p.cursoId === c.id)),
   );
 
   invalid(control: FormControl<string>): boolean {
@@ -162,7 +144,7 @@ export class StructureSectionComponent {
   // --- Courses
 
   createCourse(): void {
-    this.store.coursesError.set('');
+    this.store.actionError.set('');
     if (!this.courseName.value.trim()) {
       this.courseName.markAsTouched();
       return;
@@ -177,13 +159,13 @@ export class StructureSectionComponent {
       },
       error: (e: Error) => {
         this.courseCreating.set(false);
-        this.store.coursesError.set(e.message);
+        this.store.actionError.set(e.message);
       },
     });
   }
 
   startEditCourse(course: Course): void {
-    this.store.coursesError.set('');
+    this.store.actionError.set('');
     this.editingCourseId.set(course.id);
     this.courseEditName.setValue(course.nome);
   }
@@ -193,7 +175,7 @@ export class StructureSectionComponent {
       this.courseEditName.markAsTouched();
       return;
     }
-    this.store.coursesError.set('');
+    this.store.actionError.set('');
     this.courseService.update(courseId, this.courseEditName.value).subscribe({
       next: () => {
         this.editingCourseId.set(null);
@@ -201,7 +183,7 @@ export class StructureSectionComponent {
         // The course's cohorts are read with the new name.
         this.cohortsChanged();
       },
-      error: (e: Error) => this.store.coursesError.set(e.message),
+      error: (e: Error) => this.store.actionError.set(e.message),
     });
   }
 
@@ -215,24 +197,24 @@ export class StructureSectionComponent {
     if (!confirmed) {
       return;
     }
-    this.store.coursesError.set('');
+    this.store.actionError.set('');
     this.courseService.remove(course.id).subscribe({
       next: () => this.store.reloadCourses(),
-      error: (e: Error) => this.store.coursesError.set(e.message),
+      error: (e: Error) => this.store.actionError.set(e.message),
     });
   }
 
   // --- Cohorts
 
   openNewCohort(course: Course): void {
-    this.store.cohortsError.set('');
+    this.store.actionError.set('');
     this.editingCohortId.set(null);
     this.newCohortForm.reset({ nome: course.nome, turno: 'MANHA', periodo: '' });
     this.newCohortFor.set(course.id);
   }
 
   createCohort(): void {
-    this.store.cohortsError.set('');
+    this.store.actionError.set('');
     if (this.newCohortForm.invalid) {
       this.newCohortForm.markAllAsTouched();
       return;
@@ -246,13 +228,13 @@ export class StructureSectionComponent {
       },
       error: (e: Error) => {
         this.cohortCreating.set(false);
-        this.store.cohortsError.set(e.message);
+        this.store.actionError.set(e.message);
       },
     });
   }
 
   startEditCohort(cohort: Cohort): void {
-    this.store.cohortsError.set('');
+    this.store.actionError.set('');
     this.newCohortFor.set(null);
     this.cohortEditForm.setValue({
       nome: this.store.isRegistered(cohort.nome) ? cohort.nome : '',
@@ -272,7 +254,7 @@ export class StructureSectionComponent {
         this.editingCohortId.set(null);
         this.cohortsChanged();
       },
-      error: (e: Error) => this.store.cohortsError.set(e.message),
+      error: (e: Error) => this.store.actionError.set(e.message),
     });
   }
 
@@ -286,10 +268,10 @@ export class StructureSectionComponent {
     if (!confirmed) {
       return;
     }
-    this.store.cohortsError.set('');
+    this.store.actionError.set('');
     this.cohortService.remove(cohort.id).subscribe({
       next: () => this.cohortsChanged(),
-      error: (e: Error) => this.store.cohortsError.set(e.message),
+      error: (e: Error) => this.store.actionError.set(e.message),
     });
   }
 

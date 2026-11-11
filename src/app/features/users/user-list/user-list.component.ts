@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Observable, Subject, catchError, combineLatest, of, startWith, switchMap } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import { MessageResponse, ROLE_LABEL, Role, User } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { UserService } from '../../../core/services/user.service';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
@@ -30,48 +30,20 @@ export class UserListComponent {
   readonly canAdd = input(true);
   readonly add = output();
 
-  /** Bumped after every change, which also clears the service's cache. */
-  private readonly reload$ = new Subject<void>();
-
   /** The service caches the list, so filtering makes no new call. */
-  /** A list or the counters failed to load; empty lists and zeros mean nothing then. */
-  readonly loadFailed = signal(false);
-  readonly users = toSignal(
-    combineLatest([
-      toObservable(computed(() => ({ search: this.search(), role: this.role() }))),
-      this.reload$.pipe(startWith(undefined)),
-    ]).pipe(
-      switchMap(([filter]) =>
-        this.userService.list(filter).pipe(
-          catchError((e: Error) => {
-            this.loadFailed.set(true);
-            this.error.set(e.message);
-            return of([] as User[]);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: [] as User[] },
-  );
+  readonly users = loadable({
+    source: (filter: { search: string; role: Role | 'TODOS' }) => this.userService.list(filter),
+    params: computed(() => ({ search: this.search(), role: this.role() })),
+    initial: [] as User[],
+  });
 
   /** Counted over everyone, regardless of the filters. */
-  private readonly everyone = toSignal(
-    this.reload$.pipe(
-      startWith(undefined),
-      switchMap(() =>
-        this.userService.list().pipe(
-          catchError((e: Error) => {
-            this.loadFailed.set(true);
-            this.error.update((current) => current || e.message);
-            return of([] as User[]);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: [] as User[] },
-  );
+  private readonly everyone = loadable({ source: () => this.userService.list(), initial: [] as User[] });
+
+  /** A list or the counters failed to load; empty lists and zeros mean nothing then. */
+  readonly loadError = computed(() => this.users.error() || this.everyone.error());
   readonly stats = computed(() => {
-    const all = this.everyone();
+    const all = this.everyone.value();
     const count = (role: Role) => all.filter((u) => u.perfil === role).length;
     return {
       total: all.length,
@@ -83,10 +55,10 @@ export class UserListComponent {
     };
   });
 
-  retryLoad(): void {
-    this.loadFailed.set(false);
-    this.error.set('');
-    this.reload$.next();
+  /** Reads again after a change, which also clears the service's cache. */
+  reload(): void {
+    this.users.reload();
+    this.everyone.reload();
   }
 
   setSearch(event: Event): void {
@@ -165,7 +137,7 @@ export class UserListComponent {
         this.busyId.set(null);
         this.done.set(mensagem);
         after?.();
-        this.reload$.next();
+        this.reload();
       },
       error: (e: Error) => {
         this.busyId.set(null);

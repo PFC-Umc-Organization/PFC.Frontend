@@ -1,55 +1,36 @@
-import { Injectable, WritableSignal, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { Observable, Subject, catchError, of, startWith, switchMap } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
 
-import { Course } from '../../core/models';
+import { Cohort, Course } from '../../core/models';
 import { CohortService } from '../../core/services/cohort.service';
 import { CourseService } from '../../core/services/course.service';
-
-function reloadable<T>(reload$: Subject<void>, list: () => Observable<T[]>, error: WritableSignal<string>) {
-  return toSignal(
-    reload$.pipe(
-      startWith(undefined),
-      switchMap(() =>
-        list().pipe(
-          catchError((e: Error) => {
-            error.set(e.message);
-            return of([] as T[]);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: [] as T[] },
-  );
-}
+import { loadable } from '../../core/state/loadable';
 
 /** Courses and cohorts, shared by both tabs of the screen; provided by it. */
 @Injectable()
 export class CohortsStore {
   private readonly courseService = inject(CourseService);
   private readonly cohortService = inject(CohortService);
-  private readonly reloadCourses$ = new Subject<void>();
-  private readonly reloadCohorts$ = new Subject<void>();
 
-  readonly coursesError = signal('');
-  readonly cohortsError = signal('');
-  readonly courses = reloadable(this.reloadCourses$, () => this.courseService.list(), this.coursesError);
-  readonly cohorts = reloadable(this.reloadCohorts$, () => this.cohortService.list(), this.cohortsError);
+  readonly courses = loadable({ source: () => this.courseService.list(), initial: [] as Course[] });
+  readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
+
+  /** A failed create, edit or remove; loading failures are `courses.error()` and `cohorts.error()`. */
+  readonly actionError = signal('');
 
   /** By id; cohorts from before the course registry only have the name. */
   cohortsOf(course: Course): number {
-    return this.cohorts().filter((c) => (c.graduacaoId ? c.graduacaoId === course.id : c.nome === course.nome)).length;
+    return this.cohorts.value().filter((c) => (c.graduacaoId ? c.graduacaoId === course.id : c.nome === course.nome)).length;
   }
 
   isRegistered(courseName: string): boolean {
-    return this.courses().some((c) => c.nome === courseName);
+    return this.courses.value().some((c) => c.nome === courseName);
   }
 
   reloadCourses(): void {
-    this.reloadCourses$.next();
+    this.courses.reload();
   }
 
   reloadCohorts(): void {
-    this.reloadCohorts$.next();
+    this.cohorts.reload();
   }
 }

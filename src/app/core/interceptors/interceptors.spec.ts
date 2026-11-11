@@ -48,6 +48,17 @@ describe('interceptors', () => {
     req.flush({});
   });
 
+  it('only treats paths that start with /auth/ as public', () => {
+    http.get(`${api}/referencias/busca?q=/auth/x`).subscribe();
+    const req = backend.expectOne(`${api}/referencias/busca?q=/auth/x`);
+    expect(req.request.headers.get('Authorization')).toBe('Bearer student-token');
+    req.flush({});
+    http.get(`${api}/projetos/p1/auth/x`).subscribe();
+    const deep = backend.expectOne(`${api}/projetos/p1/auth/x`);
+    expect(deep.request.headers.get('Authorization')).toBe('Bearer student-token');
+    deep.flush({});
+  });
+
   it('never sends the token to S3, which would refuse the signed upload', () => {
     const bucket = 'https://umc-prd-uploads-x.s3.us-east-1.amazonaws.com';
     http.post(bucket, new FormData()).subscribe();

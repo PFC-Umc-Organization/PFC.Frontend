@@ -93,6 +93,24 @@ describe('loadable', () => {
     expect(l.value()).toBe('ok');
   });
 
+  it('stops loading at the first answer of a stream that never completes', () => {
+    const live = new Subject<string>();
+    const l = make({ source: () => live, initial: '' });
+    flush();
+    expect(l.loading()).toBe(true);
+    live.next('a');
+    flush();
+    expect(l.loading()).toBe(false);
+    expect(l.value()).toBe('a');
+    live.next('b');
+    flush();
+    expect(l.value()).toBe('b');
+  });
+
+  it('starts as loading, before the first read', () => {
+    expect(make({ source: () => of('x'), initial: '' }).loading()).toBe(true);
+  });
+
   it('null params do not call the source and emit initial', () => {
     const params = signal<string | null>(null);
     const source = vi.fn((p: string) => of(p));

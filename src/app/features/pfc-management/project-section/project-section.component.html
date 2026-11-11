@@ -4,9 +4,9 @@
     @if (store.program()) {
       <span class="card__count">
         @if (filtering()) {
-          {{ visibleProjects().length }} de {{ projects().length }} PFCs
+          {{ visibleProjects().length }} de {{ projects.value().length }} PFCs
         } @else {
-          {{ projects().length }} {{ projects().length === 1 ? 'PFC' : 'PFCs' }}
+          {{ projects.value().length }} {{ projects.value().length === 1 ? 'PFC' : 'PFCs' }}
         }
       </span>
     }
@@ -17,6 +17,13 @@
     </div>
   </div>
 
+  @if (projects.error()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar os PFCs da turma. {{ projects.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="projects.reload()">Tentar novamente</button>
+    </p>
+  }
   @if (error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
@@ -51,7 +58,7 @@
       }
     </p>
   } @else {
-    @if (projects().length) {
+    @if (projects.value().length) {
       <div class="filters">
         <div class="field filters__search">
           <label class="field__label" for="pfc-search">Buscar</label>

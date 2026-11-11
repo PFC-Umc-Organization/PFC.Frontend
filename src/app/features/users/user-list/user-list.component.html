@@ -1,7 +1,7 @@
 <section class="card card--flush">
   <div class="card__head card__head--wrap">
     <h2 class="section-title">Contas</h2>
-    @if (!loadFailed()) {
+    @if (!loadError()) {
       <span class="card__count">{{ stats().total }} {{ stats().total === 1 ? 'conta' : 'contas' }}</span>
     }
     @if (canAdd()) {
@@ -14,7 +14,7 @@
     }
   </div>
 
-  @if (!loadFailed()) {
+  @if (!loadError()) {
     <dl class="summary">
       @for (s of stats().byRole; track s.label) {
         <div class="summary__item">
@@ -52,13 +52,17 @@
     </div>
   </div>
 
+  @if (loadError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar as contas. {{ loadError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar novamente</button>
+    </p>
+  }
   @if (error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ error() }}</span>
-      @if (loadFailed()) {
-        <button type="button" class="btn btn--outline btn--sm" (click)="retryLoad()">Tentar novamente</button>
-      }
     </p>
   }
   @if (done()) {
@@ -81,7 +85,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (u of users(); track u.id) {
+        @for (u of users.value(); track u.id) {
           <tr>
             <td class="cell-strong">
               @if (renamingId() === u.id) {
@@ -158,7 +162,13 @@
         } @empty {
           <tr>
             <td class="table-empty" colspan="6">
-              {{ loadFailed() ? 'As contas não foram carregadas.' : 'Nenhuma conta encontrada com esses filtros.' }}
+              @if (users.loading()) {
+                Carregando as contas…
+              } @else if (loadError()) {
+                As contas não foram carregadas.
+              } @else {
+                Nenhuma conta encontrada com esses filtros.
+              }
             </td>
           </tr>
         }

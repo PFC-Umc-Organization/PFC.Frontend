@@ -1,19 +1,24 @@
-@switch (state().kind) {
-  @case ('loading') {
-    <p class="loading" role="status">Carregando as atividades…</p>
-  }
-  @case ('error') {
-    <p class="alert" role="alert">
-      <app-icon name="alert" />
-      <span>{{ error() }}</span>
-    </p>
-  }
-  @default {
+@if (home.error()) {
+  <p class="alert" role="alert">
+    <app-icon name="alert" />
+    <span>{{ error() }}</span>
+    <button type="button" class="btn btn--outline btn--sm" (click)="home.reload()">Tentar novamente</button>
+  </p>
+} @else if (home.loading()) {
+  <p class="loading" role="status">Carregando as atividades…</p>
+} @else {
     @if (penaltiesError()) {
       <p class="alert" role="alert">
         <app-icon name="alert" />
         <span>Não foi possível carregar as penalidades do grupo. {{ penaltiesError() }}</span>
         <button type="button" class="btn btn--outline btn--sm" (click)="retryPenalties()">Tentar novamente</button>
+      </p>
+    }
+    @if (gridError()) {
+      <p class="alert" role="alert">
+        <app-icon name="alert" />
+        <span>Não foi possível carregar a situação das entregas do grupo. {{ gridError() }}</span>
+        <button type="button" class="btn btn--outline btn--sm" (click)="retryGrid()">Tentar novamente</button>
       </p>
     }
     @if (!project()) {
@@ -116,5 +121,4 @@
         [showLegend]="items().length > 0"
       />
     }
-  }
 }

@@ -1,11 +1,10 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { EMPTY, Observable, Subject, catchError, combineLatest, of, startWith, switchMap, tap } from 'rxjs';
 
 import { Cohort, Enrollment, User, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { UserService } from '../../../core/services/user.service';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
@@ -34,57 +33,31 @@ export class EnrollmentListComponent {
     return this.cohortId() || (cohorts.find((c) => isInTerm(c, term)) ?? cohorts[0])?.id || '';
   });
 
-  private readonly reload$ = new Subject<void>();
-  /** Undefined while loading, so the count and the empty row wait. */
-  readonly enrollments = toSignal(
-    combineLatest([toObservable(this.shownCohortId), this.reload$.pipe(startWith(undefined))]).pipe(
-      switchMap(([id]) =>
-        id
-          ? this.enrollmentService.list(id).pipe(
-              startWith(undefined),
-              catchError((e: Error) => {
-                this.error.set(e.message);
-                return of([] as Enrollment[]);
-              }),
-            )
-          : EMPTY,
-      ),
-    ),
-    { initialValue: undefined },
-  );
+  /** Empty while loading or after a failure: check `loading` and `error` before saying there is no one. */
+  readonly enrollments = loadable({
+    source: (id: string) => this.enrollmentService.list(id),
+    params: computed(() => this.shownCohortId() || null),
+    initial: [] as Enrollment[],
+  });
 
   choose(event: Event): void {
     this.error.set('');
     this.cohortId.set((event.target as HTMLSelectElement).value);
   }
 
+  /** The status column never guesses "Aguardando cadastro": it waits for `users` or shows the error. */
   private readonly userService = inject(UserService);
-  readonly usersError = signal('');
-  private readonly reloadUsers$ = new Subject<void>();
-  /** Undefined while loading or after a failure: the status column never guesses "Aguardando cadastro". */
-  readonly users = toSignal(
-    this.reloadUsers$.pipe(
-      startWith(undefined),
-      tap(() => this.usersError.set('')),
-      switchMap(() =>
-        this.userService.list().pipe(
-          catchError((e: Error): Observable<User[] | undefined> => {
-            this.usersError.set(e.message);
-            return of(undefined);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: undefined },
-  );
+  readonly users = loadable({ source: () => this.userService.list(), initial: [] as User[] });
 
-  retryUsers(): void {
-    this.reloadUsers$.next();
+  /** Reads the list again after a form changed it. */
+  reload(): void {
+    this.enrollments.reload();
+    this.users.reload();
   }
 
   /** The account of the student whose e-mail is `<rgm>@…`. */
   accountOf(rgm: string): User | undefined {
-    return this.users()?.find((u) => u.rgm === rgm);
+    return this.users.value().find((u) => u.rgm === rgm);
   }
 
   async remove(rgm: string): Promise<void> {
@@ -104,7 +77,7 @@ export class EnrollmentListComponent {
         if (failure) {
           this.error.set(`Não foi possível remover o RGM ${failure.rgm}. ${failure.erro}`);
         }
-        this.reload$.next();
+        this.enrollments.reload();
       },
       error: (e: Error) => this.error.set(e.message),
     });

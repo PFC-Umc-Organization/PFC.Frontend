@@ -1,10 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { catchError, of } from 'rxjs';
 
 import { Activity } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ActivityEditorComponent } from '../activity-editor/activity-editor.component';
@@ -25,26 +24,23 @@ export class ActivityScheduleComponent {
   protected readonly manage = this.store.isAdmin;
   private readonly confirmation = inject(ConfirmationService);
 
-  readonly loadError = signal('');
   readonly removeError = signal('');
   readonly editingId = signal<string | null>(null);
   readonly canAdd = input(true);
   readonly add = output();
 
-  private readonly all = toSignal(
-    this.activityService.list().pipe(
-      catchError((e: Error) => {
-        this.loadError.set(e.message);
-        return of([] as Activity[]);
-      }),
-    ),
-    { initialValue: [] as Activity[] },
-  );
+  private readonly all = loadable({ source: () => this.activityService.list(), initial: [] as Activity[] });
+  readonly loadError = this.all.error;
+  readonly loading = this.all.loading;
+
+  reload(): void {
+    this.all.reload();
+  }
 
   /** Those of the chosen cohort, and the old ones that apply to every cohort. */
   readonly activities = computed(() => {
     const cohort = this.store.cohortId();
-    return this.all().filter((a) => !a.turmaId || a.turmaId === cohort);
+    return this.all.value().filter((a) => !a.turmaId || a.turmaId === cohort);
   });
 
   async remove(id: string, title: string): Promise<void> {

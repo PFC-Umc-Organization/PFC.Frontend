@@ -1,8 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Subject, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 
-import { Program, Project, ProjectPenalties, ProjectStatusRow, User, cohortLabel, currentTerm, isInTerm, isStaff } from '../../../core/models';
+import { Cohort, Program, Project, ProjectPenalties, ProjectStatusRow, User, cohortLabel, currentTerm, isInTerm, isStaff } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CohortService } from '../../../core/services/cohort.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
@@ -10,6 +8,8 @@ import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
 import { UserService } from '../../../core/services/user.service';
+import { loadable } from '../../../core/state/loadable';
+import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { PenaltyPanelComponent } from '../penalty-panel/penalty-panel.component';
 import { ProjectPanelComponent } from '../project-panel/project-panel.component';
@@ -25,7 +25,7 @@ export type RowFilter = 'all' | 'failed' | 'late' | 'awaiting' | 'rejected' | 'n
 @Component({
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent, ProjectPanelComponent, DeadlinePipe],
+  imports: [IconComponent, StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent, ProjectPanelComponent, DeadlinePipe],
   templateUrl: './staff-home.component.html',
   styleUrl: './staff-home.component.scss',
 })
@@ -37,30 +37,30 @@ export class StaffHomeComponent {
   private readonly isAdvisor = computed(() => this.auth.role() === 'ORIENTADOR');
   readonly isAdmin = computed(() => this.auth.role() === 'ADMIN');
   private readonly projectService = inject(ProjectService);
-  /** Asks the grid and the project list to read again, after a change in a project. */
-  private readonly refresh$ = new Subject<void>();
 
   protected readonly cohortLabel = cohortLabel;
-  readonly cohorts = toSignal(inject(CohortService).list(), { initialValue: [] });
+  /** A failed read fills its `error`, shown with a retry; none of them lets an empty list pass as "no data". */
+  private readonly cohortService = inject(CohortService);
+  private readonly programService = inject(ProgramService);
+  readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
   private readonly chosen = signal<string | null>(null);
 
-  private readonly programs = toSignal(inject(ProgramService).list().pipe(catchError(() => of([] as Program[]))), {
-    initialValue: [] as Program[],
-  });
+  private readonly programs = loadable({ source: () => this.programService.list(), initial: [] as Program[] });
 
-  /** An advisor's projects, to open on a cohort they follow; undefined while loading. */
-  private readonly advised = toSignal<Project[] | undefined>(
-    this.isAdvisor() ? inject(ProjectService).list().pipe(catchError(() => of([] as Project[]))) : of([] as Project[]),
-    { initialValue: undefined },
-  );
-  readonly choosingCohort = computed(() => this.isAdvisor() && this.advised() === undefined && !this.chosen());
+  /** An advisor's projects, to open on a cohort they follow; the coordination does not need them. */
+  private readonly advised = loadable({
+    source: () => this.projectService.list(),
+    params: computed(() => (this.isAdvisor() ? true : null)),
+    initial: [] as Project[],
+  });
+  readonly choosingCohort = computed(() => this.isAdvisor() && this.advised.loading() && !this.chosen());
 
   /**
    * The chosen cohort or, at first, one of the current term: for an advisor,
    * the first where they advise a project.
    */
   readonly cohortId = computed(() => {
-    const cohorts = this.cohorts();
+    const cohorts = this.cohorts.value();
     const chosen = this.chosen();
     if (chosen && cohorts.some((c) => c.id === chosen)) {
       return chosen;
@@ -71,8 +71,8 @@ export class StaffHomeComponent {
     const term = currentTerm();
     let candidates = cohorts;
     if (this.isAdvisor()) {
-      const programs = new Set((this.advised() ?? []).map((p) => p.programaId));
-      const followed = cohorts.filter((c) => this.programs().some((p) => p.cursoId === c.id && programs.has(p.id)));
+      const programs = new Set(this.advised.value().map((p) => p.programaId));
+      const followed = cohorts.filter((c) => this.programs.value().some((p) => p.cursoId === c.id && programs.has(p.id)));
       if (followed.length) {
         candidates = followed;
       }
@@ -80,50 +80,33 @@ export class StaffHomeComponent {
     return (candidates.find((c) => isInTerm(c, term)) ?? candidates[0])?.id ?? '';
   });
   /** May not exist yet. */
-  readonly programId = computed(() => this.programs().find((p) => p.cursoId === this.cohortId())?.id);
+  readonly programId = computed(() => this.programs.value().find((p) => p.cursoId === this.cohortId())?.id);
 
-  readonly loading = signal(false);
-  readonly error = signal('');
-
-  readonly grid = toSignal(
-    combineLatest([toObservable(this.programId), this.refresh$.pipe(startWith(undefined))]).pipe(
-      tap(() => this.error.set('')),
-      switchMap(([programId]) => {
-        if (!programId) {
-          return of(EMPTY_GRID);
-        }
-        this.loading.set(true);
-        return this.submissionService.statusGrid(programId).pipe(
-          tap(() => this.loading.set(false)),
-          catchError((e: Error) => {
-            this.loading.set(false);
-            this.error.set(e.message);
-            return of(EMPTY_GRID);
-          }),
-        );
-      }),
-    ),
-    { initialValue: EMPTY_GRID },
-  );
+  readonly gridLoad = loadable({
+    source: (programId: string) => this.submissionService.statusGrid(programId),
+    params: computed(() => this.programId() ?? null),
+    initial: EMPTY_GRID,
+  });
+  readonly grid = this.gridLoad.value;
+  readonly loading = this.gridLoad.loading;
+  readonly error = this.gridLoad.error;
 
   /** The coordination's view: who advises each group, and the data to manage one. */
-  private readonly users = toSignal(
-    this.isAdmin() ? this.userService.list().pipe(catchError(() => of([] as User[]))) : of([] as User[]),
-    { initialValue: [] as User[] },
-  );
+  private readonly userList = loadable({
+    source: () => this.userService.list(),
+    params: computed(() => (this.isAdmin() ? true : null)),
+    initial: [] as User[],
+  });
+  private readonly users = this.userList.value;
   readonly advisors = computed(() => this.users().filter((u) => isStaff(u.perfil)));
   readonly nameByRgm = (rgm: string): string => this.users().find((u) => u.rgm === rgm)?.nome ?? rgm;
 
-  readonly projects = toSignal(
-    combineLatest([toObservable(this.programId), this.refresh$.pipe(startWith(undefined))]).pipe(
-      switchMap(([programId]) =>
-        programId && this.isAdmin()
-          ? this.projectService.list(programId).pipe(catchError(() => of([] as Project[])))
-          : of([] as Project[]),
-      ),
-    ),
-    { initialValue: [] as Project[] },
-  );
+  readonly projectList = loadable({
+    source: (programId: string) => this.projectService.list(programId),
+    params: computed(() => (this.isAdmin() ? (this.programId() ?? null) : null)),
+    initial: [] as Project[],
+  });
+  readonly projects = this.projectList.value;
 
   /** Advisors of at least one group of this cohort, for the filter; empty until projects and accounts load. */
   readonly gridAdvisors = computed(() => {
@@ -152,7 +135,8 @@ export class StaffHomeComponent {
 
   /** After editing, assigning an advisor or deleting a group. */
   projectChanged(): void {
-    this.refresh$.next();
+    this.gridLoad.reload();
+    this.projectList.reload();
   }
 
   readonly search = signal('');
@@ -228,25 +212,48 @@ export class StaffHomeComponent {
     if (this.grid().rows.length && this.filtering()) {
       return 'Nenhum projeto desta turma corresponde aos filtros.';
     }
+    if (this.error()) {
+      return 'Os projetos da turma não foram carregados.';
+    }
     if (!this.programId()) {
       return 'Esta turma ainda não tem programa de PFC. Crie o programa em Turmas e PFC.';
     }
     return this.isAdvisor() ? 'Nenhum projeto desta turma tem você como orientador.' : 'Nenhum projeto cadastrado nesta turma.';
   });
 
-  /** A failed load leaves the counters out; the grid still works. */
-  readonly penalties = toSignal(
-    toObservable(this.programId).pipe(
-      switchMap((programId) =>
-        programId
-          ? this.penaltyService.ofProgram(programId).pipe(catchError(() => of([] as ProjectPenalties[])))
-          : of([] as ProjectPenalties[]),
-      ),
-      map((list) => new Map(list.map((p) => [p.projetoId, p]))),
-      startWith(undefined),
-    ),
-    { initialValue: undefined as Map<string, ProjectPenalties> | undefined },
+  private readonly penaltyList = loadable({
+    source: (programId: string) => this.penaltyService.ofProgram(programId),
+    params: computed(() => this.programId() ?? null),
+    initial: [] as ProjectPenalties[],
+  });
+  /** Undefined while loading or after a failure: the counters and statuses are left out, the grid still works. */
+  readonly penalties = computed(() =>
+    this.penaltyList.loading() || this.penaltyList.error()
+      ? undefined
+      : new Map(this.penaltyList.value().map((p): [string, ProjectPenalties] => [p.projetoId, p])),
   );
+
+  /** What failed to load, for the notice with the retry button. */
+  readonly loadFailures = computed(() =>
+    [
+      { what: 'as turmas', error: this.cohorts.error() },
+      { what: 'os programas de PFC', error: this.programs.error() },
+      { what: 'os seus projetos', error: this.advised.error() },
+      { what: 'os projetos da turma', error: this.error() },
+      { what: 'os nomes e orientadores', error: this.userList.error() || this.projectList.error() },
+      { what: 'as penalidades', error: this.penaltyList.error() },
+    ].filter((f) => f.error),
+  );
+
+  retryLoad(): void {
+    this.cohorts.reload();
+    this.programs.reload();
+    this.advised.reload();
+    this.gridLoad.reload();
+    this.userList.reload();
+    this.projectList.reload();
+    this.penaltyList.reload();
+  }
 
   readonly selected = signal<CellRef | null>(null);
   readonly penaltiesOf = signal<{ projectId: string; projectName: string } | null>(null);

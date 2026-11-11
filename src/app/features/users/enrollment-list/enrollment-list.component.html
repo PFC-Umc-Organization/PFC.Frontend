@@ -1,10 +1,8 @@
 <section class="card card--flush">
   <div class="card__head card__head--wrap">
     <h2 class="section-title">RGMs pré-autorizados</h2>
-    @if (enrollments(); as list) {
-      @if (list.length || !error()) {
-        <span class="card__count">{{ list.length }} {{ list.length === 1 ? 'RGM' : 'RGMs' }}</span>
-      }
+    @if (!enrollments.loading() && !enrollments.error()) {
+      <span class="card__count">{{ enrollments.value().length }} {{ enrollments.value().length === 1 ? 'RGM' : 'RGMs' }}</span>
     }
     <div class="card__actions">
       @if (cohorts().length > 0) {
@@ -26,6 +24,14 @@
     </div>
   </div>
 
+  @if (enrollments.error()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar os RGMs da turma. {{ enrollments.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="enrollments.reload()">Tentar novamente</button>
+    </p>
+  }
+
   @if (error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
@@ -33,11 +39,11 @@
     </p>
   }
 
-  @if (usersError()) {
+  @if (users.error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>Não foi possível verificar quais RGMs já têm conta. {{ usersError() }}</span>
-      <button type="button" class="btn btn--outline btn--sm" (click)="retryUsers()">Tentar novamente</button>
+      <span>Não foi possível verificar quais RGMs já têm conta. {{ users.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="users.reload()">Tentar novamente</button>
     </p>
   }
 
@@ -52,13 +58,13 @@
         </tr>
       </thead>
       <tbody>
-        @for (m of enrollments() ?? []; track m.rgm) {
+        @for (m of enrollments.value(); track m.rgm) {
           <tr>
             <td class="cell-strong">{{ m.rgm }}</td>
             <td>
-              @if (usersError()) {
+              @if (users.error()) {
                 <span class="muted">—</span>
-              } @else if (users() === undefined) {
+              } @else if (users.loading()) {
                 <span class="pending">Verificando…</span>
               } @else if (accountOf(m.rgm); as account) {
                 {{ account.nome || '—' }}
@@ -67,9 +73,9 @@
               }
             </td>
             <td>
-              @if (usersError()) {
+              @if (users.error()) {
                 <span class="muted">Não verificado</span>
-              } @else if (users() === undefined) {
+              } @else if (users.loading()) {
                 <span class="pending">Verificando…</span>
               } @else if (accountOf(m.rgm); as account) {
                 @if (account.confirmado === false) {
@@ -96,9 +102,9 @@
           </tr>
         } @empty {
           <tr>
-            @if (enrollments() === undefined) {
+            @if (enrollments.loading() || !shownCohortId()) {
               <td class="table-empty pending" colspan="4">{{ cohorts().length ? 'Carregando os RGMs da turma…' : 'Cadastre uma turma para pré-autorizar RGMs.' }}</td>
-            } @else if (error()) {
+            } @else if (enrollments.error()) {
               <td class="table-empty" colspan="4">Os RGMs desta turma não foram carregados.</td>
             } @else {
               <td class="table-empty" colspan="4">Nenhum RGM pré-autorizado nesta turma.</td>

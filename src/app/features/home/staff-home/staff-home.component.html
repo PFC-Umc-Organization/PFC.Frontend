@@ -7,12 +7,20 @@
   <div class="field picker">
     <label class="field__label" for="cohort">Turma</label>
     <select id="cohort" class="control" [value]="cohortId()" (change)="chooseCohort($event)">
-      @for (c of cohorts(); track c.id) {
+      @for (c of cohorts.value(); track c.id) {
         <option [value]="c.id" [selected]="c.id === cohortId()">{{ cohortLabel(c) }}</option>
       }
     </select>
   </div>
 </header>
+
+@for (f of loadFailures(); track f.what) {
+  <p class="alert" role="alert">
+    <app-icon name="alert" />
+    <span>Não foi possível carregar {{ f.what }}. {{ f.error }}</span>
+    <button type="button" class="btn btn--outline btn--sm" (click)="retryLoad()">Tentar novamente</button>
+  </p>
+}
 
 @if (choosingCohort()) {
   <p class="pending" role="status">Carregando as turmas que você acompanha…</p>
@@ -84,7 +92,6 @@
 <app-status-grid
   [grid]="visibleGrid()"
   [loading]="loading()"
-  [error]="error()"
   [selected]="selected()"
   [emptyText]="emptyText()"
   [penalties]="penalties()"
