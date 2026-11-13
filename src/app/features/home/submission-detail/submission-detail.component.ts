@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 
 import { Activity, Submission, ValidationStatus, validationLabel } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
@@ -40,6 +40,7 @@ export class SubmissionDetailComponent {
   );
   private readonly removeAction = action(() => this.submissionService.remove(this.projectId(), this.activity().id));
   readonly error = computed(() => this.downloadAction.error() || this.removeAction.error());
+  readonly removing = this.removeAction.pending;
   readonly deadlinePassed = computed(() => new Date(this.activity().prazo) < new Date());
 
   /** The panel only lists an advisor's own projects, so an advisor here advises this one. */
@@ -48,14 +49,25 @@ export class SubmissionDetailComponent {
   protected readonly validationLabel = validationLabel;
   /** Starts from the current comment whenever another cell opens. */
   readonly comment = linkedSignal(() => this.submission()?.validacao?.comentario ?? '');
-  readonly validationDone = signal('');
-  private readonly missingComment = signal('');
+  /** Group and activity being read; the feedback below belongs to this pair only. */
+  private readonly targetKey = computed(() => `${this.projectId()}/${this.activity().id}`);
+  readonly validationDone = linkedSignal(() => {
+    this.targetKey();
+    return '';
+  });
+  private readonly missingComment = linkedSignal(() => {
+    this.targetKey();
+    return '';
+  });
   private readonly validateAction = action(
-    (status: ValidationStatus, body: { status: ValidationStatus; comentario?: string }) =>
+    (_key: string, status: ValidationStatus, body: { status: ValidationStatus; comentario?: string }) =>
       this.submissionService.validate(this.projectId(), this.activity().id, body),
     {
-      onSuccess: (_r, status) =>
-        this.validationDone.set(status === 'VALIDADA' ? 'Entrega validada.' : 'Entrega marcada como não validada.'),
+      onSuccess: (_r, key, status) => {
+        if (key === this.targetKey()) {
+          this.validationDone.set(status === 'VALIDADA' ? 'Entrega validada.' : 'Entrega marcada como não validada.');
+        }
+      },
     },
   );
   readonly validating = this.validateAction.pending;
@@ -73,7 +85,7 @@ export class SubmissionDetailComponent {
     }
     this.missingComment.set('');
     this.validationDone.set('');
-    this.validateAction.run(status, { status, ...(comentario ? { comentario } : {}) });
+    this.validateAction.run(this.targetKey(), status, { status, ...(comentario ? { comentario } : {}) });
   }
 
   download(fieldId: string): void {

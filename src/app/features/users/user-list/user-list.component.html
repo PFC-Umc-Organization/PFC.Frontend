@@ -99,7 +99,7 @@
                     [value]="newName()"
                     (input)="setNewName($event)"
                   />
-                  <button type="submit" class="btn btn--primary btn--sm" [disabled]="busyId() === u.id">Salvar</button>
+                  <button type="submit" class="btn btn--primary btn--sm" [disabled]="busy()">Salvar</button>
                   <button type="button" class="btn btn--ghost btn--sm" (click)="renamingId.set(null)">Cancelar</button>
                 </form>
               } @else if (u.nome && u.nome !== u.email) {
@@ -131,26 +131,26 @@
             <td class="row-actions">
               @if (renamingId() !== u.id) {
                 <div class="actions">
-                  <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="startRename(u)" [attr.aria-label]="'Editar nome de ' + u.email">
+                  <button type="button" class="text-action" [disabled]="busy()" (click)="startRename(u)" [attr.aria-label]="'Editar nome de ' + u.email">
                     Editar nome
                   </button>
                   @if (u.perfil !== 'ALUNO' && u.id !== myId()) {
-                    <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="changeRole(u)" [attr.aria-label]="'Trocar perfil de ' + u.email">
+                    <button type="button" class="text-action" [disabled]="busy()" (click)="changeRole(u)" [attr.aria-label]="'Trocar perfil de ' + u.email">
                       Trocar perfil
                     </button>
                   }
                   @if (u.perfil !== 'ALUNO' && u.status === 'ATIVO' && u.aguardandoPrimeiroAcesso) {
-                    <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="resendInvitation(u)" [attr.aria-label]="'Reenviar convite para ' + u.email">
+                    <button type="button" class="text-action" [disabled]="busy()" (click)="resendInvitation(u)" [attr.aria-label]="'Reenviar convite para ' + u.email">
                       Reenviar convite
                     </button>
                   }
                   @if (u.id !== myId()) {
                     @if (u.status === 'ATIVO') {
-                      <button type="button" class="text-action text-action--danger" [disabled]="busyId() === u.id" (click)="disable(u)" [attr.aria-label]="'Desativar a conta de ' + u.email">
+                      <button type="button" class="text-action text-action--danger" [disabled]="busy()" (click)="disable(u)" [attr.aria-label]="'Desativar a conta de ' + u.email">
                         Desativar
                       </button>
                     } @else {
-                      <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="enable(u)" [attr.aria-label]="'Reativar a conta de ' + u.email">
+                      <button type="button" class="text-action" [disabled]="busy()" (click)="enable(u)" [attr.aria-label]="'Reativar a conta de ' + u.email">
                         Reativar
                       </button>
                     }

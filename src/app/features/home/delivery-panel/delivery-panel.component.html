@@ -52,7 +52,7 @@
             }
           </p>
           @if (mode() === 'submitted') {
-            <button type="button" class="btn btn--outline btn--sm" (click)="edit()">Editar</button>
+            <button type="button" class="btn btn--outline btn--sm" [disabled]="sending()" (click)="edit()">Editar</button>
           }
         </div>
         <div class="validation" [class]="'validation validation--' + (s.validacao?.status ?? 'pending')">
@@ -102,7 +102,7 @@
               {{ submission() ? 'Salvar alterações' : 'Enviar entrega' }}
             </button>
             @if (submission()) {
-              <button type="button" class="btn btn--outline" (click)="cancelEdit()">Cancelar</button>
+              <button type="button" class="btn btn--outline" [disabled]="sending()" (click)="cancelEdit()">Cancelar</button>
             }
           </div>
           <div #outcome tabindex="-1">

@@ -128,4 +128,44 @@ describe('loadable', () => {
     expect(l.value()).toBe('none');
     expect(l.loading()).toBe(false);
   });
+
+  it('keeps the last value while a reload is pending and when it fails', () => {
+    let mode: 'ok' | 'fail' | 'wait' = 'ok';
+    const wait = new Subject<string>();
+    const l = make({
+      source: () => (mode === 'ok' ? of('first') : mode === 'fail' ? throwError(() => new Error('falhou')) : wait),
+      initial: 'init',
+    });
+    flush();
+    expect(l.value()).toBe('first');
+    mode = 'wait';
+    l.reload();
+    flush();
+    expect(l.loading()).toBe(true);
+    expect(l.value()).toBe('first');
+    mode = 'fail';
+    l.reload();
+    flush();
+    expect(l.error()).toBe('falhou');
+    expect(l.value()).toBe('first');
+    expect(l.loading()).toBe(false);
+  });
+
+  it('keeps the last value when a params change fails, and resets on null params', () => {
+    const params = signal<string | null>('a');
+    const l = make({
+      source: (p: string) => (p === 'bad' ? throwError(() => new Error('falhou')) : of(p)),
+      params,
+      initial: 'init',
+    });
+    flush();
+    expect(l.value()).toBe('a');
+    params.set('bad');
+    flush();
+    expect(l.value()).toBe('a');
+    expect(l.error()).toBe('falhou');
+    params.set(null);
+    flush();
+    expect(l.value()).toBe('init');
+  });
 });

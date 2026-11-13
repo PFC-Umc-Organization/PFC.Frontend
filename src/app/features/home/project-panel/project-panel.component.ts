@@ -42,6 +42,7 @@ export class ProjectPanelComponent {
       this.closed.emit();
     },
   });
+  readonly removing = this.removeAction.pending;
   readonly error = computed(() => this.advisorAction.error() || this.removeAction.error());
 
   readonly members = computed(() => this.project().integrantes.map((rgm) => ({ rgm, nome: this.nameByRgm()(rgm) })));

@@ -93,6 +93,7 @@
               <button
                 type="button"
                 class="icon-action"
+                [disabled]="removing()"
                 (click)="remove(m.rgm)"
                 [attr.aria-label]="'Remover pré-autorização do RGM ' + m.rgm"
               >

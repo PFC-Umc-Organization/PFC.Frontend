@@ -215,6 +215,7 @@
                         type="button"
                         class="icon-action"
                         title="Excluir PFC"
+                        [disabled]="removing()"
                         (click)="remove(p.id, p.nome)"
                         [attr.aria-label]="'Excluir PFC ' + p.nome"
                       >

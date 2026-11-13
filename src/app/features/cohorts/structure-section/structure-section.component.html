@@ -123,7 +123,7 @@
                     }
                   </div>
                   <div class="form-grid__full row">
-                    <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
+                    <button type="submit" class="btn btn--primary btn--sm" [disabled]="store.busy()">Salvar</button>
                     <button type="button" class="btn btn--outline btn--sm" (click)="editingCourseId.set(null)">
                       Cancelar
                     </button>
@@ -159,7 +159,7 @@
                   <button
                     type="button"
                     class="icon-action"
-                    [disabled]="g.rows.length > 0"
+                    [disabled]="g.rows.length > 0 || store.busy()"
                     [attr.title]="g.rows.length > 0 ? 'Remova as turmas do curso antes de excluí-lo' : null"
                     (click)="removeCourse(g.course)"
                     [attr.aria-label]="'Excluir curso ' + g.course.nome"
@@ -246,7 +246,7 @@
         <form class="form-grid form-grid--2 editor" [formGroup]="cohortEditForm" (ngSubmit)="saveCohort(r.cohort.id)">
           <app-cohort-fields [form]="cohortEditForm" [courses]="store.courses.value()" idPrefix="edit" />
           <div class="form-grid__full row">
-            <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
+            <button type="submit" class="btn btn--primary btn--sm" [disabled]="store.busy()">Salvar</button>
             <button type="button" class="btn btn--outline btn--sm" (click)="editingCohortId.set(null)">Cancelar</button>
           </div>
         </form>
@@ -305,6 +305,7 @@
           <button
             type="button"
             class="icon-action"
+            [disabled]="store.busy()"
             (click)="removeCohort(r.cohort)"
             [attr.aria-label]="'Excluir turma ' + cohortLabel(r.cohort)"
           >
@@ -335,7 +336,7 @@
     <button
       type="button"
       class="icon-action"
-      [disabled]="projects !== 0"
+      [disabled]="projects !== 0 || store.busy()"
       [attr.title]="(projects ?? 0) > 0 ? 'Não é possível excluir um programa que já tem PFCs' : 'Excluir programa'"
       (click)="removeProgram(programId, label)"
       [attr.aria-label]="'Excluir programa de ' + label"
@@ -368,7 +369,7 @@
           <button
             type="button"
             class="btn btn--primary btn--sm"
-            [disabled]="!moveToCohortId()"
+            [disabled]="!moveToCohortId() || store.busy()"
             (click)="saveMoveProgram(programId)"
           >
             Mover

@@ -43,6 +43,7 @@ export class ProjectEditorComponent implements OnInit {
     onSuccess: () => this.membersChanged.emit(),
     concurrency: 'merge',
   });
+  readonly saving = this.saveAction.pending;
   readonly error = this.saveAction.error;
   /** Validation of the typed RGM, or the failure of adding or removing one. */
   private readonly rgmFormatError = signal('');

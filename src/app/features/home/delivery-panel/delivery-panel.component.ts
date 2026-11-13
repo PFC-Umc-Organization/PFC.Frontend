@@ -94,9 +94,10 @@ export class DeliveryPanelComponent {
 
   /** Starts from what was sent whenever another activity is chosen. */
   readonly answers = linkedSignal<Record<string, string | undefined>>(() => ({ ...this.submission()?.respostas }));
-  /** Fields uploading right now; a new activity starts with none. */
+  /** Fields uploading right now; a new activity, or opening/closing the form, starts with none. */
   private readonly uploading = linkedSignal<Set<string>>(() => {
     this.activityId();
+    this.editing();
     return new Set();
   });
   /** On a phone the button ends a long form: the result is brought into view. */

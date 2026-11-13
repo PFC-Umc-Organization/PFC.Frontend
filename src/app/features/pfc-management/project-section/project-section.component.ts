@@ -51,6 +51,7 @@ export class ProjectSectionComponent {
     onSuccess: () => this.reload(),
     concurrency: 'merge',
   });
+  readonly removing = this.removeAction.pending;
   /** The failure of the last change made on a row; load failures are `projects.error()`. */
   readonly error = computed(() => this.advisorAction.error() || this.removeAdvisorAction.error() || this.removeAction.error());
   readonly editingId = signal<string | null>(null);

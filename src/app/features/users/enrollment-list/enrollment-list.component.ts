@@ -33,6 +33,7 @@ export class EnrollmentListComponent {
     },
     concurrency: 'merge',
   });
+  readonly removing = this.removeAction.pending;
   private readonly removeFailure = signal('');
   readonly error = computed(() => this.removeFailure() || this.removeAction.error());
   readonly canAdd = input(true);

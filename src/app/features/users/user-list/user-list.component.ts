@@ -70,7 +70,6 @@ export class UserListComponent {
   }
 
   readonly done = signal('');
-  private readonly target = signal<string | null>(null);
   private readonly missingName = signal('');
   private readonly change = action(
     (_id: string, request: Observable<MessageResponse>, _after?: () => void) => request,
@@ -82,7 +81,8 @@ export class UserListComponent {
       },
     },
   );
-  readonly busyId = computed(() => (this.change.pending() ? this.target() : null));
+  /** One change at a time: every row action waits while one is in flight. */
+  readonly busy = this.change.pending;
   readonly error = computed(() => this.missingName() || this.change.error());
   readonly renamingId = signal<string | null>(null);
   readonly newName = signal('');
@@ -143,9 +143,11 @@ export class UserListComponent {
   }
 
   private run(u: User, request: Observable<MessageResponse>, after?: () => void): void {
+    if (this.change.pending()) {
+      return;
+    }
     this.missingName.set('');
     this.done.set('');
-    this.target.set(u.id);
     this.change.run(u.id, request, after);
   }
 }

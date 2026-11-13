@@ -188,6 +188,19 @@ export class CohortsStore {
 
   readonly courseCreating = this.createCourseAction.pending;
   readonly cohortCreating = this.createCohortAction.pending;
+  /** Any write in flight: deletes and saves wait for it. */
+  readonly busy = computed(
+    () =>
+      this.createCourseAction.pending() ||
+      this.updateCourseAction.pending() ||
+      this.removeCourseAction.pending() ||
+      this.createCohortAction.pending() ||
+      this.updateCohortAction.pending() ||
+      this.removeCohortAction.pending() ||
+      this.createProgramAction.pending() ||
+      this.moveProgramAction.pending() ||
+      this.removeProgramAction.pending(),
+  );
   private readonly programTarget = signal<string | null>(null);
   /** The cohort whose program is being created. */
   readonly programCreating = computed(() => (this.createProgramAction.pending() ? this.programTarget() : null));
