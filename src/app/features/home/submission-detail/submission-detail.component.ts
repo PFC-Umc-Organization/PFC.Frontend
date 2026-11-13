@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 
 import { Activity, Submission, ValidationStatus, validationLabel } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { editedLater } from '../../../core/services/submission-status';
 import { SubmissionService } from '../../../core/services/submission.service';
+import { action } from '../../../core/state/action';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
@@ -33,7 +34,13 @@ export class SubmissionDetailComponent {
   readonly submission = input<Submission | null>(null);
   readonly closed = output();
 
-  readonly error = signal('');
+  private readonly downloadAction = action(
+    (fieldId: string) => this.submissionService.fileLink(this.projectId(), this.activity().id, fieldId),
+    { onSuccess: ({ url }) => window.location.assign(url), concurrency: 'merge' },
+  );
+  private readonly removeAction = action(() => this.submissionService.remove(this.projectId(), this.activity().id));
+  readonly error = computed(() => this.downloadAction.error() || this.removeAction.error());
+  readonly removing = this.removeAction.pending;
   readonly deadlinePassed = computed(() => new Date(this.activity().prazo) < new Date());
 
   /** The panel only lists an advisor's own projects, so an advisor here advises this one. */
@@ -42,9 +49,29 @@ export class SubmissionDetailComponent {
   protected readonly validationLabel = validationLabel;
   /** Starts from the current comment whenever another cell opens. */
   readonly comment = linkedSignal(() => this.submission()?.validacao?.comentario ?? '');
-  readonly validating = signal(false);
-  readonly validationError = signal('');
-  readonly validationDone = signal('');
+  /** Group and activity being read; the feedback below belongs to this pair only. */
+  private readonly targetKey = computed(() => `${this.projectId()}/${this.activity().id}`);
+  readonly validationDone = linkedSignal(() => {
+    this.targetKey();
+    return '';
+  });
+  private readonly missingComment = linkedSignal(() => {
+    this.targetKey();
+    return '';
+  });
+  private readonly validateAction = action(
+    (_key: string, status: ValidationStatus, body: { status: ValidationStatus; comentario?: string }) =>
+      this.submissionService.validate(this.projectId(), this.activity().id, body),
+    {
+      onSuccess: (_r, key, status) => {
+        if (key === this.targetKey()) {
+          this.validationDone.set(status === 'VALIDADA' ? 'Entrega validada.' : 'Entrega marcada como não validada.');
+        }
+      },
+    },
+  );
+  readonly validating = this.validateAction.pending;
+  readonly validationError = computed(() => this.missingComment() || this.validateAction.error());
 
   setComment(event: Event): void {
     this.comment.set((event.target as HTMLTextAreaElement).value);
@@ -53,32 +80,16 @@ export class SubmissionDetailComponent {
   validate(status: ValidationStatus): void {
     const comentario = this.comment().trim();
     if (status === 'NAO_VALIDADA' && !comentario) {
-      this.validationError.set('Para não validar, escreva no comentário o que o grupo precisa corrigir.');
+      this.missingComment.set('Para não validar, escreva no comentário o que o grupo precisa corrigir.');
       return;
     }
-    this.validationError.set('');
+    this.missingComment.set('');
     this.validationDone.set('');
-    this.validating.set(true);
-    this.submissionService
-      .validate(this.projectId(), this.activity().id, { status, ...(comentario ? { comentario } : {}) })
-      .subscribe({
-        next: () => {
-          this.validating.set(false);
-          this.validationDone.set(status === 'VALIDADA' ? 'Entrega validada.' : 'Entrega marcada como não validada.');
-        },
-        error: (e: Error) => {
-          this.validating.set(false);
-          this.validationError.set(e.message);
-        },
-      });
+    this.validateAction.run(this.targetKey(), status, { status, ...(comentario ? { comentario } : {}) });
   }
 
   download(fieldId: string): void {
-    this.error.set('');
-    this.submissionService.fileLink(this.projectId(), this.activity().id, fieldId).subscribe({
-      next: ({ url }) => window.location.assign(url),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.downloadAction.run(fieldId);
   }
 
   async handBack(): Promise<void> {
@@ -95,9 +106,6 @@ export class SubmissionDetailComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.submissionService.remove(this.projectId(), this.activity().id).subscribe({
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.removeAction.run();
   }
 }

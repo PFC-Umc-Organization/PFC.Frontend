@@ -1,7 +1,7 @@
 <section class="card card--flush">
   <div class="card__head card__head--wrap">
     <h2 class="section-title">Contas</h2>
-    @if (!loadFailed()) {
+    @if (!loadError()) {
       <span class="card__count">{{ stats().total }} {{ stats().total === 1 ? 'conta' : 'contas' }}</span>
     }
     @if (canAdd()) {
@@ -14,7 +14,7 @@
     }
   </div>
 
-  @if (!loadFailed()) {
+  @if (!loadError()) {
     <dl class="summary">
       @for (s of stats().byRole; track s.label) {
         <div class="summary__item">
@@ -52,13 +52,17 @@
     </div>
   </div>
 
+  @if (loadError()) {
+    <p class="alert card__alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar as contas. {{ loadError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar novamente</button>
+    </p>
+  }
   @if (error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
       <span>{{ error() }}</span>
-      @if (loadFailed()) {
-        <button type="button" class="btn btn--outline btn--sm" (click)="retryLoad()">Tentar novamente</button>
-      }
     </p>
   }
   @if (done()) {
@@ -81,7 +85,7 @@
         </tr>
       </thead>
       <tbody>
-        @for (u of users(); track u.id) {
+        @for (u of users.value(); track u.id) {
           <tr>
             <td class="cell-strong">
               @if (renamingId() === u.id) {
@@ -95,7 +99,7 @@
                     [value]="newName()"
                     (input)="setNewName($event)"
                   />
-                  <button type="submit" class="btn btn--primary btn--sm" [disabled]="busyId() === u.id">Salvar</button>
+                  <button type="submit" class="btn btn--primary btn--sm" [disabled]="busy()">Salvar</button>
                   <button type="button" class="btn btn--ghost btn--sm" (click)="renamingId.set(null)">Cancelar</button>
                 </form>
               } @else if (u.nome && u.nome !== u.email) {
@@ -127,26 +131,26 @@
             <td class="row-actions">
               @if (renamingId() !== u.id) {
                 <div class="actions">
-                  <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="startRename(u)" [attr.aria-label]="'Editar nome de ' + u.email">
+                  <button type="button" class="text-action" [disabled]="busy()" (click)="startRename(u)" [attr.aria-label]="'Editar nome de ' + u.email">
                     Editar nome
                   </button>
                   @if (u.perfil !== 'ALUNO' && u.id !== myId()) {
-                    <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="changeRole(u)" [attr.aria-label]="'Trocar perfil de ' + u.email">
+                    <button type="button" class="text-action" [disabled]="busy()" (click)="changeRole(u)" [attr.aria-label]="'Trocar perfil de ' + u.email">
                       Trocar perfil
                     </button>
                   }
                   @if (u.perfil !== 'ALUNO' && u.status === 'ATIVO' && u.aguardandoPrimeiroAcesso) {
-                    <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="resendInvitation(u)" [attr.aria-label]="'Reenviar convite para ' + u.email">
+                    <button type="button" class="text-action" [disabled]="busy()" (click)="resendInvitation(u)" [attr.aria-label]="'Reenviar convite para ' + u.email">
                       Reenviar convite
                     </button>
                   }
                   @if (u.id !== myId()) {
                     @if (u.status === 'ATIVO') {
-                      <button type="button" class="text-action text-action--danger" [disabled]="busyId() === u.id" (click)="disable(u)" [attr.aria-label]="'Desativar a conta de ' + u.email">
+                      <button type="button" class="text-action text-action--danger" [disabled]="busy()" (click)="disable(u)" [attr.aria-label]="'Desativar a conta de ' + u.email">
                         Desativar
                       </button>
                     } @else {
-                      <button type="button" class="text-action" [disabled]="busyId() === u.id" (click)="enable(u)" [attr.aria-label]="'Reativar a conta de ' + u.email">
+                      <button type="button" class="text-action" [disabled]="busy()" (click)="enable(u)" [attr.aria-label]="'Reativar a conta de ' + u.email">
                         Reativar
                       </button>
                     }
@@ -158,7 +162,13 @@
         } @empty {
           <tr>
             <td class="table-empty" colspan="6">
-              {{ loadFailed() ? 'As contas não foram carregadas.' : 'Nenhuma conta encontrada com esses filtros.' }}
+              @if (users.loading()) {
+                Carregando as contas…
+              } @else if (loadError()) {
+                As contas não foram carregadas.
+              } @else {
+                Nenhuma conta encontrada com esses filtros.
+              }
             </td>
           </tr>
         }

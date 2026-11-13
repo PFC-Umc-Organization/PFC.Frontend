@@ -78,7 +78,7 @@
       @if (error()) {
         <p class="alert alert--inline" role="alert">{{ error() }}</p>
       }
-      <button type="button" class="btn btn--outline btn--sm" (click)="handBack()">
+      <button type="button" class="btn btn--outline btn--sm" [disabled]="removing()" (click)="handBack()">
         <app-icon name="trash" class="btn__icon" />
         Devolver entrega ao grupo
       </button>

@@ -9,6 +9,7 @@ import {
   ValidationStatus,
 } from '../../../core/models';
 import { SubmissionService } from '../../../core/services/submission.service';
+import { action } from '../../../core/state/action';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
@@ -39,7 +40,11 @@ export class ActivitySubmissionsComponent {
   readonly openGroup = output<{ projectId: string; projectName: string }>();
 
   protected readonly statusLabel = STATUS_LABEL;
-  readonly error = signal('');
+  private readonly downloadAction = action(
+    (projectId: string, fieldId: string) => this.submissionService.fileLink(projectId, this.activity().id, fieldId),
+    { onSuccess: ({ url }) => window.location.assign(url), concurrency: 'merge' },
+  );
+  readonly error = this.downloadAction.error;
 
   readonly delivered = computed(() => this.items().filter((i) => i.submission).length);
 
@@ -51,10 +56,6 @@ export class ActivitySubmissionsComponent {
   }
 
   download(projectId: string, fieldId: string): void {
-    this.error.set('');
-    this.submissionService.fileLink(projectId, this.activity().id, fieldId).subscribe({
-      next: ({ url }) => window.location.assign(url),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.downloadAction.run(projectId, fieldId);
   }
 }

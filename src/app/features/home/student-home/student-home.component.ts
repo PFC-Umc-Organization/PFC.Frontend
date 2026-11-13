@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { Subject, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
+import { combineLatest, map, scan, switchMap } from 'rxjs';
 
 import { Project, ProjectPenalties, TimelineItem } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
@@ -9,6 +9,7 @@ import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
 import { buildStatusGrid, cellStates, submissionStatus } from '../../../core/services/submission-status';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
@@ -19,10 +20,10 @@ import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
 const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
 
-type State =
-  | { kind: 'loading' }
-  | { kind: 'error'; message: string }
-  | { kind: 'ready'; project: Project | null; items: TimelineItem[] };
+interface Home {
+  project: Project | null;
+  items: TimelineItem[];
+}
 
 /**
  * The activities' schedule. Without a group the student still sees the
@@ -40,48 +41,55 @@ export class StudentHomeComponent {
   private readonly submissionService = inject(SubmissionService);
   private readonly activityService = inject(ActivityService);
   private readonly penaltyService = inject(PenaltyService);
+  private readonly projectService = inject(ProjectService);
 
-  readonly state = toSignal(
-    inject(ProjectService)
-      .myProject()
-      .pipe(
-        switchMap((project) =>
-          (project
-            ? this.submissionService.projectTimeline(project.id, project.nome)
-            : this.activityService.list().pipe(
-                map((activities) =>
-                  activities.map<TimelineItem>((a) => ({
-                    activityId: a.id,
-                    title: a.titulo,
-                    projectName: '',
-                    deadline: a.prazo,
-                    status: submissionStatus(a.prazo, undefined),
-                  })),
-                ),
-              )
-          ).pipe(map((items): State => ({ kind: 'ready', project, items }))),
+  /** The student's group (or none) with the timeline; without a group, the plain schedule. Null until it arrives. */
+  readonly home = loadable({
+    source: () =>
+      this.projectService
+        .myProject()
+        .pipe(
+          switchMap((project) =>
+            (project
+              ? this.submissionService.projectTimeline(project.id, project.nome)
+              : this.activityService.list().pipe(
+                  map((activities) =>
+                    activities.map<TimelineItem>((a) => ({
+                      activityId: a.id,
+                      title: a.titulo,
+                      projectName: '',
+                      deadline: a.prazo,
+                      status: submissionStatus(a.prazo, undefined),
+                    })),
+                  ),
+                )
+            ).pipe(map((items): Home => ({ project, items }))),
+          ),
         ),
-        catchError((e: Error) => of<State>({ kind: 'error', message: e.message })),
-        startWith<State>({ kind: 'loading' }),
-      ),
-    { initialValue: { kind: 'loading' } as State },
-  );
+    initial: null as Home | null,
+  });
+
+  /** Every submit moves it, so the grid reads again. */
+  private readonly submitCount = toSignal(this.submissionService.changes().pipe(scan((n) => n + 1, 0)), { initialValue: 0 });
 
   /** The group's own row, in the same grid the staff reads; read again after every submit. */
-  readonly grid = toSignal(
-    combineLatest([toObservable(computed(() => this.project()?.id ?? null)), this.submissionService.changes()]).pipe(
-      switchMap(([id]) => {
-        const project = this.project();
-        return id && project
-          ? combineLatest([this.activityService.list(), this.submissionService.ofProject(id)]).pipe(
-              map(([activities, submissions]) => buildStatusGrid(activities, [project], submissions)),
-            )
-          : of(EMPTY_GRID);
-      }),
-      catchError(() => of(EMPTY_GRID)),
-    ),
-    { initialValue: EMPTY_GRID },
-  );
+  private readonly gridLoad = loadable({
+    source: ({ project }: { project: Project; version: number }) =>
+      combineLatest([this.activityService.list(), this.submissionService.ofProject(project.id)]).pipe(
+        map(([activities, submissions]) => buildStatusGrid(activities, [project], submissions)),
+      ),
+    params: computed(() => {
+      const project = this.project();
+      return project ? { project, version: this.submitCount() } : null;
+    }),
+    initial: EMPTY_GRID,
+  });
+  readonly grid = this.gridLoad.value;
+  readonly gridError = this.gridLoad.error;
+
+  retryGrid(): void {
+    this.gridLoad.reload();
+  }
 
   /** The group's penalties by project id, as the grid reads them. */
   readonly penaltiesByProject = computed(() => {
@@ -135,44 +143,27 @@ export class StudentHomeComponent {
     document.getElementById('penalties-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  readonly project = computed(() => {
-    const s = this.state();
-    return s.kind === 'ready' ? s.project : null;
-  });
+  readonly project = computed(() => this.home.value()?.project ?? null);
   /**
    * Undefined while loading, so the top of the page waits instead of showing
    * "Próxima entrega" to a failed group; null without a group or on failure.
    */
-  readonly penaltiesError = signal('');
-  private readonly reloadPenalties$ = new Subject<void>();
-  private readonly loadedPenalties = toSignal(
-    combineLatest([toObservable(this.project), this.reloadPenalties$.pipe(startWith(undefined))]).pipe(
-      switchMap(([project]) =>
-        project
-          ? this.penaltyService.ofProject(project.id).pipe(
-              catchError((e: Error) => {
-                this.penaltiesError.set(e.message);
-                return of(null);
-              }),
-              startWith(undefined),
-            )
-          : of(null),
-      ),
-    ),
-    { initialValue: undefined as ProjectPenalties | null | undefined },
-  );
+  private readonly penaltyLoad = loadable({
+    source: (project: Project) => this.penaltyService.ofProject(project.id),
+    params: this.project,
+    initial: null as ProjectPenalties | null,
+  });
+  readonly penaltiesError = this.penaltyLoad.error;
   retryPenalties(): void {
-    this.penaltiesError.set('');
-    this.reloadPenalties$.next();
+    this.penaltyLoad.reload();
   }
 
-  readonly penaltiesReady = computed(() => !this.project() || this.loadedPenalties() !== undefined);
-  readonly penalties = computed(() => this.loadedPenalties() ?? null);
+  readonly penaltiesReady = computed(() => !this.project() || !this.penaltyLoad.loading());
+  readonly penalties = this.penaltyLoad.value;
   readonly failed = computed(() => this.penalties()?.reprovado ?? false);
 
   /** With a group, read from the grid so it follows every submit; without one, from the plain schedule. */
   readonly items = computed(() => {
-    const s = this.state();
     const row = this.grid().rows[0];
     if (this.project() && row) {
       return this.grid().activities.map<TimelineItem>((a, i) => ({
@@ -183,12 +174,9 @@ export class StudentHomeComponent {
         status: row.cells[i].status,
       }));
     }
-    return s.kind === 'ready' ? s.items : [];
+    return this.home.value()?.items ?? [];
   });
-  readonly error = computed(() => {
-    const s = this.state();
-    return s.kind === 'error' ? `Não foi possível carregar as atividades. ${s.message}` : '';
-  });
+  readonly error = computed(() => (this.home.error() ? `Não foi possível carregar as atividades. ${this.home.error()}` : ''));
   /** The pending activity with the closest deadline. */
   readonly next = computed(() =>
     this.items()

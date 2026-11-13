@@ -4,6 +4,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
 import { Penalty, penaltyTitle } from '../../../core/models';
 import { PenaltyService } from '../../../core/services/penalty.service';
+import { action } from '../../../core/state/action';
 
 /** The group's penalties, active then waived; the staff waives one with a reason. */
 @Component({
@@ -25,7 +26,11 @@ export class PenaltyListComponent {
   protected readonly waived = computed(() => this.penalties().filter((p) => p.perdao));
   readonly waiving = signal<string | null>(null);
   readonly reason = new FormControl('', { nonNullable: true });
-  readonly busy = signal(false);
+  private readonly waiveAction = action(
+    (projectId: string, id: string, reason: string) => this.penaltyService.waive(projectId, id, reason),
+    { onSuccess: () => this.waiving.set(null), onError: (e) => this.error.set(e.message) },
+  );
+  readonly busy = this.waiveAction.pending;
   readonly error = signal('');
 
   start(penalty: Penalty): void {
@@ -40,16 +45,7 @@ export class PenaltyListComponent {
       this.error.set('Informe o motivo do perdão.');
       return;
     }
-    this.busy.set(true);
-    this.penaltyService.waive(this.projectId(), penalty.id, reason).subscribe({
-      next: () => {
-        this.busy.set(false);
-        this.waiving.set(null);
-      },
-      error: (e: Error) => {
-        this.busy.set(false);
-        this.error.set(e.message);
-      },
-    });
+    this.error.set('');
+    this.waiveAction.run(this.projectId(), penalty.id, reason);
   }
 }

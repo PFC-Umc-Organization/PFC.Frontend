@@ -19,7 +19,8 @@
   @if (loadError()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
-      <span>{{ loadError() }}</span>
+      <span>Não foi possível carregar as atividades. {{ loadError() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="reload()">Tentar novamente</button>
     </p>
   }
   @if (removeError()) {
@@ -83,7 +84,9 @@
           }
         } @empty {
           <tr>
-            <td class="table-empty" [attr.colspan]="manage() ? 3 : 2">Nenhuma atividade cadastrada ainda.</td>
+            <td class="table-empty" [attr.colspan]="manage() ? 3 : 2">
+              {{ loading() ? 'Carregando as atividades…' : loadError() ? 'As atividades não foram carregadas.' : 'Nenhuma atividade cadastrada ainda.' }}
+            </td>
           </tr>
         }
       </tbody>

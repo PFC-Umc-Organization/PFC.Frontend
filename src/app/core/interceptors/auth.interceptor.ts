@@ -11,7 +11,8 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const router = inject(Router);
   // Only the API gets the token: S3 refuses a signed upload that also has Authorization.
   const isApi = req.url.startsWith(environment.apiBaseUrl);
-  const isPublic = req.url.includes('/auth/');
+  // Only a path that starts with /auth/ is public: the same text in a query string or deeper path is not.
+  const isPublic = isApi && req.url.slice(environment.apiBaseUrl.length).startsWith('/auth/');
   const token = auth.token();
 
   if (!isApi || isPublic || !token) {

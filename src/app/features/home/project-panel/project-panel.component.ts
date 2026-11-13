@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output, si
 import { Project, User } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { ProjectService } from '../../../core/services/project.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ProjectEditorComponent } from '../../pfc-management/project-editor/project-editor.component';
 
@@ -30,20 +31,25 @@ export class ProjectPanelComponent {
   readonly changed = output();
 
   readonly editing = signal(false);
-  readonly error = signal('');
+  private readonly advisorAction = action(
+    (projectId: string, advisorId: string) =>
+      advisorId ? this.projectService.setAdvisor(projectId, advisorId) : this.projectService.removeAdvisor(projectId),
+    { onSuccess: () => this.changed.emit() },
+  );
+  private readonly removeAction = action((projectId: string) => this.projectService.remove(projectId), {
+    onSuccess: () => {
+      this.changed.emit();
+      this.closed.emit();
+    },
+  });
+  readonly removing = this.removeAction.pending;
+  readonly error = computed(() => this.advisorAction.error() || this.removeAction.error());
 
   readonly members = computed(() => this.project().integrantes.map((rgm) => ({ rgm, nome: this.nameByRgm()(rgm) })));
 
   setAdvisor(event: Event): void {
     const advisorId = (event.target as HTMLSelectElement).value;
-    this.error.set('');
-    const change = advisorId
-      ? this.projectService.setAdvisor(this.project().id, advisorId)
-      : this.projectService.removeAdvisor(this.project().id);
-    change.subscribe({
-      next: () => this.changed.emit(),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.advisorAction.run(this.project().id, advisorId);
   }
 
   saved(): void {
@@ -62,13 +68,6 @@ export class ProjectPanelComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.projectService.remove(this.project().id).subscribe({
-      next: () => {
-        this.changed.emit();
-        this.closed.emit();
-      },
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.removeAction.run(this.project().id);
   }
 }

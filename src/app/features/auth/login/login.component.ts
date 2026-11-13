@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { action } from '../../../core/state/action';
 import { ApiError } from '../../../core/services/http-error';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PasswordFieldComponent } from '../../../shared/components/password-field/password-field.component';
@@ -24,7 +25,20 @@ export class LoginComponent {
   /** Sent here by the interceptor when the token expired. */
   readonly expired = this.query.get('motivo') === 'sessao-expirada';
 
-  readonly loading = signal(false);
+  private readonly signInAction = action((credentials: Parameters<AuthService['signIn']>[0]) => this.auth.signIn(credentials), {
+    onSuccess: (result) => {
+      if (result === 'new-password') {
+        void this.router.navigate(['/nova-senha']);
+        return;
+      }
+      void this.router.navigateByUrl(this.destination());
+    },
+    onError: (e) => {
+      this.unconfirmed.set((e as ApiError).status === 403);
+      this.error.set(e.message || 'Não foi possível entrar.');
+    },
+  });
+  readonly loading = this.signInAction.pending;
   readonly error = signal('');
   /** Refused because the account still waits for the e-mail code (403). */
   readonly unconfirmed = signal(false);
@@ -45,22 +59,7 @@ export class LoginComponent {
       this.form.markAllAsTouched();
       return;
     }
-    this.loading.set(true);
-    this.auth.signIn(this.form.getRawValue()).subscribe({
-      next: (result) => {
-        this.loading.set(false);
-        if (result === 'new-password') {
-          void this.router.navigate(['/nova-senha']);
-          return;
-        }
-        void this.router.navigateByUrl(this.destination());
-      },
-      error: (e: ApiError) => {
-        this.loading.set(false);
-        this.unconfirmed.set(e.status === 403);
-        this.error.set(e.message || 'Não foi possível entrar.');
-      },
-    });
+    this.signInAction.run(this.form.getRawValue());
   }
 
   /** Internal paths only: an outside `retorno` would be an open redirect. */

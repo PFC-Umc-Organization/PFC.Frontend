@@ -29,30 +29,26 @@
       @if (formOpen()) {
         <app-account-form (closed)="formOpen.set(false)" (created)="finish($event)" />
       }
-      @for (v of [version()]; track v) {
-        <app-user-list [canAdd]="!formOpen()" (add)="open()" />
-      }
+      <app-user-list [canAdd]="!formOpen()" (add)="open()" />
     }
     @case ('enrollments') {
-      @if (cohortsError()) {
+      @if (cohorts.error()) {
         <p class="alert" role="alert">
           <app-icon name="alert" />
-          <span>Não foi possível carregar as turmas. {{ cohortsError() }}</span>
-          <button type="button" class="btn btn--outline btn--sm" (click)="retryCohorts()">Tentar novamente</button>
+          <span>Não foi possível carregar as turmas. {{ cohorts.error() }}</span>
+          <button type="button" class="btn btn--outline btn--sm" (click)="cohorts.reload()">Tentar novamente</button>
         </p>
-      } @else if (cohorts(); as cohorts) {
+      } @else if (!cohorts.loading()) {
         @if (formOpen()) {
           <app-enroll-form
-            [cohorts]="cohorts"
+            [cohorts]="cohorts.value()"
             [cohortId]="enrollmentCohort()"
             (enrolledIn)="enrollmentCohort.set($event)"
             (closed)="formOpen.set(false)"
             (created)="finish($event)"
           />
         }
-        @for (v of [version()]; track v) {
-          <app-enrollment-list [cohorts]="cohorts" [(cohortId)]="enrollmentCohort" [canAdd]="!formOpen()" (add)="open()" />
-        }
+        <app-enrollment-list [cohorts]="cohorts.value()" [(cohortId)]="enrollmentCohort" [canAdd]="!formOpen()" (add)="open()" />
       } @else {
         <p class="pending">Carregando as turmas…</p>
       }

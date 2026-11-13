@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { PASSWORD_HINT, PASSWORD_RULE } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PasswordFieldComponent } from '../../../shared/components/password-field/password-field.component';
 import { AuthCardComponent } from '../auth-card/auth-card.component';
@@ -22,7 +23,21 @@ export class ForgotPasswordComponent {
   private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder).nonNullable;
 
-  readonly loading = signal(false);
+  private readonly sendAction = action((email: string) => this.auth.forgotPassword(email), {
+    onSuccess: (r) => {
+      this.notice.set(r.mensagem);
+      this.codeSent.set(true);
+    },
+    onError: (e) => this.error.set(e.message || 'Não foi possível enviar o código.'),
+  });
+  private readonly resetAction = action(
+    (email: string, code: string, password: string) => this.auth.resetPassword(email, code, password),
+    {
+      onSuccess: (r) => this.done.set(r.mensagem),
+      onError: (e) => this.error.set(e.message || 'Não foi possível redefinir a senha.'),
+    },
+  );
+  readonly loading = computed(() => this.sendAction.pending() || this.resetAction.pending());
   readonly error = signal('');
   readonly notice = signal('');
   readonly codeSent = signal(false);
@@ -63,18 +78,7 @@ export class ForgotPasswordComponent {
       this.request.markAllAsTouched();
       return;
     }
-    this.loading.set(true);
-    this.auth.forgotPassword(this.request.controls.email.value.trim()).subscribe({
-      next: (r) => {
-        this.loading.set(false);
-        this.notice.set(r.mensagem);
-        this.codeSent.set(true);
-      },
-      error: (e: Error) => {
-        this.loading.set(false);
-        this.error.set(e.message || 'Não foi possível enviar o código.');
-      },
-    });
+    this.sendAction.run(this.request.controls.email.value.trim());
   }
 
   resetPassword(): void {
@@ -85,17 +89,7 @@ export class ForgotPasswordComponent {
       return;
     }
     const { codigo, senha } = this.reset.getRawValue();
-    this.loading.set(true);
-    this.auth.resetPassword(this.request.controls.email.value.trim(), codigo.trim(), senha).subscribe({
-      next: (r) => {
-        this.loading.set(false);
-        this.done.set(r.mensagem);
-      },
-      error: (e: Error) => {
-        this.loading.set(false);
-        this.error.set(e.message || 'Não foi possível redefinir a senha.');
-      },
-    });
+    this.resetAction.run(this.request.controls.email.value.trim(), codigo.trim(), senha);
   }
 
   changeEmail(): void {

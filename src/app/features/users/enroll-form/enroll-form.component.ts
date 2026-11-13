@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 
 import { Cohort, EnrollmentResult, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** Pre-authorizes RGMs in a cohort; the students then create their own accounts. */
@@ -31,14 +32,30 @@ export class EnrollFormComponent {
     turmaId: ['', [Validators.required]],
     rgms: ['', [Validators.required]],
   });
-  readonly saving = signal(false);
   readonly result = signal<EnrollmentResult | null>(null);
-  readonly error = signal('');
+  private readonly enrollAction = action(
+    (rgms: string[], turmaId: string) => this.enrollmentService.enroll(rgms, turmaId),
+    {
+      onSuccess: (result, _rgms, turmaId) => {
+        this.form.reset({ turmaId: '', rgms: '' });
+        this.enrolledIn.emit(turmaId);
+        if (result.falhas.length === 0) {
+          this.created.emit(result.processados === 1 ? '1 RGM pré-autorizado.' : `${result.processados} RGMs pré-autorizados.`);
+        } else {
+          this.result.set(result);
+        }
+      },
+    },
+  );
+  readonly saving = this.enrollAction.pending;
+  private readonly invalidInput = signal('');
+  readonly error = computed(() => this.invalidInput() || this.enrollAction.error() || '');
   readonly closed = output();
   /** Only when every RGM went in; with failures the form stays open to show them. */
   readonly created = output<string>();
 
   constructor() {
+    // Legitimate effect: bridges the cohortId signal into the Reactive Forms control.
     effect(() => {
       const id = this.cohortId();
       if (this.termCohorts().some((c) => c.id === id)) {
@@ -54,7 +71,7 @@ export class EnrollFormComponent {
 
   enroll(): void {
     this.result.set(null);
-    this.error.set('');
+    this.invalidInput.set('');
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -62,25 +79,9 @@ export class EnrollFormComponent {
     const { turmaId, rgms: text } = this.form.getRawValue();
     const rgms = [...new Set(text.split(/[\s,;]+/).filter((r) => /^\d{4,12}$/.test(r)))];
     if (rgms.length === 0) {
-      this.error.set('Informe ao menos um RGM válido (só números).');
+      this.invalidInput.set('Informe ao menos um RGM válido (só números).');
       return;
     }
-    this.saving.set(true);
-    this.enrollmentService.enroll(rgms, turmaId).subscribe({
-      next: (result) => {
-        this.saving.set(false);
-        this.form.reset({ turmaId: '', rgms: '' });
-        this.enrolledIn.emit(turmaId);
-        if (result.falhas.length === 0) {
-          this.created.emit(result.processados === 1 ? '1 RGM pré-autorizado.' : `${result.processados} RGMs pré-autorizados.`);
-        } else {
-          this.result.set(result);
-        }
-      },
-      error: (e: Error) => {
-        this.saving.set(false);
-        this.error.set(e.message || 'Não foi possível pré-autorizar os RGMs.');
-      },
-    });
+    this.enrollAction.run(rgms, turmaId);
   }
 }

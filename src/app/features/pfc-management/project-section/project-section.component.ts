@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { Subject, catchError, combineLatest, map, of, startWith, switchMap, tap } from 'rxjs';
 
 import { Project, ProjectPenalties, User, isStaff } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { UserService } from '../../../core/services/user.service';
+import { action } from '../../../core/state/action';
+import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { CohortPickerComponent } from '../cohort-picker/cohort-picker.component';
 import { PfcManagementStore } from '../pfc-management.store';
@@ -32,87 +32,78 @@ export class ProjectSectionComponent {
   private readonly projectService = inject(ProjectService);
   private readonly confirmation = inject(ConfirmationService);
 
-  readonly error = signal('');
+  private readonly advisorAction = action(
+    (projectId: string, advisorId: string) =>
+      advisorId ? this.projectService.setAdvisor(projectId, advisorId) : this.projectService.removeAdvisor(projectId),
+    {
+      onSuccess: () => {
+        this.editingAdvisorId.set(null);
+        this.reload();
+      },
+      concurrency: 'merge',
+    },
+  );
+  private readonly removeAdvisorAction = action((projectId: string) => this.projectService.removeAdvisor(projectId), {
+    onSuccess: () => this.reload(),
+    concurrency: 'merge',
+  });
+  private readonly removeAction = action((projectId: string) => this.projectService.remove(projectId), {
+    onSuccess: () => this.reload(),
+    concurrency: 'merge',
+  });
+  readonly removing = this.removeAction.pending;
+  /** The failure of the last change made on a row; load failures are `projects.error()`. */
+  readonly error = computed(() => this.advisorAction.error() || this.removeAdvisorAction.error() || this.removeAction.error());
   readonly editingId = signal<string | null>(null);
   readonly editingAdvisorId = signal<string | null>(null);
 
-  private readonly reload$ = new Subject<void>();
-  readonly projects = toSignal(
-    combineLatest([toObservable(computed(() => this.store.program()?.id)), this.reload$.pipe(startWith(undefined))]).pipe(
-      switchMap(([programId]) =>
-        programId
-          ? this.projectService.list(programId).pipe(
-              catchError((e: Error) => {
-                this.error.set(e.message);
-                return of([] as Project[]);
-              }),
-            )
-          : of([] as Project[]),
-      ),
-    ),
-    { initialValue: [] as Project[] },
-  );
+  private readonly programId = computed(() => this.store.program()?.id ?? null);
+  /** Load failures are `projects.error()`; `error` is for the changes made on a row. */
+  readonly projects = loadable({
+    source: (programId: string) => this.projectService.list(programId),
+    params: this.programId,
+    initial: [] as Project[],
+  });
 
   private readonly penaltyService = inject(PenaltyService);
-  readonly penaltiesError = signal('');
-  private readonly reloadPenalties$ = new Subject<void>();
+  private readonly penaltyList = loadable({
+    source: (programId: string) => this.penaltyService.ofProgram(programId),
+    params: this.programId,
+    initial: [] as ProjectPenalties[],
+  });
+  readonly penaltiesError = this.penaltyList.error;
   /** Undefined while loading and null after a failure, so a status is never guessed. */
-  readonly penalties = toSignal(
-    combineLatest([
-      toObservable(computed(() => this.store.program()?.id)),
-      this.reloadPenalties$.pipe(startWith(undefined)),
-    ]).pipe(
-      tap(() => this.penaltiesError.set('')),
-      switchMap(([programId]) =>
-        programId
-          ? this.penaltyService.ofProgram(programId).pipe(
-              map((list): Map<string, ProjectPenalties> | null => new Map(list.map((p) => [p.projetoId, p]))),
-              catchError((e: Error) => {
-                this.penaltiesError.set(e.message);
-                return of(null);
-              }),
-              startWith(undefined),
-            )
-          : of(new Map<string, ProjectPenalties>()),
-      ),
-    ),
-    { initialValue: undefined as Map<string, ProjectPenalties> | null | undefined },
+  readonly penalties = computed<Map<string, ProjectPenalties> | null | undefined>(() =>
+    this.penaltyList.loading()
+      ? undefined
+      : this.penaltyList.error()
+        ? null
+        : new Map(this.penaltyList.value().map((p) => [p.projetoId, p])),
   );
 
   retryPenalties(): void {
-    this.reloadPenalties$.next();
+    this.penaltyList.reload();
   }
 
   private readonly userService = inject(UserService);
-  readonly usersError = signal('');
-  private readonly reloadUsers$ = new Subject<void>();
-  private readonly users = toSignal(
-    this.reloadUsers$.pipe(
-      startWith(undefined),
-      tap(() => this.usersError.set('')),
-      switchMap(() =>
-        this.userService.list().pipe(
-          catchError((e: Error) => {
-            this.usersError.set(e.message);
-            return of([] as User[]);
-          }),
-        ),
-      ),
-    ),
-    { initialValue: [] as User[] },
-  );
+  private readonly userList = loadable({ source: () => this.userService.list(), initial: [] as User[] });
+  private readonly users = this.userList.value;
+  readonly usersError = this.userList.error;
 
   retryUsers(): void {
-    this.reloadUsers$.next();
+    this.userList.reload();
   }
 
   readonly advisors = computed(() => this.users().filter((u) => isStaff(u.perfil)));
 
+  private readonly nameById = computed(() => new Map(this.users().map((u) => [u.id, u.nome])));
+  private readonly nameOfRgm = computed(() => new Map(this.users().map((u) => [u.rgm, u.nome])));
+
   userName(id: string): string {
-    return this.users().find((u) => u.id === id)?.nome ?? '—';
+    return this.nameById().get(id) ?? '—';
   }
 
-  readonly nameByRgm = (rgm: string): string => this.users().find((u) => u.rgm === rgm)?.nome ?? rgm;
+  readonly nameByRgm = (rgm: string): string => this.nameOfRgm().get(rgm) ?? rgm;
 
   readonly search = signal('');
   /** 'TODOS', 'NENHUM' or an advisor's id. */
@@ -129,7 +120,7 @@ export class ProjectSectionComponent {
     const advisor = this.advisorFilter();
     const status = this.statusFilter();
     const penalties = this.penalties();
-    return this.projects().filter((p) => {
+    return this.projects.value().filter((p) => {
       const text = [p.nome, ...p.integrantes, ...p.integrantes.map(this.nameByRgm)].join(' ');
       if (term && !folded(text).includes(term)) {
         return false;
@@ -162,7 +153,8 @@ export class ProjectSectionComponent {
   }
 
   reload(): void {
-    this.reload$.next();
+    this.projects.reload();
+    this.penaltyList.reload();
   }
 
   saved(): void {
@@ -172,25 +164,11 @@ export class ProjectSectionComponent {
 
   setAdvisor(projectId: string, event: Event): void {
     const advisorId = (event.target as HTMLSelectElement).value;
-    this.error.set('');
-    const change = advisorId
-      ? this.projectService.setAdvisor(projectId, advisorId)
-      : this.projectService.removeAdvisor(projectId);
-    change.subscribe({
-      next: () => {
-        this.editingAdvisorId.set(null);
-        this.reload();
-      },
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.advisorAction.run(projectId, advisorId);
   }
 
   removeAdvisor(projectId: string): void {
-    this.error.set('');
-    this.projectService.removeAdvisor(projectId).subscribe({
-      next: () => this.reload(),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.removeAdvisorAction.run(projectId);
   }
 
   async remove(projectId: string, name: string): Promise<void> {
@@ -203,10 +181,6 @@ export class ProjectSectionComponent {
     if (!confirmed) {
       return;
     }
-    this.error.set('');
-    this.projectService.remove(projectId).subscribe({
-      next: () => this.reload(),
-      error: (e: Error) => this.error.set(e.message),
-    });
+    this.removeAction.run(projectId);
   }
 }

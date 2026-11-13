@@ -15,7 +15,7 @@
       <div class="field picker">
         <label class="field__label" for="project">PFC</label>
         <select id="project" class="control" [value]="project()?.id ?? ''" (change)="choose($event)">
-          @for (p of projects(); track p.id) {
+          @for (p of projects.value(); track p.id) {
             <option [value]="p.id">{{ p.nome }}</option>
           } @empty {
             <option value="">{{ projectError() ? 'PFCs não carregados' : 'Nenhum PFC cadastrado' }}</option>

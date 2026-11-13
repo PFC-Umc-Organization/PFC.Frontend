@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { AuthCardComponent } from '../auth-card/auth-card.component';
 
@@ -21,8 +22,16 @@ import { AuthCardComponent } from '../auth-card/auth-card.component';
 export class ConfirmAccountComponent {
   private readonly auth = inject(AuthService);
 
-  readonly loading = signal(false);
-  readonly resending = signal(false);
+  private readonly confirmAction = action((email: string, code: string) => this.auth.confirm(email, code), {
+    onSuccess: (r) => this.confirmed.set(r.mensagem),
+    onError: (e) => this.error.set(e.message || 'Não foi possível confirmar a conta.'),
+  });
+  private readonly resendAction = action((email: string) => this.auth.resendCode(email), {
+    onSuccess: (r) => this.notice.set(r.mensagem),
+    onError: (e) => this.error.set(e.message || 'Não foi possível reenviar o código.'),
+  });
+  readonly loading = this.confirmAction.pending;
+  readonly resending = this.resendAction.pending;
   readonly error = signal('');
   readonly notice = signal('');
   readonly confirmed = signal('');
@@ -44,18 +53,8 @@ export class ConfirmAccountComponent {
       this.form.markAllAsTouched();
       return;
     }
-    this.loading.set(true);
     const { email, codigo } = this.form.getRawValue();
-    this.auth.confirm(email.trim(), codigo.trim()).subscribe({
-      next: (r) => {
-        this.loading.set(false);
-        this.confirmed.set(r.mensagem);
-      },
-      error: (e: Error) => {
-        this.loading.set(false);
-        this.error.set(e.message || 'Não foi possível confirmar a conta.');
-      },
-    });
+    this.confirmAction.run(email.trim(), codigo.trim());
   }
 
   resend(): void {
@@ -66,16 +65,6 @@ export class ConfirmAccountComponent {
       email.markAsTouched();
       return;
     }
-    this.resending.set(true);
-    this.auth.resendCode(email.value.trim()).subscribe({
-      next: (r) => {
-        this.resending.set(false);
-        this.notice.set(r.mensagem);
-      },
-      error: (e: Error) => {
-        this.resending.set(false);
-        this.error.set(e.message || 'Não foi possível reenviar o código.');
-      },
-    });
+    this.resendAction.run(email.value.trim());
   }
 }

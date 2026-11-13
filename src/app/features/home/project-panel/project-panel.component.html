@@ -53,7 +53,7 @@
           <app-icon name="edit" class="btn__icon" />
           Editar
         </button>
-        <button type="button" class="btn btn--outline btn--sm" (click)="remove()">
+        <button type="button" class="btn btn--outline btn--sm" [disabled]="removing()" (click)="remove()">
           <app-icon name="trash" class="btn__icon" />
           Excluir PFC
         </button>

@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PROJECT_LIMITS, parseClassmates, rgmOf } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProjectService } from '../../../core/services/project.service';
+import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 /** The creator joins at once; each classmate gets an invitation. */
@@ -26,8 +27,12 @@ export class CreateProjectComponent {
     descricao: ['', [Validators.maxLength(PROJECT_LIMITS.descricao)]],
     colegas: [''],
   });
-  readonly creating = signal(false);
   readonly error = signal('');
+  private readonly createAction = action(
+    (body: Parameters<ProjectService['createMine']>[0]) => this.projectService.createMine(body),
+    { onSuccess: () => this.created.emit(), onError: (e) => this.error.set(e.message) },
+  );
+  readonly creating = this.createAction.pending;
 
   invalid(name: 'nome' | 'descricao'): boolean {
     const c = this.form.controls[name];
@@ -46,16 +51,6 @@ export class CreateProjectComponent {
       this.error.set(classmates.erro);
       return;
     }
-    this.creating.set(true);
-    this.projectService.createMine({ nome: nome.trim(), descricao: descricao.trim(), integrantes: classmates.rgms }).subscribe({
-      next: () => {
-        this.creating.set(false);
-        this.created.emit();
-      },
-      error: (e: Error) => {
-        this.creating.set(false);
-        this.error.set(e.message);
-      },
-    });
+    this.createAction.run({ nome: nome.trim(), descricao: descricao.trim(), integrantes: classmates.rgms });
   }
 }
