@@ -3,6 +3,9 @@
     <h2 class="section-title">Convites pendentes</h2>
   </div>
   <div class="card__body invitations">
+    @if (notice()) {
+      <p class="ok" role="status">{{ notice() }}</p>
+    }
     @if (loadError()) {
       <p class="alert" role="alert">
         <app-icon name="alert" />

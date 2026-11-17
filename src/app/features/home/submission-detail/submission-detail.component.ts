@@ -81,10 +81,28 @@ export class SubmissionDetailComponent {
     this.comment.set((event.target as HTMLTextAreaElement).value);
   }
 
-  validate(status: ValidationStatus): void {
+  async validate(status: ValidationStatus): Promise<void> {
     const comentario = this.comment().trim();
     if (status === 'NAO_VALIDADA' && !comentario) {
       this.missingComment.set('Para não validar, escreva no comentário o que o grupo precisa corrigir.');
+      return;
+    }
+    this.missingComment.set('');
+    const confirmed = await this.confirmation.confirm(
+      status === 'VALIDADA'
+        ? {
+            title: 'Validar entrega',
+            message: 'Validar esta entrega? O grupo verá a validação e o comentário, se houver.',
+            confirmText: 'Validar',
+          }
+        : {
+            title: 'Não validar entrega',
+            message: 'Marcar esta entrega como não validada? O grupo verá o comentário com o que precisa corrigir.',
+            confirmText: 'Não validar',
+            danger: true,
+          },
+    );
+    if (!confirmed) {
       return;
     }
     this.missingComment.set('');

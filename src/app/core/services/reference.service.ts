@@ -17,6 +17,8 @@ export abstract class ReferenceService {
   /** Just the DOI: the backend fetches the metadata again. */
   abstract add(projectId: string, doi: string): Observable<Reference>;
   abstract remove(projectId: string, referenceId: string): Observable<void>;
+  /** Corrects the reference by its DOI; the backend fetches the work again and rebuilds the ABNT. */
+  abstract replace(projectId: string, referenceId: string, doi: string): Observable<Reference>;
 }
 
 @Injectable()
@@ -46,6 +48,12 @@ export class ReferenceHttpService extends ReferenceService {
   override add(projectId: string, doi: string): Observable<Reference> {
     return this.http
       .post<Reference>(`${this.base}/projetos/${projectId}/referencias`, { doi })
+      .pipe(catchError(toApiError));
+  }
+
+  override replace(projectId: string, referenceId: string, doi: string): Observable<Reference> {
+    return this.http
+      .put<Reference>(`${this.base}/projetos/${projectId}/referencias/${referenceId}`, { doi })
       .pipe(catchError(toApiError));
   }
 

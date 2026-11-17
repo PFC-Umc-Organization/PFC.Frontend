@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { UserService } from '../../../core/services/user.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -14,6 +15,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 })
 export class AccountFormComponent {
   private readonly userService = inject(UserService);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly form = inject(FormBuilder).nonNullable.group({
     nome: ['', [Validators.required, Validators.minLength(3)]],
@@ -37,9 +39,18 @@ export class AccountFormComponent {
     return c.invalid && c.touched;
   }
 
-  create(): void {
+  async create(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+    const { nome, email, perfil } = this.form.getRawValue();
+    const confirmed = await this.confirmation.confirm({
+      title: 'Criar conta',
+      message: `Criar a conta de ${perfil === 'ADMIN' ? 'coordenação' : 'orientador'} de ${nome.trim()} (${email.trim()})? A pessoa recebe por e-mail uma senha temporária.`,
+      confirmText: 'Criar conta',
+    });
+    if (!confirmed) {
       return;
     }
     this.createAction.run(this.form.getRawValue());

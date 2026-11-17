@@ -47,9 +47,22 @@ export class ProjectPanelComponent {
 
   readonly members = computed(() => this.project().integrantes.map((rgm) => ({ rgm, nome: this.nameByRgm()(rgm) })));
 
-  setAdvisor(event: Event): void {
-    const advisorId = (event.target as HTMLSelectElement).value;
-    this.advisorAction.run(this.project().id, advisorId);
+  /** A cancelled confirmation puts the select back on the current advisor. */
+  async setAdvisor(event: Event): Promise<void> {
+    const select = event.target as HTMLSelectElement;
+    const advisorId = select.value;
+    const project = this.project();
+    const advisor = this.advisors().find((a) => a.id === advisorId)?.nome ?? 'o orientador escolhido';
+    const confirmed = await this.confirmation.confirm(
+      advisorId
+        ? { title: 'Definir orientador', message: `Definir ${advisor} como orientador do PFC "${project.nome}"?`, confirmText: 'Confirmar' }
+        : { title: 'Remover orientador', message: `Deixar o PFC "${project.nome}" sem orientador?`, confirmText: 'Remover', danger: true },
+    );
+    if (!confirmed) {
+      select.value = project.orientadorId ?? '';
+      return;
+    }
+    this.advisorAction.run(project.id, advisorId);
   }
 
   saved(): void {

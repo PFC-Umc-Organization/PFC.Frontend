@@ -34,6 +34,26 @@
   gap: 0.5rem;
 }
 
+.reference__edit {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.reference__edit-row {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reference__edit-row .control {
+  flex: 1 1 16rem;
+}
+
+.list__notice {
+  margin: 0;
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
 .reference__remove:hover {
   color: var(--destructive);
 }

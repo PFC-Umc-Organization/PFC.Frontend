@@ -234,6 +234,12 @@ export function fakeApi() {
       db.references.push(r);
       return json(201, r);
     }
+    if ((mm = p.match(/^\/projetos\/([^/]+)\/referencias\/([^/]+)$/)) && m === 'PUT') {
+      const r = db.references.find((x) => x.projetoId === mm[1] && x.id === mm[2]);
+      if (!r) return json(404, { erro: 'Referência não encontrada.' });
+      Object.assign(r, { doi: body.doi, adicionadaPor: me.name, adicionadaEm: new Date().toISOString() });
+      return json(200, r);
+    }
     if ((mm = p.match(/^\/projetos\/([^/]+)\/referencias$/))) return json(200, db.references.filter((r) => r.projetoId === mm[1]));
     const penaltiesOf = (pid) => {
       const due = (a) => new Date(a.prazo) < new Date() && !db.submissions.some((e) => e.projetoId === pid && e.atividadeId === a.id);

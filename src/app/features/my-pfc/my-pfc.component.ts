@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 
 import { MyPfc } from '../../core/models';
 import { ProjectService } from '../../core/services/project.service';
@@ -39,7 +39,20 @@ export class MyPfcComponent {
     return mine.programaId ? 'can-create' : 'no-program';
   });
 
+  /** After creating the group or joining one, above the group card. */
+  readonly notice = signal('');
+
   reload(): void {
     this.mine.reload();
+  }
+
+  created(): void {
+    this.notice.set('PFC criado. Agora convide os colegas da turma pelo RGM.');
+    this.reload();
+  }
+
+  joined(): void {
+    this.notice.set('Convite aceito. Você agora faz parte do grupo.');
+    this.reload();
   }
 }

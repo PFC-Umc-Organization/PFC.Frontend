@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { Cohort, EnrollmentResult, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -18,6 +19,7 @@ import { RgmInputDirective } from '../../../shared/directives/rgm-input.directiv
 })
 export class EnrollFormComponent {
   private readonly enrollmentService = inject(EnrollmentService);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly cohorts = input.required<Cohort[]>();
   /** The cohort shown in the list; the form starts on it when it is from this term. */
@@ -70,7 +72,7 @@ export class EnrollFormComponent {
     return c.invalid && c.touched;
   }
 
-  enroll(): void {
+  async enroll(): Promise<void> {
     this.result.set(null);
     this.invalidInput.set('');
     if (this.form.invalid) {
@@ -81,6 +83,15 @@ export class EnrollFormComponent {
     const rgms = [...new Set(text.split(/[\s,;]+/).filter((r) => /^\d{11}$/.test(r)))];
     if (rgms.length === 0) {
       this.invalidInput.set('Informe ao menos um RGM válido (11 números).');
+      return;
+    }
+    const cohort = this.termCohorts().find((c) => c.id === turmaId);
+    const confirmed = await this.confirmation.confirm({
+      title: 'Pré-autorizar RGMs',
+      message: `Pré-autorizar ${rgms.length === 1 ? '1 RGM' : rgms.length + ' RGMs'} ${cohort ? 'na turma ' + cohortLabel(cohort) : 'na turma escolhida'}? Os alunos poderão criar a conta com esses RGMs.`,
+      confirmText: 'Pré-autorizar',
+    });
+    if (!confirmed) {
       return;
     }
     this.enrollAction.run(rgms, turmaId);

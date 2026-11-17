@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, ou
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
 import { Project } from '../../../core/models';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
@@ -16,6 +17,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 })
 export class ProjectEditorComponent implements OnInit {
   private readonly projectService = inject(ProjectService);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly project = input.required<Project>();
   readonly nameByRgm = input.required<(rgm: string) => string>();
@@ -60,9 +62,17 @@ export class ProjectEditorComponent implements OnInit {
     return c.invalid && c.touched;
   }
 
-  save(): void {
+  async save(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      return;
+    }
+    const confirmed = await this.confirmation.confirm({
+      title: 'Salvar PFC',
+      message: `Salvar o nome e a descrição do PFC "${this.form.controls.nome.value.trim()}"?`,
+      confirmText: 'Salvar',
+    });
+    if (!confirmed) {
       return;
     }
     this.saveAction.run(this.project().id, this.form.getRawValue());
@@ -75,18 +85,36 @@ export class ProjectEditorComponent implements OnInit {
     this.rgm.set(field.value);
   }
 
-  addMember(): void {
+  async addMember(): Promise<void> {
     const rgm = this.rgm().trim();
     this.rgmFormatError.set('');
     if (!/^\d{11}$/.test(rgm)) {
       this.rgmFormatError.set('Informe um RGM válido (11 dígitos, só números).');
       return;
     }
+    const confirmed = await this.confirmation.confirm({
+      title: 'Incluir integrante',
+      message: `Incluir o RGM ${rgm} no PFC "${this.project().nome}"?`,
+      confirmText: 'Incluir',
+    });
+    if (!confirmed) {
+      return;
+    }
     this.addMemberAction.run(this.project().id, rgm);
   }
 
-  removeMember(rgm: string): void {
+  async removeMember(rgm: string): Promise<void> {
     this.rgmFormatError.set('');
+    const name = this.nameByRgm()(rgm);
+    const confirmed = await this.confirmation.confirm({
+      title: 'Remover integrante',
+      message: `Remover ${name === rgm ? 'o RGM ' + rgm : name + ' (RGM ' + rgm + ')'} do PFC "${this.project().nome}"?`,
+      confirmText: 'Remover',
+      danger: true,
+    });
+    if (!confirmed) {
+      return;
+    }
     this.removeMemberAction.run(this.project().id, rgm);
   }
 }

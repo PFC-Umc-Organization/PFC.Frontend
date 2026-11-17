@@ -65,12 +65,24 @@ export class StructureSectionComponent implements OnInit {
     return this.confirmation.confirm({ title, message, confirmText: 'Excluir', danger: true });
   }
 
+  /** Every change of the coordination is confirmed before it is saved. */
+  private confirmSave(title: string, message: string, confirmText = 'Salvar'): Promise<boolean> {
+    return this.confirmation.confirm({ title, message, confirmText });
+  }
+
+  private label(form: { nome: string; turno: Cohort['turno']; periodo: string }): string {
+    return `${form.nome.trim()} (${SHIFT_LABEL[form.turno]}, ${form.periodo.trim()})`;
+  }
+
   // --- Courses
 
-  createCourse(): void {
+  async createCourse(): Promise<void> {
     if (!this.courseName.value.trim()) {
       this.store.clearErrors();
       this.courseName.markAsTouched();
+      return;
+    }
+    if (!(await this.confirmSave('Criar curso', `Criar o curso "${this.courseName.value.trim()}"?`, 'Criar'))) {
       return;
     }
     this.store.createCourse(this.courseName.value, () => {
@@ -85,9 +97,12 @@ export class StructureSectionComponent implements OnInit {
     this.courseEditName.setValue(course.nome);
   }
 
-  saveCourse(courseId: string): void {
+  async saveCourse(courseId: string): Promise<void> {
     if (!this.courseEditName.value.trim()) {
       this.courseEditName.markAsTouched();
+      return;
+    }
+    if (!(await this.confirmSave('Salvar curso', `Renomear o curso para "${this.courseEditName.value.trim()}"?`))) {
       return;
     }
     this.store.updateCourse(courseId, this.courseEditName.value, () => this.editingCourseId.set(null));
@@ -112,10 +127,13 @@ export class StructureSectionComponent implements OnInit {
     this.newCohortFor.set(course.id);
   }
 
-  createCohort(): void {
+  async createCohort(): Promise<void> {
     this.store.clearErrors();
     if (this.newCohortForm.invalid) {
       this.newCohortForm.markAllAsTouched();
+      return;
+    }
+    if (!(await this.confirmSave('Criar turma', `Criar a turma ${this.label(this.newCohortForm.getRawValue())}?`, 'Criar'))) {
       return;
     }
     this.store.createCohort(this.newCohortForm.getRawValue(), () => this.newCohortFor.set(null));
@@ -132,9 +150,12 @@ export class StructureSectionComponent implements OnInit {
     this.editingCohortId.set(cohort.id);
   }
 
-  saveCohort(cohortId: string): void {
+  async saveCohort(cohortId: string): Promise<void> {
     if (this.cohortEditForm.invalid) {
       this.cohortEditForm.markAllAsTouched();
+      return;
+    }
+    if (!(await this.confirmSave('Salvar turma', `Salvar a turma como ${this.label(this.cohortEditForm.getRawValue())}?`))) {
       return;
     }
     this.store.updateCohort(cohortId, this.cohortEditForm.getRawValue(), () => this.editingCohortId.set(null));
@@ -158,7 +179,19 @@ export class StructureSectionComponent implements OnInit {
     this.movingProgramId.set(programId);
   }
 
-  saveMoveProgram(programId: string): void {
+  async createProgram(cohort: Cohort): Promise<void> {
+    const message = `Criar o programa de PFC da turma ${cohortLabel(cohort)}? Depois disso, os alunos da turma já podem cadastrar o PFC do grupo.`;
+    if (await this.confirmSave('Criar programa de PFC', message, 'Criar')) {
+      this.store.createProgram(cohort.id);
+    }
+  }
+
+  async saveMoveProgram(programId: string): Promise<void> {
+    const target = this.store.cohorts.value().find((c) => c.id === this.moveToCohortId());
+    const message = target ? `Mover o programa de PFC para a turma ${cohortLabel(target)}?` : 'Mover o programa de PFC?';
+    if (!(await this.confirmSave('Mover programa de PFC', message, 'Mover'))) {
+      return;
+    }
     this.store.moveProgram(programId, this.moveToCohortId(), () => this.movingProgramId.set(null));
   }
 

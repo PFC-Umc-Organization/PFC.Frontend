@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 
 import { Cohort, MATERIAL_KIND_LABEL, MaterialKind, cohortLabel } from '../../../core/models';
 import { ApiError } from '../../../core/services/http-error';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { MaterialService } from '../../../core/services/material.service';
 import { action } from '../../../core/state/action';
 import { FilePickerComponent } from '../../../shared/components/file-picker/file-picker.component';
@@ -20,6 +21,7 @@ type Source = 'link' | 'file';
 })
 export class MaterialFormComponent {
   private readonly materialService = inject(MaterialService);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly cohorts = input.required<Cohort[]>();
   protected readonly kinds: MaterialKind[] = ['MODELO', 'DOCUMENTO', 'VIDEO', 'LINK'];
@@ -103,7 +105,7 @@ export class MaterialFormComponent {
     this.uploadAction.run(file);
   }
 
-  publish(): void {
+  async publish(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -112,6 +114,15 @@ export class MaterialFormComponent {
       return;
     }
     const { titulo, tipo, url, cursoId, descricao } = this.form.getRawValue();
+    const cohort = this.cohorts().find((c) => c.id === cursoId);
+    const confirmed = await this.confirmation.confirm({
+      title: 'Publicar material',
+      message: `Publicar o material "${titulo.trim()}" ${cohort ? 'para a turma ' + cohortLabel(cohort) : 'para todas as turmas'}?`,
+      confirmText: 'Publicar',
+    });
+    if (!confirmed) {
+      return;
+    }
     this.lastKind = tipo;
     this.lastCohort = cursoId;
     this.publishAction.run({

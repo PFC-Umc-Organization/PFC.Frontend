@@ -105,11 +105,19 @@ export class UserListComponent {
     this.newName.set((event.target as HTMLInputElement).value);
   }
 
-  rename(u: User): void {
+  async rename(u: User): Promise<void> {
     const name = this.newName().trim();
     this.missingName.set('');
     if (!name) {
       this.missingName.set('Informe o nome.');
+      return;
+    }
+    const confirmed = await this.confirmation.confirm({
+      title: 'Corrigir nome',
+      message: `Salvar o nome desta conta como "${name}"?`,
+      confirmText: 'Salvar',
+    });
+    if (!confirmed) {
       return;
     }
     this.run(u, this.userService.rename(u.id, name), () => this.renamingId.set(null));
@@ -143,12 +151,26 @@ export class UserListComponent {
     }
   }
 
-  enable(u: User): void {
-    this.run(u, this.userService.enable(u.id));
+  async enable(u: User): Promise<void> {
+    const confirmed = await this.confirmation.confirm({
+      title: 'Reativar conta',
+      message: `Reativar a conta de ${u.nome}? A pessoa volta a poder entrar no portal.`,
+      confirmText: 'Reativar',
+    });
+    if (confirmed) {
+      this.run(u, this.userService.enable(u.id));
+    }
   }
 
-  resendInvitation(u: User): void {
-    this.run(u, this.userService.resendInvitation(u.id));
+  async resendInvitation(u: User): Promise<void> {
+    const confirmed = await this.confirmation.confirm({
+      title: 'Reenviar convite',
+      message: `Reenviar o convite de primeiro acesso para ${u.email}? Uma nova senha temporária é enviada por e-mail.`,
+      confirmText: 'Reenviar',
+    });
+    if (confirmed) {
+      this.run(u, this.userService.resendInvitation(u.id));
+    }
   }
 
   private run(u: User, request: Observable<MessageResponse>, after?: () => void): void {
