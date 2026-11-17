@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { MessageResponse, ROLE_LABEL, Role, User } from '../../../core/models';
+import { Cohort, MessageResponse, ROLE_LABEL, Role, User, cohortLabel } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { UserService } from '../../../core/services/user.service';
@@ -27,13 +27,18 @@ export class UserListComponent {
   protected readonly roleLabel = ROLE_LABEL;
   readonly search = signal('');
   readonly role = signal<Role | 'TODOS'>('TODOS');
+  /** Empty is every cohort. */
+  readonly cohortId = signal('');
+  /** The cohorts to filter by; the filter is left out while there are none. */
+  readonly cohorts = input<Cohort[]>([]);
+  protected readonly cohortLabel = cohortLabel;
   readonly canAdd = input(true);
   readonly add = output();
 
   /** The service caches the list, so filtering makes no new call. */
   readonly users = loadable({
-    source: (filter: { search: string; role: Role | 'TODOS' }) => this.userService.list(filter),
-    params: computed(() => ({ search: this.search(), role: this.role() })),
+    source: (filter: { search: string; role: Role | 'TODOS'; cohortId: string }) => this.userService.list(filter),
+    params: computed(() => ({ search: this.search(), role: this.role(), cohortId: this.cohortId() })),
     initial: [] as User[],
   });
 
@@ -63,6 +68,10 @@ export class UserListComponent {
 
   setSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
+  }
+
+  setCohort(event: Event): void {
+    this.cohortId.set((event.target as HTMLSelectElement).value);
   }
 
   setRole(event: Event): void {

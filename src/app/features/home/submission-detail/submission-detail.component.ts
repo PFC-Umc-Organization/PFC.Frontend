@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 
-import { Activity, Submission, ValidationStatus, validationLabel } from '../../../core/models';
+import { Activity, ProjectPenalties, Submission, ValidationStatus, validationLabel } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { editedLater } from '../../../core/services/submission-status';
@@ -10,6 +10,7 @@ import { action } from '../../../core/state/action';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
+import { CellPenaltiesComponent } from '../cell-penalties/cell-penalties.component';
 
 /**
  * What a group answered for one activity. The staff can hand it back; the
@@ -18,7 +19,7 @@ import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 @Component({
   selector: 'app-submission-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, IconComponent, AnswerListComponent, DeadlinePipe],
+  imports: [DatePipe, IconComponent, AnswerListComponent, DeadlinePipe, CellPenaltiesComponent],
   templateUrl: './submission-detail.component.html',
   styleUrl: './submission-detail.component.scss',
 })
@@ -32,6 +33,9 @@ export class SubmissionDetailComponent {
   readonly projectName = input.required<string>();
   readonly activity = input.required<Activity>();
   readonly submission = input<Submission | null>(null);
+  /** The group's penalties, undefined while they load or when they failed to; every activity of the grid. */
+  readonly penalties = input<ProjectPenalties | undefined>(undefined);
+  readonly activities = input<Activity[]>([]);
   readonly closed = output();
 
   private readonly downloadAction = action(

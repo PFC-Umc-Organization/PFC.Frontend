@@ -74,6 +74,14 @@ test.describe('student with a group', () => {
     await expect(page.locator('#delivery-title')).toHaveCount(0);
   });
 
+  test('the invitation field takes only 11 digits', async ({ page }) => {
+    await signIn(page, STUDENT_WITH_GROUP);
+    await page.goto('/meu-pfc');
+    const rgm = page.locator('#invite-rgm');
+    await rgm.pressSequentially('1123-1103x42099');
+    await expect(rgm).toHaveValue('11231103420');
+  });
+
   test('Meu PFC shows names, advisor and cohort in a single call', async ({ page, api }) => {
     await signIn(page, STUDENT_WITH_GROUP);
     await expect(page.getByText('Athena').first()).toBeVisible();
@@ -179,7 +187,7 @@ test.describe('coordination', () => {
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
 
     const before = api.calls.length;
-    await page.getByRole('button', { name: 'Athena, Monografia: Entregue' }).click();
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
     await expect(page.getByText('monografia.pdf')).toBeVisible();
     expect(api.calls.length).toBe(before);
     expect(api.failed).toEqual([]);
@@ -188,7 +196,7 @@ test.describe('coordination', () => {
   test('downloads a submission file from the cell detail', async ({ page, api }) => {
     api.db.submissions.push({ atividadeId: 'a3', projetoId: 'pr2', entregueEm: '2026-10-20T12:00:00Z', entreguePor: 'Fulano', respostas: { c3: 'entregas/pr2/a3/c3/u9/tcc.pdf' } });
     await signIn(page, ADMIN);
-    await page.getByRole('button', { name: 'Web-Cursos, Monografia final: Entregue' }).click();
+    await page.getByRole('button', { name: /^Web-Cursos, Monografia final:/ }).click();
     const [download] = await Promise.all([
       page.waitForRequest((r) => r.url().includes('fake-bucket') && r.method() === 'GET'),
       page.getByRole('button', { name: 'tcc.pdf' }).click(),
@@ -273,6 +281,33 @@ test.describe('coordination', () => {
     await expect(page.locator('.summary__item', { hasText: 'orientadores' })).toContainText('2');
     await expect(page.locator('.summary__item', { hasText: 'na coordenação' })).toContainText('1');
     await expect(page.getByRole('row', { name: /Leonardo Alvino/ })).toContainText('Coordenação');
+  });
+
+  test('Usuários filters the accounts by cohort', async ({ page }) => {
+    await signIn(page, ADMIN);
+    await page.goto('/usuarios');
+    const students = page.getByRole('row', { name: /@alunos\.umc\.br/ });
+    await expect(students.first()).toBeVisible();
+    await page.getByLabel('Turma', { exact: true }).selectOption('t2');
+    await expect(students).toHaveCount(0);
+    await page.getByLabel('Turma', { exact: true }).selectOption('t1');
+    await expect(students.first()).toBeVisible();
+    await page.getByLabel('Turma', { exact: true }).selectOption('');
+    await expect(students.first()).toBeVisible();
+  });
+
+  test('RGMs are typed as numbers only, and the next line opens when one is complete', async ({ page }) => {
+    await signIn(page, ADMIN);
+    await page.goto('/usuarios');
+    await page.getByRole('button', { name: 'Pré-autorização de alunos' }).click();
+    await page.getByRole('button', { name: 'Pré-autorizar RGMs' }).click();
+    const rgms = page.locator('#rgms');
+    await rgms.pressSequentially('11231103420a1123110342');
+    await expect(rgms).toHaveValue('11231103420\n1123110342');
+    await rgms.pressSequentially('1');
+    await expect(rgms).toHaveValue('11231103420\n11231103421\n');
+    await rgms.press('Backspace');
+    await expect(rgms).toHaveValue('11231103420\n11231103421');
   });
 
   test('an invalid term is flagged before sending', async ({ page }) => {
@@ -470,7 +505,7 @@ test.describe('advisor', () => {
 
   test('validates a submission or asks for changes, and the group reads it', async ({ page, api }) => {
     await signIn(page, ADVISOR);
-    await page.getByRole('button', { name: 'Athena, Monografia: Entregue' }).click();
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
     await expect(page.getByRole('heading', { name: 'Validação da entrega' })).toBeVisible();
     await page.getByRole('button', { name: 'Não validar' }).click();
     await expect(page.getByText('escreva no comentário o que o grupo precisa corrigir')).toBeVisible();
@@ -479,12 +514,12 @@ test.describe('advisor', () => {
     await page.getByLabel('Comentário para o grupo').fill('Falta a seção de resultados.');
     await page.getByRole('button', { name: 'Não validar' }).click();
     await expect(page.getByRole('heading', { name: 'Você não validou esta entrega' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Athena, Monografia: Entregue, não validada pelo orientador' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Athena, Monografia: Devolvida' })).toBeVisible();
     expect(api.db.submissions[0].validacao).toMatchObject({ status: 'NAO_VALIDADA', comentario: 'Falta a seção de resultados.', por: 'u-ana' });
 
     await page.getByRole('button', { name: 'Validar entrega' }).click();
     await expect(page.getByRole('heading', { name: 'Você validou esta entrega' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Athena, Monografia: Entregue, validada pelo orientador' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Athena, Monografia: Concluído' })).toBeVisible();
     expect(api.failed).toEqual([]);
   });
 });
@@ -505,6 +540,22 @@ test.describe('validation seen by the group and the coordination', () => {
     await expect(panel).toContainText('Orientadora Ana');
   });
 
+  test('a returned delivery is announced on the home, with the comment and a way to send it again', async ({ page, api }) => {
+    validated(api, 'NAO_VALIDADA');
+    await signIn(page, STUDENT_WITH_GROUP);
+    const notice = page.getByRole('alert').filter({ hasText: 'devolvida pelo orientador' });
+    await expect(notice).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Athena, Monografia: Devolvida' })).toBeVisible();
+
+    await notice.getByRole('button', { name: 'Monografia' }).click();
+    await expect(page.locator('app-delivery-panel')).toContainText('Falta a seção de resultados.');
+    await page.getByRole('button', { name: 'Corrigir e reenviar' }).click();
+    await page.getByRole('button', { name: 'Salvar alterações' }).click();
+    await expect(page.getByText('Entrega atualizada.')).toBeVisible();
+    await expect(notice).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Athena, Monografia: Em validação' })).toBeVisible();
+  });
+
   test('a submission without a verdict waits for the advisor', async ({ page }) => {
     await signIn(page, STUDENT_WITH_GROUP);
     await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
@@ -514,7 +565,7 @@ test.describe('validation seen by the group and the coordination', () => {
   test('the coordination sees the verdict in the cell and its detail, without validating', async ({ page, api }) => {
     validated(api, 'VALIDADA');
     await signIn(page, ADMIN);
-    await page.getByRole('button', { name: 'Athena, Monografia: Entregue, validada pelo orientador' }).click();
+    await page.getByRole('button', { name: 'Athena, Monografia: Concluído' }).click();
     await expect(page.getByRole('heading', { name: 'Entrega validada pelo orientador' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Validar entrega' })).toHaveCount(0);
   });
@@ -582,22 +633,40 @@ test.describe('penalties', () => {
     await expect(page.getByRole('button', { name: 'Editar', exact: true })).toHaveCount(0);
   });
 
-  test('the advisor waives one from the panel and applies another, with a reason', async ({ page, api }) => {
-    seed(api, 3);
+  test('the advisor forgives the penalty of a missed deadline from its own cell', async ({ page, api }) => {
+    api.db.activities.push({ id: 'a4', titulo: 'Banca', descricao: '', prazo: '2026-01-10T23:59', publicadaEm: '2026-01-01T00:00:00Z', campos: [{ id: 'c4', rotulo: 'Link', tipo: 'LINK', obrigatorio: true }] });
     await signIn(page, ADVISOR);
-    await page.getByRole('button', { name: 'Athena, penalidades: reprovado' }).click();
-    await page.getByRole('button', { name: 'Perdoar' }).first().click();
+    // The counter is only a figure.
+    await expect(page.getByRole('img', { name: 'Athena, penalidades: 1 de 3' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Athena, Banca: Atrasado' }).click();
+    await expect(page.locator('.penalty')).toContainText('Banca');
+    await page.getByRole('button', { name: 'Perdoar' }).click();
     await page.getByRole('button', { name: 'Confirmar perdão' }).click();
     await expect(page.getByText('Informe o motivo do perdão.')).toBeVisible();
     await page.getByLabel('Motivo do perdão').fill('Justificativa aceita pela coordenação');
     await page.getByRole('button', { name: 'Confirmar perdão' }).click();
     await expect(page.getByText('Perdoada em')).toContainText('Orientadora Ana: Justificativa aceita pela coordenação');
-    await expect(page.getByRole('button', { name: 'Athena, penalidades: 2 de 3' })).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Athena, penalidades: 0 de 3' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Athena, Banca: Perdoada' })).toBeVisible();
+    expect(api.failed).toEqual([]);
+  });
 
-    await page.getByLabel('Motivo', { exact: true }).fill('Entrega não validada');
-    await page.getByLabel('Atividade (opcional)').selectOption({ label: 'Monografia' });
+  test('the advisor applies a penalty for a delivery and frees a failed group by forgiving another', async ({ page, api }) => {
+    seed(api, 3);
+    await signIn(page, ADVISOR);
+    await expect(page.getByRole('img', { name: 'Athena, penalidades: reprovado' })).toBeVisible();
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    await expect(page.getByText('é preciso perdoar 1 penalidade')).toBeVisible();
+    await page.getByRole('button', { name: 'Perdoar' }).first().click();
+    await page.getByLabel('Motivo do perdão').fill('Justificativa aceita pela coordenação');
+    await page.getByRole('button', { name: 'Confirmar perdão' }).click();
+    await expect(page.getByRole('img', { name: 'Athena, penalidades: 2 de 3' })).toBeVisible();
+
     await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
+    await page.getByLabel('Motivo', { exact: true }).fill('Entrega não validada');
     const dialog = page.getByRole('alertdialog');
+    await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
     await expect(dialog).toContainText('Com 3 de 3, o grupo fica reprovado');
     await dialog.getByRole('button', { name: 'Cancelar' }).click();
     await expect(dialog).toBeHidden();
@@ -605,8 +674,7 @@ test.describe('penalties', () => {
     await page.getByRole('button', { name: 'Aplicar penalidade' }).click();
     await dialog.getByRole('button', { name: 'Aplicar penalidade' }).click();
     await expect(page.locator('.penalty').filter({ hasText: 'Entrega não validada' })).toContainText('Aplicada em');
-    await expect(page.locator('.penalty').filter({ hasText: 'Entrega não validada' })).toContainText('Monografia');
-    await expect(page.getByRole('button', { name: 'Athena, penalidades: reprovado' })).toBeVisible();
+    await expect(page.getByRole('img', { name: 'Athena, penalidades: reprovado' })).toBeVisible();
     expect(api.db.penalties.at(-1)).toMatchObject({ projetoId: 'pr1', motivo: 'Entrega não validada', atividadeId: 'a1' });
   });
 });

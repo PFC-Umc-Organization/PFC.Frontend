@@ -4,7 +4,6 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 import {
   ProjectPenalties,
   ProjectStatusRow,
-  STATUS_SHORT_LABEL,
   SubmissionStatus,
   ValidationStatus,
 } from '../../../core/models';
@@ -25,6 +24,8 @@ interface CellView {
   status: SubmissionStatus;
   validation?: ValidationStatus;
   state: CellState;
+  /** Sent after the deadline; the state says what happened to it since. */
+  lateSubmission: boolean;
   /** Title of the first earlier activity still open, for a blocked cell. */
   blockedBy?: string;
 }
@@ -35,30 +36,36 @@ interface RowView {
 }
 
 export const CELL_LABEL: Record<CellState, string> = {
-  done: 'Concluído',
-  'done-late': 'Concluído',
-  late: 'Atrasado',
-  waiting: 'Aguardando',
+  waiting: 'Pendente',
   blocked: 'Bloqueado',
+  late: 'Atrasado',
+  waived: 'Perdoada',
+  review: 'Em validação',
+  returned: 'Devolvida',
+  done: 'Concluído',
 };
 
 const CELL_ICON: Record<CellState, IconName> = {
-  done: 'check',
-  'done-late': 'check',
-  late: 'alert',
   waiting: 'calendar',
   blocked: 'lock',
+  late: 'alert',
+  waived: 'check',
+  review: 'eye',
+  returned: 'edit',
+  done: 'check',
 };
 
 /** Past this many activities a cell keeps only its icon, so the table still fits the screen. */
 const DENSE_FROM = 11;
 
 export const LEGEND: { state: CellState; text: string }[] = [
-  { state: 'done', text: 'Concluído no prazo' },
-  { state: 'done-late', text: 'Concluído com atraso' },
-  { state: 'late', text: 'Atrasado, sem entrega' },
-  { state: 'waiting', text: 'Aguardando entrega' },
+  { state: 'waiting', text: 'Pendente: aguardando a entrega do grupo' },
   { state: 'blocked', text: 'Bloqueado: só abre depois da entrega anterior' },
+  { state: 'late', text: 'Atrasado, sem entrega' },
+  { state: 'waived', text: 'Atrasado, penalidade perdoada' },
+  { state: 'review', text: 'Em validação pelo orientador' },
+  { state: 'returned', text: 'Devolvida pelo orientador para correção' },
+  { state: 'done', text: 'Concluído: validada' },
 ];
 
 /** One row per project, its penalties, then one column per activity; a cell opens its detail. */
@@ -92,8 +99,6 @@ export class StatusGridComponent {
   readonly openProject = output<{ projectId: string; projectName: string }>();
   /** By project id, undefined while loading; a project without an entry shows no counter. */
   readonly penalties = input<Map<string, ProjectPenalties> | undefined>(new Map());
-  readonly selectedPenalties = input<string | null>(null);
-  readonly openPenalties = output<{ projectId: string; projectName: string }>();
 
   protected readonly legend = LEGEND;
 
@@ -106,13 +111,21 @@ export class StatusGridComponent {
   /** Cells in activity order; one still due is blocked while an earlier one is open. */
   protected readonly rows = computed<RowView[]>(() => {
     const titles = this.grid().activities.map((a) => a.titulo);
+    const penalties = this.penalties();
     return this.grid().rows.map((row) => {
-      const states = cellStates(row.cells.map((c) => c.status));
+      const waived = new Set(
+        penalties
+          ?.get(row.project.id)
+          ?.penalidades.filter((p) => p.origem === 'PRAZO' && p.perdao && p.atividadeId)
+          .map((p) => p.atividadeId),
+      );
+      const states = cellStates(row.cells.map((c) => ({ ...c, waived: waived.has(c.activityId) })));
       return {
         project: row.project,
         cells: row.cells.map<CellView>((c, i) => ({
           ...c,
           state: states[i].state,
+          lateSubmission: c.status === 'ENTREGUE_COM_ATRASO',
           blockedBy: states[i].blockedBy === undefined ? undefined : titles[states[i].blockedBy],
         })),
       };
@@ -123,10 +136,6 @@ export class StatusGridComponent {
 
   titleOf(activityId: string): string {
     return this.titles().get(activityId) ?? '';
-  }
-
-  label(status: SubmissionStatus): string {
-    return STATUS_SHORT_LABEL[status];
   }
 
   text(state: CellState): string {
@@ -140,24 +149,21 @@ export class StatusGridComponent {
   /** The hover text: the state in full, and what a blocked cell waits for. */
   hint(c: CellView): string {
     switch (c.state) {
-      case 'done-late':
-        return 'Concluído com atraso';
-      case 'late':
-        return 'Atrasado: o prazo passou e não há entrega';
       case 'waiting':
-        return 'Aguardando a entrega do grupo';
+        return 'Pendente: aguardando a entrega do grupo';
       case 'blocked':
         return c.blockedBy ? `Bloqueado: o grupo precisa entregar antes "${c.blockedBy}"` : 'Bloqueado: há entrega anterior em aberto';
-      default:
-        return 'Concluído no prazo';
+      case 'late':
+        return 'Atrasado: o prazo passou e não há entrega';
+      case 'waived':
+        return 'Atrasado: a penalidade foi perdoada';
+      case 'review':
+        return c.lateSubmission ? 'Entregue com atraso, aguardando a validação do orientador' : 'Aguardando a validação do orientador';
+      case 'returned':
+        return 'Devolvida pelo orientador: o grupo precisa corrigir e reenviar';
+      case 'done':
+        return c.lateSubmission ? 'Concluído: validada pelo orientador (entregue com atraso)' : 'Concluído: validada pelo orientador';
     }
-  }
-
-  validationText(v: ValidationStatus | undefined): string {
-    if (!v) {
-      return '';
-    }
-    return v === 'VALIDADA' ? ', validada pelo orientador' : ', não validada pelo orientador';
   }
 
   isSelected(projectId: string, activityId: string): boolean {

@@ -1,4 +1,4 @@
-import { Activity, ProjectStatusRow, Submission, SubmissionStatus, fileNameOf } from '../models';
+import { Activity, ProjectStatusRow, Submission, SubmissionStatus, ValidationStatus, fileNameOf } from '../models';
 
 export function submissionStatus(
   deadline: string,
@@ -32,10 +32,24 @@ export function editedLater(s: Pick<Submission, 'entregueEm' | 'atualizadaEm'>):
 }
 
 /**
- * What a grid cell shows. `blocked` mirrors the backend: a group's first
- * submission of an activity waits for every earlier one still open.
+ * What a grid cell shows, along the way of a delivery: `waiting` for the group,
+ * `review` while the advisor has not answered, then `done` or, when sent back,
+ * `returned`. `blocked` mirrors the backend: a group's first submission of an
+ * activity waits for every earlier one still open. `late` is a deadline missed
+ * without a submission, and `waived` the same once its penalty was forgiven.
  */
-export type CellState = 'done' | 'done-late' | 'late' | 'waiting' | 'blocked';
+export type CellState = 'waiting' | 'blocked' | 'late' | 'waived' | 'review' | 'returned' | 'done';
+
+export interface CellInput {
+  status: SubmissionStatus;
+  validation?: ValidationStatus;
+  /** The penalty of a missed deadline was forgiven. */
+  waived?: boolean;
+}
+
+function submittedState(validation: ValidationStatus | undefined): CellState {
+  return validation === 'VALIDADA' ? 'done' : validation === 'NAO_VALIDADA' ? 'returned' : 'review';
+}
 
 /**
  * The cells of one project, in activity order. An activity still on time is
@@ -43,16 +57,15 @@ export type CellState = 'done' | 'done-late' | 'late' | 'waiting' | 'blocked';
  * submitted (`blockedBy` is the nearest such one). An earlier overdue activity
  * blocks nothing: it can no longer be submitted and already cost a penalty.
  */
-export function cellStates(statuses: SubmissionStatus[]): { state: CellState; blockedBy?: number }[] {
+export function cellStates(cells: CellInput[]): { state: CellState; blockedBy?: number }[] {
   let firstWaiting: number | undefined;
-  return statuses.map((status, i) => {
+  return cells.map(({ status, validation, waived }, i) => {
     switch (status) {
       case 'ENTREGUE':
-        return { state: 'done' };
       case 'ENTREGUE_COM_ATRASO':
-        return { state: 'done-late' };
+        return { state: submittedState(validation) };
       case 'ATRASADO':
-        return { state: 'late' };
+        return { state: waived ? 'waived' : 'late' };
       default:
         if (firstWaiting === undefined) {
           firstWaiting = i;

@@ -95,14 +95,12 @@
   [selected]="selected()"
   [emptyText]="emptyText()"
   [penalties]="store.penalties()"
-  [selectedPenalties]="penaltiesOf()?.projectId ?? null"
   [selectedActivity]="selectedActivity()"
   [projectsOpenable]="store.isAdmin()"
   [selectedProject]="selectedProject()"
   (openProject)="openProject($event)"
   (open)="openCell($event)"
   (openActivity)="openActivity($event)"
-  (openPenalties)="openPenalties($event)"
 />
 
 @if (projectDetail(); as p) {
@@ -130,15 +128,8 @@
     [projectName]="d.projectName"
     [activity]="d.activity"
     [submission]="d.submission"
-    (closed)="selected.set(null)"
-  />
-}
-
-@if (penaltyDetail(); as d) {
-  <app-penalty-panel
-    [projectName]="d.projectName"
-    [penalties]="d.penalties"
+    [penalties]="store.penalties()?.get(d.projectId)"
     [activities]="store.grid().activities"
-    (closed)="penaltiesOf.set(null)"
+    (closed)="selected.set(null)"
   />
 }

@@ -50,6 +50,18 @@
         <option value="ADMIN">Coordenação</option>
       </select>
     </div>
+
+    @if (cohorts().length) {
+      <div class="field">
+        <label class="field__label" for="user-cohort">Turma</label>
+        <select id="user-cohort" class="control" [value]="cohortId()" (change)="setCohort($event)">
+          <option value="">Todas</option>
+          @for (c of cohorts(); track c.id) {
+            <option [value]="c.id">{{ cohortLabel(c) }}</option>
+          }
+        </select>
+      </div>
+    }
   </div>
 
   @if (loadError()) {

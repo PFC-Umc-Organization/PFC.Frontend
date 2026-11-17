@@ -31,11 +31,11 @@ contra outra API, troque `apiBaseUrl` ali.
 | `/criar-conta`, `/confirmar-conta` | visitante | Cadastro do aluno (RGM pré-autorizado) e confirmação pelo código do e-mail |
 | `/esqueci-senha` | visitante | Pede o código por e-mail e define a senha nova |
 | `/nova-senha` | visitante | Troca da senha temporária (orientador e admin, primeiro acesso) |
-| `/` | todos | Equipe: grade de entregas de cada grupo da turma (o orientador vê só os grupos que orienta); a coordenação abre um grupo pelo nome (orientador, integrantes, editar, excluir). Aluno: a mesma grade, só com o grupo dele; clicar numa data abre a entrega logo abaixo, para ler, enviar (arquivo sobe direto para o S3, com progresso, e há download) ou editar, só da atividade em aberto mais próxima |
+| `/` | todos | Equipe: grade de entregas de cada grupo da turma (o orientador vê só os grupos que orienta); a coordenação abre um grupo pelo nome (orientador, integrantes, editar, excluir). Aluno: a mesma grade, só com o grupo dele. Cada célula segue o caminho da entrega: Pendente, Em validação (aguardando o orientador), Devolvida (o orientador não validou) ou Concluído (validada); Atrasado e Bloqueado completam o quadro. Aluno: clicar numa data abre a entrega logo abaixo, para ler, enviar (arquivo sobe direto para o S3, com progresso, e há download) ou editar, só da atividade em aberto mais próxima |
 | `/meu-pfc` | aluno | Grupo com nomes, orientador e turma (uma chamada, `GET /meu-pfc`); sem grupo, cria o PFC ou aceita um convite |
 | `/materiais` | todos | Equipe publica materiais (link ou arquivo, por turma ou para todas); aluno lê os gerais e os da turma dele |
 | `/referencias` | todos | Busca de artigos (OpenAlex/Crossref) e lista ABNT do grupo |
-| `/usuarios` | admin | Cadastro de orientador/admin, pré-autorização de RGMs e contas |
+| `/usuarios` | admin | Cadastro de orientador/admin, pré-autorização de RGMs (só números, 11 dígitos, uma linha por RGM) e contas (filtro por perfil, turma e busca) |
 | `/turmas` | admin | Cursos e turmas e, por turma, o programa de PFC, os PFCs dos alunos (status e filtros) e as atividades |
 
 ## Estrutura

@@ -6,12 +6,13 @@ import { Cohort, EnrollmentResult, cohortLabel, currentTerm, isInTerm } from '..
 import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RgmInputDirective } from '../../../shared/directives/rgm-input.directive';
 
 /** Pre-authorizes RGMs in a cohort; the students then create their own accounts. */
 @Component({
   selector: 'app-enroll-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, IconComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent, RgmInputDirective],
   templateUrl: './enroll-form.component.html',
   styles: '.failures { margin: 0.25rem 0 0; padding-left: 1.25rem; }',
 })
@@ -77,9 +78,9 @@ export class EnrollFormComponent {
       return;
     }
     const { turmaId, rgms: text } = this.form.getRawValue();
-    const rgms = [...new Set(text.split(/[\s,;]+/).filter((r) => /^\d{4,12}$/.test(r)))];
+    const rgms = [...new Set(text.split(/[\s,;]+/).filter((r) => /^\d{11}$/.test(r)))];
     if (rgms.length === 0) {
-      this.invalidInput.set('Informe ao menos um RGM válido (só números).');
+      this.invalidInput.set('Informe ao menos um RGM válido (11 números).');
       return;
     }
     this.enrollAction.run(rgms, turmaId);

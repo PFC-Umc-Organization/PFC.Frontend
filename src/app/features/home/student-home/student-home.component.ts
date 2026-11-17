@@ -8,7 +8,7 @@ import { ActivityService } from '../../../core/services/activity.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
-import { buildStatusGrid, cellStates, submissionStatus } from '../../../core/services/submission-status';
+import { CellState, buildStatusGrid, cellStates, submissionStatus } from '../../../core/services/submission-status';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
@@ -100,31 +100,33 @@ export class StudentHomeComponent {
   /** The activity opened below the grid, to read, send or edit its submission. */
   readonly selectedActivity = signal<string | null>(null);
 
+  private readonly states = computed(() => cellStates(this.grid().rows[0]?.cells ?? []));
+
+  /** Activities the advisor sent back: the group has to fix and send them again. */
+  readonly returned = computed(() => this.grid().activities.filter((_, i) => this.states()[i]?.state === 'returned'));
+
   readonly delivery = computed(() => {
     const project = this.project();
-    const id = this.selectedActivity();
-    const row = this.grid().rows[0];
-    const index = this.grid().activities.findIndex((a) => a.id === id);
-    if (!project || !row || index < 0) {
+    const index = this.grid().activities.findIndex((a) => a.id === this.selectedActivity());
+    if (!project || index < 0) {
       return null;
     }
     const activity = this.grid().activities[index];
-    const cell = cellStates(row.cells.map((c) => c.status))[index];
-    const blockedBy = cell.blockedBy === undefined ? '' : this.grid().activities[cell.blockedBy].titulo;
-    const mode: DeliveryMode = this.failed()
-      ? 'failed'
-      : cell.state === 'done' || cell.state === 'done-late'
-        ? 'submitted'
-        : cell.state === 'waiting'
-          ? 'open'
-          : cell.state === 'blocked'
-            ? 'blocked'
-            : 'closed';
+    const { state, blockedBy } = this.states()[index];
+    const modes: Record<CellState, DeliveryMode> = {
+      waiting: 'open',
+      blocked: 'blocked',
+      late: 'closed',
+      waived: 'closed',
+      review: 'submitted',
+      returned: 'submitted',
+      done: 'submitted',
+    };
     return {
       project,
       activity,
-      mode,
-      blockedBy,
+      mode: this.failed() ? 'failed' : modes[state],
+      blockedBy: blockedBy === undefined ? '' : this.grid().activities[blockedBy].titulo,
       submission: this.grid().submissions.find((s) => s.projetoId === project.id && s.atividadeId === activity.id),
     };
   });
@@ -137,10 +139,6 @@ export class StudentHomeComponent {
         document.getElementById('delivery-title')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }),
       );
     }
-  }
-
-  showPenalties(): void {
-    document.getElementById('penalties-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   readonly project = computed(() => this.home.value()?.project ?? null);

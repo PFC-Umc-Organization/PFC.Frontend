@@ -8,12 +8,13 @@ import { InvitationService } from '../../../core/services/invitation.service';
 import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RgmInputDirective } from '../../../shared/directives/rgm-input.directive';
 
 /** The group's invitations nobody answered yet, and the form to send more. */
 @Component({
   selector: 'app-sent-invitations',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, IconComponent],
+  imports: [DatePipe, ReactiveFormsModule, IconComponent, RgmInputDirective],
   templateUrl: './sent-invitations.component.html',
   styleUrls: ['../invitations.scss', './sent-invitations.component.scss'],
 })

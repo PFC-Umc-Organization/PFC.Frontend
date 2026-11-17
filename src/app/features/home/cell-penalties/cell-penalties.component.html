@@ -1,0 +1,48 @@
+<section class="penalties" aria-labelledby="cell-penalties-title">
+  <h3 id="cell-penalties-title" class="penalties__title">Penalidades desta atividade</h3>
+
+  @if (failedText()) {
+    <p class="penalties__failed" role="status">{{ failedText() }}</p>
+  }
+
+  @if (ofActivity().length) {
+    <app-penalty-list [penalties]="ofActivity()" [projectId]="penalties().projetoId" [manageable]="true" />
+  } @else {
+    <p class="penalties__none">O grupo não tem penalidade nesta atividade.</p>
+  }
+
+  @if (applying()) {
+    <form class="apply" (submit)="$event.preventDefault(); apply()">
+      <div class="field">
+        <label class="field__label" for="cell-penalty-reason">Motivo</label>
+        <input
+          id="cell-penalty-reason"
+          class="control"
+          maxlength="500"
+          placeholder="Ex.: entrega não validada pelo orientador"
+          aria-describedby="cell-penalty-reason-hint"
+          [formControl]="reason"
+        />
+        <span class="field__hint" id="cell-penalty-reason-hint">O motivo fica visível para o grupo. Não inclua dados pessoais sensíveis.</span>
+      </div>
+      @if (error()) {
+        <p class="field__error" role="alert">{{ error() }}</p>
+      }
+      <div class="apply__actions">
+        <button type="button" class="btn btn--ghost btn--sm" (click)="applying.set(false)">Cancelar</button>
+        <button type="submit" class="btn btn--primary btn--sm" [disabled]="busy()">
+          {{ busy() ? 'Aplicando…' : 'Aplicar penalidade' }}
+        </button>
+      </div>
+    </form>
+  } @else {
+    <div>
+      <button type="button" class="btn btn--outline btn--sm" (click)="startApplying()">Aplicar penalidade</button>
+    </div>
+  }
+
+  @if (others().length) {
+    <h3 class="penalties__title">Outras penalidades do grupo</h3>
+    <app-penalty-list [penalties]="others()" [projectId]="penalties().projetoId" [manageable]="true" />
+  }
+</section>

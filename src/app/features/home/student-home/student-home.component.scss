@@ -40,6 +40,46 @@
   flex: 0 0 auto;
 }
 
+.returned {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid color-mix(in oklch, oklch(58% 0.17 330) 45%, var(--border));
+  background: var(--card);
+}
+
+.returned__icon {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-top: 0.125rem;
+  color: oklch(42% 0.16 330);
+}
+
+.returned__body {
+  min-width: 0;
+  max-width: 46rem;
+}
+
+.returned__title {
+  margin: 0;
+  font-size: 1.125rem;
+  color: oklch(42% 0.16 330);
+}
+
+.returned__text {
+  margin: 0.5rem 0 0;
+  font-size: 0.9375rem;
+}
+
+.returned__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
 @media (max-width: 600px) {
   .next__action {
     flex: 1 1 100%;

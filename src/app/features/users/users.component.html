@@ -29,7 +29,7 @@
       @if (formOpen()) {
         <app-account-form (closed)="formOpen.set(false)" (created)="finish($event)" />
       }
-      <app-user-list [canAdd]="!formOpen()" (add)="open()" />
+      <app-user-list [canAdd]="!formOpen()" [cohorts]="cohorts.value()" (add)="open()" />
     }
     @case ('enrollments') {
       @if (cohorts.error()) {

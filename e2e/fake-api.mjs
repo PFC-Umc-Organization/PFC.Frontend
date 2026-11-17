@@ -273,7 +273,7 @@ export function fakeApi() {
     if (p === '/usuarios') {
       const advisees = db.projects.filter((x) => x.orientadorId === me.sub).flatMap((x) => x.integrantes);
       const listed = Object.values(db.users).filter((u) => role === 'ADMIN' || (u.perfil === 'ALUNO' && advisees.includes(u.rgm)));
-      return json(200, listed.map((u) => ({ id: u.id, nome: u.nome, email: u.email, perfil: u.perfil, status: u.desativada ? 'INATIVO' : 'ATIVO', confirmado: !u.temporaria, aguardandoPrimeiroAcesso: u.temporaria || undefined, cursoIds: [], rgm: u.rgm })));
+      return json(200, listed.map((u) => ({ id: u.id, nome: u.nome, email: u.email, perfil: u.perfil, status: u.desativada ? 'INATIVO' : 'ATIVO', confirmado: !u.temporaria, aguardandoPrimeiroAcesso: u.temporaria || undefined, cursoIds: u.rgm && db.enrollments[u.rgm] ? [db.enrollments[u.rgm]] : [], rgm: u.rgm })));
     }
     if ((mm = p.match(/^\/admin\/usuarios\/([^/]+)\/(nome|perfil|desativar|reativar|convite)$/))) {
       if (role !== 'ADMIN') return json(403, { erro: 'Acesso restrito à coordenação.' });
