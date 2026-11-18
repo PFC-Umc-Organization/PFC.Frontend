@@ -1,0 +1,50 @@
+.list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.notices {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notice-card {
+  display: grid;
+  gap: 0.375rem;
+  padding: 0.875rem 1.25rem 1rem;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--bronze);
+  background: var(--card);
+}
+
+.notice-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.notice-card__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.notice-card__meta {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.notice-card__text {
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

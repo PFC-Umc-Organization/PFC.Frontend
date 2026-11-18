@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { combineLatest, map } from 'rxjs';
 
 import { Cohort, Program, Project, ProjectPenalties, User, cohortLabel, currentTerm, isStaff } from '../../../core/models';
@@ -65,7 +66,7 @@ export class StaffHomeStore {
     initial: [] as Project[],
   });
 
-  private readonly chosen = signal<string | null>(null);
+  private readonly chosen = signal<string | null>(inject(ActivatedRoute).snapshot.queryParamMap.get('turma'));
   readonly choosingCohort = computed(() => this.isAdvisor() && this.advised.loading() && !this.chosen());
 
   readonly allCohorts = computed(() => this.chosen() === ALL_COHORTS);

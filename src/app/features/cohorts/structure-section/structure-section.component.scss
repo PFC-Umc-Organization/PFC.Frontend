@@ -63,3 +63,11 @@
 .move .field {
   flex: 1 1 18rem;
 }
+
+.count-link {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}

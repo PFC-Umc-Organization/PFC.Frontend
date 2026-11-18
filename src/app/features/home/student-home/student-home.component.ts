@@ -14,6 +14,7 @@ import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
+import { AnnouncementsBoardComponent } from '../../announcements/announcements-board/announcements-board.component';
 import { DeliveryMode, DeliveryPanelComponent } from '../delivery-panel/delivery-panel.component';
 import { StatusGridComponent } from '../status-grid/status-grid.component';
 import { nextActionOf, penaltySummaryOf, progressOf } from './student-home.kpis';
@@ -32,7 +33,7 @@ interface Home {
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, DeliveryPanelComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, DecimalPipe, PenaltyCounterComponent, PenaltyListComponent],
+  imports: [AnnouncementsBoardComponent, StatusGridComponent, DeliveryPanelComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, DecimalPipe, PenaltyCounterComponent, PenaltyListComponent],
   templateUrl: './student-home.component.html',
   styleUrl: './student-home.component.scss',
 })

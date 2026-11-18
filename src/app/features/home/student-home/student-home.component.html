@@ -7,6 +7,7 @@
 } @else if (home.loading()) {
   <p class="loading" role="status">Carregando as atividades…</p>
 } @else {
+    <app-announcements-board />
     @if (penaltiesError()) {
       <p class="alert" role="alert">
         <app-icon name="alert" />

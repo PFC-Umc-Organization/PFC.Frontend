@@ -1,0 +1,29 @@
+<button
+  type="button"
+  class="trigger"
+  aria-haspopup="menu"
+  [attr.aria-expanded]="open()"
+  [attr.aria-label]="label()"
+  [disabled]="disabled()"
+  (click)="toggle()"
+>
+  <span aria-hidden="true">⋮</span>
+</button>
+@if (open()) {
+  <button type="button" class="backdrop" tabindex="-1" aria-label="Fechar o menu" (click)="open.set(false)"></button>
+  <div class="menu" role="menu" [style.top.px]="top()" [style.left.px]="left()">
+    @for (item of items(); track item.id) {
+      <button
+        type="button"
+        role="menuitem"
+        class="menu__item"
+        [class.menu__item--danger]="item.danger"
+        [disabled]="item.disabled"
+        [attr.title]="item.hint ?? null"
+        (click)="choose(item)"
+      >
+        {{ item.label }}
+      </button>
+    }
+  </div>
+}

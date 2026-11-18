@@ -9,6 +9,10 @@ import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
 import { dedupeInterceptor } from './core/interceptors/dedupe.interceptor';
 import {
+  AnnouncementHttpService,
+  AnnouncementService,
+} from './core/services/announcement.service';
+import {
   ActivityHttpService,
   ActivityService,
 } from './core/services/activity.service';
@@ -70,6 +74,7 @@ export const appConfig: ApplicationConfig = {
     { provide: SubmissionService, useClass: SubmissionHttpService },
     { provide: PenaltyService, useClass: PenaltyHttpService },
     { provide: MaterialService, useClass: MaterialHttpService },
+    { provide: AnnouncementService, useClass: AnnouncementHttpService },
     { provide: EnrollmentService, useClass: EnrollmentHttpService },
     { provide: ReferenceService, useClass: ReferenceHttpService },
   ],

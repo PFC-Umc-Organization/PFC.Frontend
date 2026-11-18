@@ -1,14 +1,16 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 
 import { Cohort, Course, SHIFT_LABEL, cohortLabel } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RowMenuComponent, RowMenuItem } from '../../../shared/components/row-menu/row-menu.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 import { PfcManagementStore } from '../../pfc-management/pfc-management.store';
 import { CohortFieldsComponent, cohortForm } from '../cohort-fields/cohort-fields.component';
-import { CohortsStore } from '../cohorts.store';
+import { CohortRow, CohortsStore } from '../cohorts.store';
 
 // Formulário
 const nameForm = () => new FormGroup({ nome: new FormControl('', { nonNullable: true, validators: [Validators.required] }) });
@@ -17,7 +19,7 @@ const nameForm = () => new FormGroup({ nome: new FormControl('', { nonNullable: 
 @Component({
   selector: 'app-structure-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [NgTemplateOutlet, ReactiveFormsModule, IconComponent, CohortFieldsComponent, ScrollHintDirective],
+  imports: [NgTemplateOutlet, ReactiveFormsModule, RouterLink, IconComponent, RowMenuComponent, CohortFieldsComponent, ScrollHintDirective],
   templateUrl: './structure-section.component.html',
   styleUrl: './structure-section.component.scss',
 })
@@ -52,9 +54,6 @@ export class StructureSectionComponent implements OnInit {
   readonly newCohortFor = signal<string | null>(null);
   readonly editingCohortId = signal<string | null>(null);
 
-  readonly movingProgramId = signal<string | null>(null);
-  readonly moveToCohortId = signal('');
-
   // ---------------------------------------------------------------------------
   // Ciclo e apoio
   // ---------------------------------------------------------------------------
@@ -62,6 +61,59 @@ export class StructureSectionComponent implements OnInit {
   // Inicialização
   ngOnInit(): void {
     this.store.recount();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Menus
+  // ---------------------------------------------------------------------------
+
+  // Curso
+  courseMenu(rows: number): RowMenuItem[] {
+    return [
+      { id: 'rename', label: 'Renomear' },
+      {
+        id: 'remove',
+        label: 'Excluir',
+        danger: true,
+        disabled: rows > 0 || this.store.busy(),
+        hint: rows > 0 ? 'Remova as turmas do curso antes de excluí-lo' : undefined,
+      },
+    ];
+  }
+
+  // Turma
+  cohortMenu(row: CohortRow): RowMenuItem[] {
+    const items: RowMenuItem[] = [{ id: 'edit', label: 'Editar' }];
+    if (!row.programId && !this.pfc.loadError()) {
+      items.push({ id: 'program', label: 'Criar programa de PFC', disabled: this.store.busy() });
+    }
+    items.push({
+      id: 'remove',
+      label: 'Excluir',
+      danger: true,
+      disabled: this.store.busy() || (row.projects ?? 1) > 0,
+      hint: (row.projects ?? 1) > 0 ? 'Não é possível excluir uma turma cujo programa já tem PFCs' : undefined,
+    });
+    return items;
+  }
+
+  // Escolha
+  chooseCourse(course: Course, id: string): void {
+    if (id === 'rename') {
+      this.startEditCourse(course);
+    } else {
+      void this.removeCourse(course);
+    }
+  }
+
+  chooseCohort(row: CohortRow, id: string): void {
+    if (id === 'edit') {
+      this.startEditCohort(row.cohort);
+    } else if (id === 'program') {
+      void this.createProgram(row.cohort);
+    } else {
+      void this.removeCohort(row);
+    }
   }
 
   // Validação
@@ -152,7 +204,8 @@ export class StructureSectionComponent implements OnInit {
       this.newCohortForm.markAllAsTouched();
       return;
     }
-    if (!(await this.confirmSave('Criar turma', `Criar a turma ${this.label(this.newCohortForm.getRawValue())}?`, 'Criar'))) {
+    const message = `Criar a turma ${this.label(this.newCohortForm.getRawValue())}? O programa de PFC é criado junto, e os alunos da turma já podem cadastrar projetos.`;
+    if (!(await this.confirmSave('Criar turma', message, 'Criar'))) {
       return;
     }
     this.store.createCohort(this.newCohortForm.getRawValue(), () => this.newCohortFor.set(null));
@@ -183,13 +236,14 @@ export class StructureSectionComponent implements OnInit {
   }
 
   // Exclusão
-  async removeCohort(cohort: Cohort): Promise<void> {
+  async removeCohort(row: CohortRow): Promise<void> {
+    const programNote = row.programId ? ' O programa de PFC da turma, que não tem projetos, também é excluído.' : '';
     const confirmed = await this.confirmDelete(
       'Excluir turma',
-      `Excluir a turma ${cohortLabel(cohort)}? A exclusão só é aceita se a turma não tiver programa de PFC nem RGMs pré-autorizados; caso tenha, exclua o programa aqui mesmo e remova as pré-autorizações em Usuários antes. Esta ação não pode ser desfeita.`,
+      `Excluir a turma ${cohortLabel(row.cohort)}?${programNote} A exclusão só é aceita se a turma não tiver RGMs pré-autorizados; remova as pré-autorizações em Usuários antes. Esta ação não pode ser desfeita.`,
     );
     if (confirmed) {
-      this.store.removeCohort(cohort.id);
+      this.store.removeCohort(row.cohort.id, row.programId);
     }
   }
 
@@ -197,28 +251,12 @@ export class StructureSectionComponent implements OnInit {
   // Programas
   // ---------------------------------------------------------------------------
 
-  // Movimentação
-  startMoveProgram(programId: string): void {
-    this.store.clearErrors();
-    this.moveToCohortId.set('');
-    this.movingProgramId.set(programId);
-  }
-
-  // Gravação
+  // Criação
   async createProgram(cohort: Cohort): Promise<void> {
     const message = `Criar o programa de PFC da turma ${cohortLabel(cohort)}? Depois disso, os alunos da turma já podem cadastrar o PFC do grupo.`;
     if (await this.confirmSave('Criar programa de PFC', message, 'Criar')) {
       this.store.createProgram(cohort.id);
     }
-  }
-
-  async saveMoveProgram(programId: string): Promise<void> {
-    const target = this.store.cohorts.value().find((c) => c.id === this.moveToCohortId());
-    const message = target ? `Mover o programa de PFC para a turma ${cohortLabel(target)}?` : 'Mover o programa de PFC?';
-    if (!(await this.confirmSave('Mover programa de PFC', message, 'Mover'))) {
-      return;
-    }
-    this.store.moveProgram(programId, this.moveToCohortId(), () => this.movingProgramId.set(null));
   }
 
   // Exclusão

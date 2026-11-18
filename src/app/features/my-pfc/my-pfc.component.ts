@@ -50,6 +50,11 @@ export class MyPfcComponent {
     this.reload();
   }
 
+  descriptionSaved(): void {
+    this.notice.set('Descrição atualizada.');
+    this.reload();
+  }
+
   joined(): void {
     this.notice.set('Convite aceito. Você agora faz parte do grupo.');
     this.reload();

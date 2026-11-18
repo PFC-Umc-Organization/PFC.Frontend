@@ -16,6 +16,35 @@
     </div>
   </dl>
 
+  <div class="about">
+    <div class="about__head">
+      <h2 class="members__title">Descrição</h2>
+      @if (!editing()) {
+        <button type="button" class="text-action" (click)="editing.set(true)">
+          {{ detail().projeto.descricao ? 'Editar descrição' : 'Adicionar descrição' }}
+        </button>
+      }
+    </div>
+    @if (editing()) {
+      <form class="about__form" (submit)="$event.preventDefault(); save()">
+        <label class="sr-only" for="project-description">Descrição do projeto</label>
+        <textarea id="project-description" class="control" rows="4" [maxLength]="limit" [value]="draft()" (input)="setDraft($event)"></textarea>
+        <span class="field__hint">{{ draft().length }} de {{ limit }} caracteres</span>
+        @if (error()) {
+          <p class="alert" role="alert">{{ error() }}</p>
+        }
+        <div class="row">
+          <button type="submit" class="btn btn--primary btn--sm" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+          <button type="button" class="btn btn--outline btn--sm" [disabled]="saving()" (click)="editing.set(false)">Cancelar</button>
+        </div>
+      </form>
+    } @else if (detail().projeto.descricao) {
+      <p class="about__text">{{ detail().projeto.descricao }}</p>
+    } @else {
+      <p class="about__text muted">O projeto ainda não tem descrição.</p>
+    }
+  </div>
+
   <div class="members">
     <h2 class="members__title">
       Integrantes

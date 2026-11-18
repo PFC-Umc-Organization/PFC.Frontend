@@ -95,7 +95,6 @@
       <thead>
         <tr>
           <th scope="col">Curso e turmas</th>
-          <th scope="col">Programa de PFC</th>
           <th scope="col">PFCs dos alunos</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
@@ -104,7 +103,7 @@
         @for (g of store.groups().groups; track g.course.id) {
           @if (editingCourseId() === g.course.id) {
             <tr class="course-row">
-              <td colspan="4">
+              <td colspan="3">
                 <form class="form-grid form-grid--2 editor" [formGroup]="courseEditForm" (ngSubmit)="saveCourse(g.course.id)">
                   <div class="field">
                     <label class="field__label" for="edit-course-name">Nome do curso</label>
@@ -133,7 +132,7 @@
             </tr>
           } @else {
             <tr class="course-row">
-              <th scope="rowgroup" colspan="3" class="course-row__name">
+              <th scope="rowgroup" colspan="2" class="course-row__name">
                 {{ g.course.nome }}
                 <span class="course-row__count">{{ g.rows.length }} {{ g.rows.length === 1 ? 'turma' : 'turmas' }}</span>
               </th>
@@ -148,24 +147,11 @@
                     <app-icon name="plus" class="btn__icon" />
                     Nova turma
                   </button>
-                  <button
-                    type="button"
-                    class="icon-action"
-                    (click)="startEditCourse(g.course)"
-                    [attr.aria-label]="'Editar curso ' + g.course.nome"
-                  >
-                    <app-icon name="edit" />
-                  </button>
-                  <button
-                    type="button"
-                    class="icon-action"
-                    [disabled]="g.rows.length > 0 || store.busy()"
-                    [attr.title]="g.rows.length > 0 ? 'Remova as turmas do curso antes de excluí-lo' : null"
-                    (click)="removeCourse(g.course)"
-                    [attr.aria-label]="'Excluir curso ' + g.course.nome"
-                  >
-                    <app-icon name="trash" />
-                  </button>
+                  <app-row-menu
+                    [label]="'Ações do curso ' + g.course.nome"
+                    [items]="courseMenu(g.rows.length)"
+                    (chosen)="chooseCourse(g.course, $event)"
+                  />
                 </div>
               </td>
             </tr>
@@ -173,7 +159,7 @@
 
           @if (newCohortFor() === g.course.id) {
             <tr class="sub-row">
-              <td colspan="4">
+              <td colspan="3">
                 <form class="form-grid form-grid--2 editor" [formGroup]="newCohortForm" (ngSubmit)="createCohort()">
                   <app-cohort-fields [form]="newCohortForm" [courses]="store.courses.value()" idPrefix="new" [hideCourse]="true" />
                   <div class="form-grid__full row">
@@ -194,19 +180,19 @@
           } @empty {
             @if (newCohortFor() !== g.course.id && !store.cohorts.error()) {
               <tr class="sub-row">
-                <td class="muted" colspan="4">Este curso ainda não tem turmas.</td>
+                <td class="muted" colspan="3">Este curso ainda não tem turmas.</td>
               </tr>
             }
           }
         } @empty {
           <tr>
-            <td class="table-empty" colspan="4">Nenhum curso cadastrado ainda.</td>
+            <td class="table-empty" colspan="3">Nenhum curso cadastrado ainda.</td>
           </tr>
         }
 
         @if (store.groups().loose.length) {
           <tr class="course-row">
-            <th scope="rowgroup" colspan="4" class="course-row__name">
+            <th scope="rowgroup" colspan="3" class="course-row__name">
               Turmas de curso não cadastrado
               <span class="course-row__count">cadastre o curso acima para poder editá-las</span>
             </th>
@@ -218,20 +204,24 @@
 
         @if (store.orphans().length) {
           <tr class="course-row">
-            <th scope="rowgroup" colspan="4" class="course-row__name">Programas sem turma</th>
+            <th scope="rowgroup" colspan="3" class="course-row__name">Programas sem turma</th>
           </tr>
           @for (o of store.orphans(); track o.programId) {
             <tr class="sub-row">
               <td class="cell-strong">Turma removida</td>
-              <td colspan="3">
-                <ng-container
-                  *ngTemplateOutlet="programCell; context: { programId: o.programId, projects: o.projects, label: 'Turma removida' }"
-                />
+              <td>{{ o.projects ?? '—' }}</td>
+              <td class="actions">
+                <button
+                  type="button"
+                  class="text-action text-action--danger"
+                  [disabled]="o.projects !== 0 || store.busy()"
+                  [attr.title]="(o.projects ?? 0) > 0 ? 'Não é possível excluir um programa que já tem PFCs' : null"
+                  (click)="removeProgram(o.programId, 'Turma removida')"
+                >
+                  Excluir programa
+                </button>
               </td>
             </tr>
-            @if (movingProgramId() === o.programId) {
-              <ng-container *ngTemplateOutlet="moveRow; context: { programId: o.programId }" />
-            }
           }
         }
       </tbody>
@@ -242,7 +232,7 @@
 <ng-template #cohortRow let-r let-withCourse="withCourse">
   @if (editingCohortId() === r.cohort.id) {
     <tr class="sub-row">
-      <td colspan="4">
+      <td colspan="3">
         <form class="form-grid form-grid--2 editor" [formGroup]="cohortEditForm" (ngSubmit)="saveCohort(r.cohort.id)">
           <app-cohort-fields [form]="cohortEditForm" [courses]="store.courses.value()" idPrefix="edit" />
           <div class="form-grid__full row">
@@ -261,25 +251,6 @@
         {{ shiftName(r.cohort) }} · {{ r.cohort.periodo }}
       </td>
       <td>
-        @if (r.programId) {
-          <ng-container
-            *ngTemplateOutlet="programCell; context: { programId: r.programId, projects: r.projects, label: cohortLabel(r.cohort) }"
-          />
-        } @else if (pfc.loadError()) {
-          <span class="muted">—</span>
-        } @else {
-          <button
-            type="button"
-            class="btn btn--outline btn--sm"
-            [disabled]="store.programCreating() === r.cohort.id"
-            [attr.aria-label]="'Criar programa de ' + cohortLabel(r.cohort)"
-            (click)="createProgram(r.cohort)"
-          >
-            {{ store.programCreating() === r.cohort.id ? 'Criando…' : 'Criar programa' }}
-          </button>
-        }
-      </td>
-      <td>
         @if (!r.programId) {
           <span class="muted">—</span>
         } @else if (r.projects === undefined) {
@@ -289,93 +260,16 @@
             <span class="pending">Contando…</span>
           }
         } @else {
-          {{ r.projects }}
+          <a class="count-link" routerLink="/" [queryParams]="{ turma: r.cohort.id }" [attr.aria-label]="r.projects + ' PFCs de ' + cohortLabel(r.cohort) + ': abrir no Painel do PFC'">{{ r.projects }}</a>
         }
       </td>
       <td class="actions">
-        <div class="row">
-          <button
-            type="button"
-            class="icon-action"
-            (click)="startEditCohort(r.cohort)"
-            [attr.aria-label]="'Editar turma ' + cohortLabel(r.cohort)"
-          >
-            <app-icon name="edit" />
-          </button>
-          <button
-            type="button"
-            class="icon-action"
-            [disabled]="store.busy()"
-            (click)="removeCohort(r.cohort)"
-            [attr.aria-label]="'Excluir turma ' + cohortLabel(r.cohort)"
-          >
-            <app-icon name="trash" />
-          </button>
-        </div>
+        <app-row-menu
+          [label]="'Ações da turma ' + cohortLabel(r.cohort)"
+          [items]="cohortMenu(r)"
+          (chosen)="chooseCohort(r, $event)"
+        />
       </td>
     </tr>
-    @if (r.programId && movingProgramId() === r.programId) {
-      <ng-container *ngTemplateOutlet="moveRow; context: { programId: r.programId }" />
-    }
   }
-</ng-template>
-
-<ng-template #programCell let-programId="programId" let-projects="projects" let-label="label">
-  <div class="program">
-    <span class="status-text status-text--ok">Criado</span>
-    <button
-      type="button"
-      class="icon-action"
-      [disabled]="projects !== 0 || store.freeCohorts().length === 0"
-      [attr.title]="(projects ?? 0) > 0 ? 'Não é possível mover um programa que já tem PFCs' : 'Mover para outra turma'"
-      (click)="startMoveProgram(programId)"
-      [attr.aria-label]="'Mover programa de ' + label"
-    >
-      <app-icon name="edit" />
-    </button>
-    <button
-      type="button"
-      class="icon-action"
-      [disabled]="projects !== 0 || store.busy()"
-      [attr.title]="(projects ?? 0) > 0 ? 'Não é possível excluir um programa que já tem PFCs' : 'Excluir programa'"
-      (click)="removeProgram(programId, label)"
-      [attr.aria-label]="'Excluir programa de ' + label"
-    >
-      <app-icon name="trash" />
-    </button>
-  </div>
-</ng-template>
-
-<ng-template #moveRow let-programId="programId">
-  <tr class="sub-row">
-    <td colspan="4">
-      <div class="move">
-        <div class="field">
-          <label class="field__label" for="program-cohort">Mover o programa para a turma</label>
-          <select
-            id="program-cohort"
-            class="control"
-            [value]="moveToCohortId()"
-            (change)="moveToCohortId.set($any($event.target).value)"
-          >
-            <option value="" disabled>Escolha a turma</option>
-            @for (c of store.freeCohorts(); track c.id) {
-              <option [value]="c.id">{{ cohortLabel(c) }}</option>
-            }
-          </select>
-        </div>
-        <div class="row">
-          <button type="button" class="btn btn--ghost btn--sm" (click)="movingProgramId.set(null)">Cancelar</button>
-          <button
-            type="button"
-            class="btn btn--primary btn--sm"
-            [disabled]="!moveToCohortId() || store.busy()"
-            (click)="saveMoveProgram(programId)"
-          >
-            Mover
-          </button>
-        </div>
-      </div>
-    </td>
-  </tr>
 </ng-template>

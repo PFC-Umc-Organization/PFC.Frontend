@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
 
-import { Project, User } from '../../../core/models';
+import { PROJECT_LIMITS, Project, User } from '../../../core/models';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { action } from '../../../core/state/action';
@@ -26,6 +26,46 @@ export class ProjectPanelComponent {
   readonly changed = output();
 
   readonly editing = signal(false);
+
+  // ---------------------------------------------------------------------------
+  // Descrição
+  // ---------------------------------------------------------------------------
+
+  protected readonly limit = PROJECT_LIMITS.descricao;
+  readonly editingDescription = linkedSignal(() => {
+    this.project().descricao;
+    return false;
+  });
+  readonly draft = linkedSignal(() => this.project().descricao ?? '');
+  private readonly descriptionAction = action(
+    (projectId: string, name: string, description: string) => this.projectService.update(projectId, { nome: name, descricao: description }),
+    { onSuccess: () => this.changed.emit() },
+  );
+  readonly savingDescription = this.descriptionAction.pending;
+  readonly descriptionError = this.descriptionAction.error;
+
+  // Edição
+  setDraft(event: Event): void {
+    this.draft.set((event.target as HTMLTextAreaElement).value);
+  }
+
+  // Gravação
+  async saveDescription(): Promise<void> {
+    const project = this.project();
+    const confirmed = await this.confirmation.confirm({
+      title: 'Salvar descrição',
+      message: `Salvar a nova descrição do PFC "${project.nome}"?`,
+      confirmText: 'Salvar',
+    });
+    if (confirmed) {
+      this.descriptionAction.run(project.id, project.nome, this.draft().trim());
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Orientador
+  // ---------------------------------------------------------------------------
+
   private readonly advisorAction = action(
     (projectId: string, advisorId: string) =>
       advisorId ? this.projectService.setAdvisor(projectId, advisorId) : this.projectService.removeAdvisor(projectId),
