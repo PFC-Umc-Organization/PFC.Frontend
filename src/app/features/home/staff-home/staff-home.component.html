@@ -2,7 +2,7 @@
   <div>
     <p class="eyebrow">Acompanhamento</p>
     <h1 class="page-title mt-2">Painel do PFC</h1>
-    <p class="lead mt-2">Situação das entregas de cada grupo da turma, por atividade.</p>
+    <p class="lead mt-2">Situação das entregas e das penalidades de cada grupo. Clique em um projeto para ver os detalhes.</p>
   </div>
   <div class="header-tools">
     <div class="field picker">
@@ -139,43 +139,12 @@
   </p>
 }
 
-@if (store.allCohorts()) {
-  <app-consolidated-table
-    [rows]="consolidated()"
-    [loading]="store.loading()"
-    [emptyText]="emptyText()"
-    [openable]="store.isAdmin()"
-    [selectedProject]="selectedProject()"
-    (openProject)="openProject($event)"
-  >
-  <div filters><ng-container *ngTemplateOutlet="filterBar" /></div>
-  <div actions class="export">
-    <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('xlsx')">
-      <app-icon name="download" class="btn__icon" />
-      Exportar Excel
-    </button>
-    <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('pdf')">
-      <app-icon name="download" class="btn__icon" />
-      Exportar PDF
-    </button>
-  </div>
-  </app-consolidated-table>
-} @else {
-<app-status-grid
-  [grid]="visibleGrid()"
+<app-consolidated-table
+  [rows]="consolidated()"
   [loading]="store.loading()"
-  [selected]="selected()"
   [emptyText]="emptyText()"
-  [penalties]="store.penalties()"
-  [members]="store.membersByProject()"
-  [quickMenu]="store.isAdmin()"
-  [selectedActivity]="selectedActivity()"
-  [projectsOpenable]="store.isAdmin()"
   [selectedProject]="selectedProject()"
   (openProject)="openProject($event)"
-  (open)="openCell($event)"
-  (menu)="openMenu($event)"
-  (openActivity)="openActivity($event)"
 >
   <div filters><ng-container *ngTemplateOutlet="filterBar" /></div>
   <div actions class="export">
@@ -188,34 +157,37 @@
       Exportar PDF
     </button>
   </div>
-</app-status-grid>
+</app-consolidated-table>
+
+@if (overview(); as o) {
+  <app-project-overview
+    [appReveal]="penaltyFocus() ? null : projectReveal()"
+    [name]="o.name"
+    [cohort]="o.cohort"
+    [advisor]="o.advisor"
+    [members]="o.members"
+    [deliveries]="o.deliveries"
+    [penalties]="o.penalties"
+    [penaltyFocus]="penaltyFocus()"
+    [selectedActivity]="selected()?.activityId ?? null"
+    (closed)="closeProject()"
+    (openDelivery)="openDelivery($event)"
+  />
 }
 
-@if (menuCell(); as m) {
-  <app-cell-menu [cell]="m" (closed)="menuCell.set(null)" (details)="openMenuDetails()" />
-}
-
-@if (projectDetail(); as p) {
+@if (store.isAdmin() && projectDetail(); as p) {
   <app-project-panel
     [project]="p"
     [advisors]="store.advisors()"
     [nameByRgm]="store.nameOf"
-    (closed)="selectedProject.set(null)"
+    (closed)="closeProject()"
     (changed)="store.projectChanged()"
-  />
-}
-
-@if (activityDetail(); as d) {
-  <app-activity-submissions
-    [activity]="d.activity"
-    [items]="d.items"
-    (closed)="selectedActivity.set(null)"
-    (openGroup)="openGroupOf($event)"
   />
 }
 
 @if (detail(); as d) {
   <app-submission-detail
+    [appReveal]="cellReveal()"
     [projectId]="d.projectId"
     [projectName]="d.projectName"
     [activity]="d.activity"

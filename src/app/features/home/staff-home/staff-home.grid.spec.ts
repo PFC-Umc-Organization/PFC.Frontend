@@ -1,5 +1,5 @@
 import { StatusGrid } from '../../../core/services/submission.service';
-import { activityDetailOf, indicatorsOf, visibleGridOf } from './staff-home.grid';
+import { activityDetailOf, indicatorsOf, overviewOf, visibleGridOf } from './staff-home.grid';
 
 const grid = {
   activities: [
@@ -32,5 +32,25 @@ describe('staff home grid', () => {
     const d = activityDetailOf(grid, 'a1')!;
     expect(d.items.map((i) => [i.projectId, !!i.submission])).toEqual([['p1', true], ['p2', false]]);
     expect(activityDetailOf(grid, 'nope')).toBeNull();
+  });
+
+  it('searches by the full name or RGM of any member', () => {
+    const q = { search: '', advisorId: '', filter: 'all' as const, penalties: undefined };
+    const members = new Map([
+      ['p1', [{ rgm: '11231101228', nome: 'Maria Souza' }]],
+      ['p2', [{ rgm: '11231101229', nome: 'João Lima' }]],
+    ]);
+    expect(visibleGridOf(grid, { ...q, search: 'souza', members }).rows.map((r) => r.project.id)).toEqual(['p1']);
+    expect(visibleGridOf(grid, { ...q, search: 'joao', members }).rows.map((r) => r.project.id)).toEqual(['p2']);
+    expect(visibleGridOf(grid, { ...q, search: '1229', members }).rows.map((r) => r.project.id)).toEqual(['p2']);
+  });
+
+  it('lists every delivery of a project with its state and date', () => {
+    const items = overviewOf(grid, 'p2', undefined);
+    expect(items.map((i) => [i.title, i.state, i.deliveredAt])).toEqual([
+      ['Proposta', 'late', null],
+      ['Final', 'waiting', null],
+    ]);
+    expect(overviewOf(grid, 'nope', undefined)).toEqual([]);
   });
 });

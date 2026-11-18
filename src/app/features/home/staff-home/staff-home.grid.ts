@@ -1,4 +1,5 @@
-import { ProjectPenalties, ProjectStatusRow } from '../../../core/models';
+import { ProjectPenalties, ProjectStatusRow, Submission, ValidationStatus } from '../../../core/models';
+import { CellState, cellStates } from '../../../core/services/submission-status';
 import { StatusGrid } from '../../../core/services/submission.service';
 import { ActivityGroupItem } from '../activity-submissions/activity-submissions.component';
 import { CellRef } from '../status-grid/status-grid.component';
@@ -105,4 +106,50 @@ export function cellDetailOf(grid: StatusGrid, cell: CellRef | null) {
   }
   const submission = grid.submissions.find((s) => s.projetoId === cell.projectId && s.atividadeId === cell.activityId) ?? null;
   return { ...cell, activity, submission };
+}
+
+// ---------------------------------------------------------------------------
+// Visão geral
+// ---------------------------------------------------------------------------
+
+export interface OverviewDelivery {
+  activityId: string;
+  title: string;
+  deadline: string;
+  state: CellState;
+  late: boolean;
+  deliveredAt: string | null;
+  validation?: ValidationStatus;
+  validatedAt?: string;
+}
+
+// Entregas
+export function overviewOf(grid: StatusGrid, projectId: string, penalties: PenaltyMap): OverviewDelivery[] {
+  const row = grid.rows.find((r) => r.project.id === projectId);
+  if (!row) {
+    return [];
+  }
+  const waived = new Set(
+    penalties?.get(projectId)?.penalidades.filter((p) => p.origem === 'PRAZO' && p.perdao && p.atividadeId).map((p) => p.atividadeId),
+  );
+  const states = cellStates(row.cells.map((c) => ({ ...c, waived: waived.has(c.activityId) })));
+  const submissions = new Map<string, Submission>(grid.submissions.filter((s) => s.projetoId === projectId).map((s) => [s.atividadeId, s]));
+  return row.cells.flatMap((c, i) => {
+    const activity = grid.activities.find((a) => a.id === c.activityId);
+    const submission = submissions.get(c.activityId);
+    return activity
+      ? [
+          {
+            activityId: c.activityId,
+            title: activity.titulo,
+            deadline: activity.prazo,
+            state: states[i].state,
+            late: c.status === 'ENTREGUE_COM_ATRASO',
+            deliveredAt: submission?.entregueEm ?? null,
+            validation: c.validation,
+            validatedAt: submission?.validacao?.em,
+          },
+        ]
+      : [];
+  });
 }

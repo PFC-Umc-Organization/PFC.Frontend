@@ -1,0 +1,15 @@
+
+// ---------------------------------------------------------------------------
+// Destaque
+// ---------------------------------------------------------------------------
+
+.reveal {
+  display: block;
+  scroll-margin-top: 1rem;
+}
+
+.reveal--flash {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  transition: outline-color 0.3s;
+}

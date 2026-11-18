@@ -5,25 +5,21 @@ import { from } from 'rxjs';
 import { cohortLabel } from '../../../core/models';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
-import { ActivitySubmissionsComponent } from '../activity-submissions/activity-submissions.component';
-import { CellMenuComponent, CellMenuRef } from '../cell-menu/cell-menu.component';
 import { ConsolidatedTableComponent } from '../consolidated-table/consolidated-table.component';
 import { KpiStripComponent } from '../kpi-strip/kpi-strip.component';
+import { ProjectOverviewComponent } from '../project-overview/project-overview.component';
 import { ProjectPanelComponent } from '../project-panel/project-panel.component';
-import { CellMenuRequest, CellRef, StatusGridComponent } from '../status-grid/status-grid.component';
+import { CellRef } from '../status-grid/status-grid.component';
 import { SubmissionDetailComponent } from '../submission-detail/submission-detail.component';
 import { ExportData, exportExcel, exportPdf } from './staff-home.export';
-import { PenaltyBand, RowFilter, activityDetailOf, cellDetailOf, indicatorsOf, visibleGridOf } from './staff-home.grid';
+import { PenaltyBand, RowFilter, cellDetailOf, indicatorsOf, overviewOf, visibleGridOf } from './staff-home.grid';
 import { consolidatedRowsOf, factsOf, kpisOf } from './staff-home.kpis';
 import { ALL_COHORTS, StaffHomeStore } from './staff-home.store';
 
 // Tipos
 export type { RowFilter } from './staff-home.grid';
-
-const MENU_HEIGHT = 220;
-
-type GroupRef = { projectId: string; projectName: string };
 
 // Componente
 @Component({
@@ -32,13 +28,12 @@ type GroupRef = { projectId: string; projectName: string };
   imports: [
     NgTemplateOutlet,
     IconComponent,
-    StatusGridComponent,
     ConsolidatedTableComponent,
     KpiStripComponent,
-    CellMenuComponent,
     SubmissionDetailComponent,
-    ActivitySubmissionsComponent,
+    ProjectOverviewComponent,
     ProjectPanelComponent,
+    RevealDirective,
     DeadlinePipe,
   ],
   providers: [StaffHomeStore],
@@ -161,81 +156,51 @@ export class StaffHomeComponent {
   // ---------------------------------------------------------------------------
 
   readonly selected = signal<CellRef | null>(null);
-  readonly selectedActivity = signal<string | null>(null);
   readonly selectedProject = signal<string | null>(null);
+  readonly projectReveal = signal(0);
+  readonly cellReveal = signal(0);
+  readonly penaltyFocus = signal<number | null>(null);
 
   readonly projectDetail = computed(() => this.store.projectById().get(this.selectedProject() ?? '') ?? null);
-  readonly activityDetail = computed(() => activityDetailOf(this.visibleGrid(), this.selectedActivity()));
   readonly detail = computed(() => cellDetailOf(this.store.grid(), this.selected()));
 
-  // Fechamento
-  private closeAll(): void {
-    this.menuCell.set(null);
-    this.selected.set(null);
-    this.selectedActivity.set(null);
-    this.selectedProject.set(null);
-  }
+  readonly overview = computed(() => {
+    const project = this.projectDetail();
+    if (!project) {
+      return null;
+    }
+    return {
+      name: project.nome,
+      cohort: this.store.cohortLabelOf(project.id),
+      advisor: this.store.advisorNameOf(project.orientadorId),
+      members: this.store.membersByProject().get(project.id) ?? [],
+      deliveries: overviewOf(this.store.grid(), project.id, this.store.penalties()),
+      penalties: this.store.penalties()?.get(project.id),
+    };
+  });
 
   // Abertura de projeto
-  openProject(project: { projectId: string }): void {
-    const reopen = this.selectedProject() === project.projectId;
-    this.closeAll();
-    this.selectedProject.set(reopen ? null : project.projectId);
+  openProject({ projectId, section }: { projectId: string; section?: 'penalties' }): void {
+    this.selected.set(null);
+    this.selectedProject.set(projectId);
+    this.penaltyFocus.set(section === 'penalties' ? this.projectReveal() + 1 : null);
+    this.projectReveal.update((n) => n + 1);
   }
 
-  // Abertura de atividade
-  openActivity(activityId: string): void {
-    const reopen = this.selectedActivity() === activityId;
-    this.closeAll();
-    this.selectedActivity.set(reopen ? null : activityId);
-  }
-
-  // Abertura de célula
-  openCell(cell: CellRef): void {
-    this.closeAll();
-    this.selected.set(cell);
-  }
-
-  openGroupOf(project: GroupRef): void {
-    const activityId = this.selectedActivity();
-    if (activityId) {
-      this.openCell({ ...project, activityId });
+  // Abertura de entrega
+  openDelivery(activityId: string): void {
+    const project = this.projectDetail();
+    if (project) {
+      this.selected.set({ projectId: project.id, projectName: project.nome, activityId });
+      this.cellReveal.update((n) => n + 1);
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Menu rápido
-  // ---------------------------------------------------------------------------
-
-  readonly menuCell = signal<CellMenuRef | null>(null);
-
-  // Abertura
-  openMenu({ cell, state, rect }: CellMenuRequest): void {
-    this.closeAll();
-    const activity = this.store.grid().activities.find((a) => a.id === cell.activityId);
-    const penaltyId = this.store
-      .penalties()
-      ?.get(cell.projectId)
-      ?.penalidades.find((p) => p.origem === 'PRAZO' && p.atividadeId === cell.activityId && !p.perdao)?.id;
-    this.menuCell.set({
-      ...cell,
-      state,
-      activityTitle: activity?.titulo ?? '',
-      deadlinePassed: !!activity && new Date(activity.prazo) < new Date(),
-      penaltyId,
-      top: rect.bottom + 4 + MENU_HEIGHT > window.innerHeight ? null : rect.bottom + 4,
-      bottom: rect.bottom + 4 + MENU_HEIGHT > window.innerHeight ? window.innerHeight - rect.top + 4 : null,
-      left: Math.max(8, Math.min(rect.left, window.innerWidth - 328)),
-    });
-  }
-
-  // Detalhes
-  openMenuDetails(): void {
-    const cell = this.menuCell();
-    this.menuCell.set(null);
-    if (cell) {
-      this.openCell({ projectId: cell.projectId, projectName: cell.projectName, activityId: cell.activityId });
-    }
+  // Fechamento
+  closeProject(): void {
+    this.selected.set(null);
+    this.selectedProject.set(null);
+    this.penaltyFocus.set(null);
   }
 
   // ---------------------------------------------------------------------------

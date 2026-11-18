@@ -17,33 +17,40 @@
       <table class="sheet">
         <thead>
           <tr>
-            <th scope="col">Projeto e integrantes</th>
+            <th scope="col">Projeto</th>
             <th scope="col">Turma</th>
             <th scope="col">Orientador</th>
-            <th scope="col" class="num">Progresso</th>
+            <th scope="col">Entregas</th>
             <th scope="col">Penalidades</th>
             <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>
           @for (r of rows(); track r.projectId) {
-            <tr [class.row--active]="selectedProject() === r.projectId">
+            <tr class="clickable" [class.row--active]="selectedProject() === r.projectId" (click)="open(r)">
               <th scope="row" class="project-cell">
-                @if (openable()) {
+                <button type="button" class="project" [attr.aria-label]="'Abrir o projeto ' + r.name" (click)="$event.stopPropagation(); open(r)">
+                  <span class="project__name">{{ r.name }}</span>
+                </button>
+                @if (r.memberList.length) {
                   <button
                     type="button"
-                    class="project"
-                    [attr.aria-label]="'Abrir o projeto ' + r.name"
-                    (click)="openProject.emit({ projectId: r.projectId, projectName: r.name })"
+                    class="pill-link"
+                    [attr.aria-expanded]="expanded().has(r.projectId)"
+                    [attr.aria-label]="count(r.memberList.length) + ' de ' + r.name"
+                    (click)="toggleMembers($event, r.projectId)"
                   >
-                    <span class="project__name">{{ r.name }}</span>
-                    <span class="project__members">{{ r.members.join(', ') || 'Sem integrantes' }}</span>
+                    {{ count(r.memberList.length) }}
                   </button>
+                  @if (expanded().has(r.projectId)) {
+                    <ul class="members" (click)="$event.stopPropagation()">
+                      @for (m of r.memberList; track m.rgm) {
+                        <li>{{ m.nome }}@if (m.nome !== m.rgm) { <span class="muted"> · RGM {{ m.rgm }}</span> }</li>
+                      }
+                    </ul>
+                  }
                 } @else {
-                  <span class="project">
-                    <span class="project__name">{{ r.name }}</span>
-                    <span class="project__members">{{ r.members.join(', ') || 'Sem integrantes' }}</span>
-                  </span>
+                  <span class="muted project__none">Sem integrantes</span>
                 }
               </th>
               <td>{{ r.cohort }}</td>
@@ -55,14 +62,25 @@
                 }
               </td>
               <td class="num">
-                {{ r.delivered }}/{{ r.total }}
-                <span class="progress" aria-hidden="true"><span [style.width.%]="r.total ? (r.delivered / r.total) * 100 : 0"></span></span>
+                <span class="delivered">{{ r.delivered }}/{{ r.total }}</span>
+                <span class="trail" role="img" [attr.aria-label]="r.delivered + ' de ' + r.total + ' entregas feitas'">
+                  @for (s of r.states; track $index) {
+                    <span class="dot dot--{{ s }}" [attr.title]="cellLabel[s]"></span>
+                  }
+                </span>
               </td>
               <td>
                 @if (r.active === undefined) {
                   <span class="pending">Carregando…</span>
                 } @else {
-                  {{ r.active }}@if (r.limit) { de {{ r.limit }} }
+                  <button type="button" class="penalty-link" [attr.aria-label]="r.name + ', penalidades: ' + (r.outcome === 'failed' ? 'reprovado' : r.active + ' de ' + r.limit)" (click)="openPenalties($event, r)">
+                    <span class="meter" aria-hidden="true">
+                      @for (on of segments(r); track $index) {
+                        <span class="meter__seg" [class.meter__seg--on]="on"></span>
+                      }
+                    </span>
+                    {{ r.active }}@if (r.limit) { de {{ r.limit }} }
+                  </button>
                 }
               </td>
               <td>

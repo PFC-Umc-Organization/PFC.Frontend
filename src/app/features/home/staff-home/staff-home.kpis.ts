@@ -125,12 +125,14 @@ export function kpisOf(grid: StatusGrid, facts: RowFacts[], now = new Date()): K
 // Linhas
 // ---------------------------------------------------------------------------
 
-export const OUTCOME_LABEL: Record<Outcome, string> = { approved: 'Aprovado', failed: 'Reprovado', ongoing: 'Em andamento' };
+export const OUTCOME_LABEL: Record<Outcome, string> = { approved: 'Concluído', failed: 'Reprovado', ongoing: 'Em andamento' };
 
 export interface ConsolidatedRow {
   projectId: string;
   name: string;
   members: string[];
+  memberList: { rgm: string; nome: string }[];
+  states: CellState[];
   cohort: string;
   advisor: string;
   delivered: number;
@@ -152,6 +154,8 @@ export function consolidatedRowsOf(facts: RowFacts[], ctx: RowContext): Consolid
     projectId: f.projectId,
     name: f.name,
     members: (ctx.members.get(f.projectId) ?? []).map((m) => m.nome),
+    memberList: ctx.members.get(f.projectId) ?? [],
+    states: f.states,
     cohort: ctx.cohortOf(f.projectId),
     advisor: ctx.advisorOf(f.advisorId),
     delivered: f.delivered,
