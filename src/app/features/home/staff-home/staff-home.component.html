@@ -16,15 +16,6 @@
         }
       </select>
     </div>
-    @if (store.grid().rows.length) {
-      <button type="button" class="btn btn--outline closing-button" aria-haspopup="dialog" (click)="kpisOpen.set(true)">
-        <app-icon name="clipboard" class="btn__icon" />
-        Fechamento
-        @if (band() !== null) {
-          <span class="closing-button__badge" aria-label="Filtro de penalidades ativo"></span>
-        }
-      </button>
-    }
   </div>
 </header>
 
@@ -70,6 +61,15 @@
         }
       </div>
     </div>
+    <div class="action-bar">
+      <button type="button" class="btn btn--outline btn--sm expand-button" aria-haspopup="dialog" (click)="kpisOpen.set(true)">
+        <app-icon name="clipboard" class="btn__icon" />
+        Expandir
+        @if (band() !== null) {
+          <span class="expand-button__badge" role="img" aria-label="Filtro de penalidades ativo"></span>
+        }
+      </button>
+    </div>
   </section>
 }
 
@@ -114,7 +114,20 @@
 </ng-template>
 
 @if (kpisOpen()) {
-  <app-kpi-strip [kpis]="kpis()" [band]="band()" [scope]="scopeLabel()" (bandChange)="band.set($event)" (closed)="kpisOpen.set(false)" />
+  <app-kpi-strip
+    [grid]="modalGrid()"
+    [penalties]="store.penalties()"
+    [cohorts]="closingCohorts()"
+    [advisors]="closingAdvisors()"
+    [showAdvisor]="store.isAdmin()"
+    [initialCohort]="store.allCohorts() ? '' : store.cohortId()"
+    [cohortIdOf]="store.cohortIdOf"
+    [cohortLabelOf]="store.cohortLabelOf"
+    [advisorNameOf]="store.advisorNameOf"
+    [band]="band()"
+    (bandChange)="band.set($event)"
+    (closed)="kpisOpen.set(false)"
+  />
 }
 
 @if (exportError()) {

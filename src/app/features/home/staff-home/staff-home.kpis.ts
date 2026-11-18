@@ -161,3 +161,46 @@ export function consolidatedRowsOf(facts: RowFacts[], ctx: RowContext): Consolid
     outcome: f.outcome,
   }));
 }
+
+// ---------------------------------------------------------------------------
+// Comparativo
+// ---------------------------------------------------------------------------
+
+export interface BreakdownRow {
+  key: string;
+  label: string;
+  projects: number;
+  efficiency: number | null;
+  penalties: number | undefined;
+  approved: number;
+  failed: number;
+}
+
+// Agrupamento
+export function breakdownOf(
+  grid: StatusGrid,
+  facts: RowFacts[],
+  keyOf: (f: RowFacts) => string,
+  labelOf: (f: RowFacts) => string,
+  now = new Date(),
+): BreakdownRow[] {
+  const groups = new Map<string, RowFacts[]>();
+  for (const f of facts) {
+    groups.set(keyOf(f), [...(groups.get(keyOf(f)) ?? []), f]);
+  }
+  return [...groups.entries()]
+    .map(([key, members]) => {
+      const ids = new Set(members.map((m) => m.projectId));
+      const part = { ...grid, rows: grid.rows.filter((r) => ids.has(r.project.id)) };
+      return {
+        key,
+        label: labelOf(members[0]),
+        projects: members.length,
+        efficiency: kpisOf(part, members, now).efficiency.completedRate,
+        penalties: members.some((m) => m.active === undefined) ? undefined : members.reduce((sum, m) => sum + (m.active ?? 0), 0),
+        approved: members.filter((m) => m.outcome === 'approved').length,
+        failed: members.filter((m) => m.outcome === 'failed').length,
+      };
+    })
+    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+}

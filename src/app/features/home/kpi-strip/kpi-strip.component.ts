@@ -1,9 +1,16 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, linkedSignal, output, signal } from '@angular/core';
 
+import { StatusGrid } from '../../../core/services/submission.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { PenaltyBand } from '../staff-home/staff-home.grid';
-import { Kpis } from '../staff-home/staff-home.kpis';
+import { PenaltyBand, PenaltyMap } from '../staff-home/staff-home.grid';
+import { breakdownOf, factsOf, kpisOf } from '../staff-home/staff-home.kpis';
+
+// Tipo
+export interface ClosingOption {
+  id: string;
+  label: string;
+}
 
 // Componente
 @Component({
@@ -15,9 +22,16 @@ import { Kpis } from '../staff-home/staff-home.kpis';
   host: { '(document:keydown.escape)': 'closed.emit()' },
 })
 export class KpiStripComponent {
-  readonly kpis = input.required<Kpis>();
+  readonly grid = input.required<StatusGrid>();
+  readonly penalties = input<PenaltyMap>(undefined);
+  readonly cohorts = input.required<ClosingOption[]>();
+  readonly advisors = input<ClosingOption[]>([]);
+  readonly showAdvisor = input(false);
+  readonly initialCohort = input('');
+  readonly cohortIdOf = input.required<(projectId: string) => string>();
+  readonly cohortLabelOf = input.required<(projectId: string) => string>();
+  readonly advisorNameOf = input.required<(advisorId: string | undefined) => string>();
   readonly band = input<PenaltyBand | null>(null);
-  readonly scope = input.required<string>();
   readonly bandChange = output<PenaltyBand | null>();
   readonly closed = output();
 
@@ -28,7 +42,52 @@ export class KpiStripComponent {
     3: '3 ou mais',
   };
 
-  // Filtro
+  // ---------------------------------------------------------------------------
+  // Filtros
+  // ---------------------------------------------------------------------------
+
+  readonly cohort = linkedSignal(() => this.initialCohort());
+  readonly advisor = signal('');
+  readonly filtering = computed(() => this.cohort() !== '' || this.advisor() !== '');
+
+  // Limpeza
+  clear(): void {
+    this.cohort.set('');
+    this.advisor.set('');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Cálculo
+  // ---------------------------------------------------------------------------
+
+  private readonly filtered = computed<StatusGrid>(() => {
+    const cohort = this.cohort();
+    const advisor = this.advisor();
+    const rows = this.grid().rows.filter(
+      (r) => (!cohort || this.cohortIdOf()(r.project.id) === cohort) && (!advisor || r.project.orientadorId === advisor),
+    );
+    const ids = new Set(rows.map((r) => r.project.id));
+    return { ...this.grid(), rows, submissions: this.grid().submissions.filter((s) => ids.has(s.projetoId)) };
+  });
+  private readonly facts = computed(() => factsOf(this.filtered(), this.penalties()));
+  readonly kpis = computed(() => kpisOf(this.filtered(), this.facts()));
+  readonly byCohort = computed(() =>
+    breakdownOf(this.filtered(), this.facts(), (f) => this.cohortIdOf()(f.projectId), (f) => this.cohortLabelOf()(f.projectId)),
+  );
+  readonly byAdvisor = computed(() =>
+    breakdownOf(this.filtered(), this.facts(), (f) => f.advisorId ?? '', (f) => this.advisorNameOf()(f.advisorId)),
+  );
+
+  // Seleção
+  setCohort(event: Event): void {
+    this.cohort.set((event.target as HTMLSelectElement).value);
+  }
+
+  setAdvisor(event: Event): void {
+    this.advisor.set((event.target as HTMLSelectElement).value);
+  }
+
+  // Faixa
   pickBand(band: PenaltyBand): void {
     this.bandChange.emit(this.band() === band ? null : band);
     this.closed.emit();

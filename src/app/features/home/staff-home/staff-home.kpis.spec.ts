@@ -1,7 +1,7 @@
 import { ProjectPenalties } from '../../../core/models';
 import { StatusGrid } from '../../../core/services/submission.service';
 import { visibleGridOf } from './staff-home.grid';
-import { consolidatedRowsOf, factsOf, kpisOf } from './staff-home.kpis';
+import { breakdownOf, consolidatedRowsOf, factsOf, kpisOf } from './staff-home.kpis';
 
 // Cenário
 const grid = {
@@ -71,5 +71,15 @@ describe('staff home KPIs', () => {
     });
     expect(rows[0]).toMatchObject({ name: 'Alfa', members: ['Ana'], cohort: 'ES (Noite, 2026.2)', delivered: 2, total: 2, outcome: 'approved' });
     expect(rows[2]).toMatchObject({ advisor: 'Sem orientador', delivered: 0 });
+  });
+
+  it('breaks the rates down by group of projects', () => {
+    const rows = breakdownOf(grid, facts, (f) => (f.projectId === 'p3' ? 'b' : 'a'), (f) => (f.projectId === 'p3' ? 'Sala B' : 'Sala A'), now);
+    expect(rows.map((r) => [r.label, r.projects, r.penalties, r.approved, r.failed])).toEqual([
+      ['Sala A', 2, 3, 1, 1],
+      ['Sala B', 1, 1, 0, 0],
+    ]);
+    expect(rows[0].efficiency).toBe(50);
+    expect(rows[1].efficiency).toBe(0);
   });
 });

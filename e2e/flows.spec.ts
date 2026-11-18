@@ -457,17 +457,26 @@ test.describe('session and quick menu', () => {
 });
 
 test.describe('closing modal', () => {
-  test('opens from the header, filters the table by a penalty band and closes', async ({ page }) => {
+  test('opens from the action bar, filters inside without new calls, applies a band and closes', async ({ page, api }) => {
     await signIn(page, ADMIN);
-    await page.getByRole('button', { name: 'Fechamento' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Fechamento' });
-    await expect(dialog).toContainText('Engenharia de Software (Noite, 2026.2)');
-    await expect(dialog.getByRole('heading', { name: 'Termômetro de penalidades' })).toBeVisible();
+    await page.getByRole('button', { name: 'Expandir' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Fechamento e Métricas' });
+    await expect(dialog.locator('#closing-cohort option:checked')).toHaveText('Engenharia de Software (Noite, 2026.2)');
+    await expect(dialog.getByRole('heading', { name: 'Taxas por Turma / Sala' })).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Taxas por Orientador' })).toBeVisible();
+
+    // Filtering inside the modal is in memory.
+    const before = api.calls.length;
+    await dialog.getByRole('button', { name: 'Limpar filtros' }).click();
+    await expect(dialog.locator('#closing-cohort option:checked')).toHaveText('Todas as turmas');
+    await expect(dialog.getByRole('button', { name: 'Limpar filtros' })).toHaveCount(0);
+    await dialog.locator('#closing-cohort').selectOption('t1');
+    expect(api.calls.length).toBe(before);
 
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
 
-    await page.getByRole('button', { name: 'Fechamento' }).click();
+    await page.getByRole('button', { name: 'Expandir' }).click();
     await dialog.getByRole('button', { name: /^Filtrar grupos com nenhuma ativa/ }).click();
     await expect(dialog).toBeHidden();
     const chip = page.getByRole('button', { name: 'Remover o filtro de penalidades' });

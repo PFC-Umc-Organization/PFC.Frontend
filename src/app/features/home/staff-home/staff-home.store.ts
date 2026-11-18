@@ -97,10 +97,6 @@ export class StaffHomeStore {
   readonly selectedValue = computed(() => (this.allCohorts() ? ALL_COHORTS : this.cohortId()));
 
   readonly scopeIds = computed(() => {
-    if (!this.allCohorts()) {
-      const id = this.programId();
-      return id ? [id] : [];
-    }
     const cohortIds = new Set(this.cohorts.value().map((c) => c.id));
     const advised = this.isAdvisor() ? new Set(this.advised.value().map((p) => p.programaId)) : null;
     return this.programs.value().filter((p) => !!p.id && cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
@@ -115,7 +111,20 @@ export class StaffHomeStore {
     params: this.scopeParams,
     initial: EMPTY_SCOPE,
   });
-  readonly grid = computed(() => this.gridLoad.value().grid);
+  readonly fullGrid = computed(() => this.gridLoad.value().grid);
+
+  // Visão
+  readonly grid = computed(() => {
+    const full = this.fullGrid();
+    if (this.allCohorts()) {
+      return full;
+    }
+    const programOf = this.gridLoad.value().programOf;
+    const programId = this.programId();
+    const rows = full.rows.filter((r) => programOf.get(r.project.id) === programId);
+    const ids = new Set(rows.map((r) => r.project.id));
+    return { ...full, rows, submissions: full.submissions.filter((s) => ids.has(s.projetoId)) };
+  });
 
   readonly userList = loadable({
     source: () => this.userService.list().pipe(retryTransient()),
@@ -153,6 +162,12 @@ export class StaffHomeStore {
     return cohort ? cohortLabel(cohort) : '—';
   };
 
+  // Turma
+  readonly cohortIdOf = (projectId: string): string => {
+    const programId = this.gridLoad.value().programOf.get(projectId);
+    return this.cohortByProgram().get(programId ?? '') ?? '';
+  };
+
   // Orientador
   readonly advisorNameOf = (id: string | undefined): string => {
     if (!id) {
@@ -163,7 +178,11 @@ export class StaffHomeStore {
   };
 
   readonly gridAdvisors = computed(() => {
-    const ids = new Set(this.projects().map((p) => p.orientadorId));
+    const ids = new Set(this.grid().rows.map((r) => r.project.orientadorId));
+    return this.advisors().filter((a) => ids.has(a.id));
+  });
+  readonly scopeAdvisors = computed(() => {
+    const ids = new Set(this.fullGrid().rows.map((r) => r.project.orientadorId));
     return this.advisors().filter((a) => ids.has(a.id));
   });
 

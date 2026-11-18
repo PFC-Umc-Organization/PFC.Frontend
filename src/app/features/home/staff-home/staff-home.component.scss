@@ -125,30 +125,19 @@ button.indicator:focus-visible {
   gap: 0.5rem;
 }
 
-.header-tools {
+.action-bar {
   display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  width: 100%;
-  max-width: 34rem;
+  justify-content: flex-end;
 }
 
-.header-tools .picker {
-  flex: 1 1 auto;
-}
-
-.closing-button {
+.expand-button {
   position: relative;
-  flex: none;
-  min-height: 2.75rem;
 }
 
-.closing-button__badge {
-  position: absolute;
-  top: 0.375rem;
-  right: 0.375rem;
+.expand-button__badge {
   width: 0.5rem;
   height: 0.5rem;
+  margin-left: 0.25rem;
   border-radius: var(--radius-pill);
   background: var(--bronze);
 }

@@ -88,12 +88,17 @@ export class StaffHomeComponent {
   // ---------------------------------------------------------------------------
 
   private readonly facts = computed(() => factsOf(this.store.grid(), this.store.penalties()));
-  private readonly kpiGrid = computed(() => {
-    const grid = this.store.grid();
+  readonly modalGrid = computed(() => {
+    const grid = this.store.fullGrid();
     const advisorId = this.store.advisorId();
     return advisorId ? { ...grid, rows: grid.rows.filter((r) => r.project.orientadorId === advisorId) } : grid;
   });
-  readonly kpis = computed(() => kpisOf(this.kpiGrid(), factsOf(this.kpiGrid(), this.store.penalties())));
+  readonly kpis = computed(() => {
+    const grid = this.store.advisorId() ? { ...this.store.grid(), rows: this.store.grid().rows.filter((r) => r.project.orientadorId === this.store.advisorId()) } : this.store.grid();
+    return kpisOf(grid, factsOf(grid, this.store.penalties()));
+  });
+  readonly closingCohorts = computed(() => this.store.cohorts.value().map((c) => ({ id: c.id, label: cohortLabel(c) })));
+  readonly closingAdvisors = computed(() => this.store.scopeAdvisors().map((a) => ({ id: a.id, label: a.nome })));
   private readonly visibleFacts = computed(() => {
     const byId = new Map(this.facts().map((f) => [f.projectId, f]));
     return this.visibleGrid().rows.flatMap((r) => byId.get(r.project.id) ?? []);
@@ -133,7 +138,7 @@ export class StaffHomeComponent {
     if (this.store.gridLoad.error()) {
       return 'Os projetos da turma não foram carregados.';
     }
-    if (!this.store.scopeIds().length) {
+    if (this.store.allCohorts() ? !this.store.scopeIds().length : !this.store.programId()) {
       return this.store.allCohorts()
         ? 'Nenhuma turma tem programa de PFC ainda.'
         : 'Esta turma ainda não tem programa de PFC. Crie o programa em Turmas e PFC.';
