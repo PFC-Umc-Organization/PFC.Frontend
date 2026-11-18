@@ -47,6 +47,12 @@ export class SubmissionDetailComponent {
   private readonly auth = inject(AuthService);
   readonly canValidate = computed(() => this.auth.role() === 'ORIENTADOR');
   protected readonly validationLabel = validationLabel;
+  readonly reopening = linkedSignal(() => {
+    this.targetKey();
+    this.submission()?.validacao?.status;
+    return false;
+  });
+  readonly validated = computed(() => this.submission()?.validacao?.status === 'VALIDADA');
   readonly comment = linkedSignal(() => this.submission()?.validacao?.comentario ?? '');
   private readonly targetKey = computed(() => `${this.projectId()}/${this.activity().id}`);
   readonly validationDone = linkedSignal(() => {
@@ -63,7 +69,7 @@ export class SubmissionDetailComponent {
     {
       onSuccess: (_r, key, status) => {
         if (key === this.targetKey()) {
-          this.validationDone.set(status === 'VALIDADA' ? 'Entrega validada.' : 'Entrega marcada como não validada.');
+          this.validationDone.set(status === 'VALIDADA' ? 'Entrega validada.' : 'Correção solicitada ao grupo.');
         }
       },
     },
@@ -80,7 +86,7 @@ export class SubmissionDetailComponent {
   async validate(status: ValidationStatus): Promise<void> {
     const comentario = this.comment().trim();
     if (status === 'NAO_VALIDADA' && !comentario) {
-      this.missingComment.set('Para não validar, escreva no comentário o que o grupo precisa corrigir.');
+      this.missingComment.set('Para solicitar correção, escreva no comentário o que o grupo precisa corrigir.');
       return;
     }
     this.missingComment.set('');
@@ -92,10 +98,9 @@ export class SubmissionDetailComponent {
             confirmText: 'Validar',
           }
         : {
-            title: 'Não validar entrega',
-            message: 'Marcar esta entrega como não validada? O grupo verá o comentário com o que precisa corrigir.',
-            confirmText: 'Não validar',
-            danger: true,
+            title: 'Solicitar correção',
+            message: 'Solicitar correção desta entrega? O envio continua no histórico e o grupo verá o comentário com o que precisa ajustar.',
+            confirmText: 'Solicitar correção',
           },
     );
     if (!confirmed) {
@@ -111,16 +116,16 @@ export class SubmissionDetailComponent {
     this.downloadAction.run(fieldId);
   }
 
-  // Devolução
+  // Desfazer
   async handBack(): Promise<void> {
     const after =
       new Date(this.activity().prazo) > new Date()
         ? 'O grupo poderá enviar novamente até o prazo.'
         : 'Como o prazo já encerrou, o grupo não poderá enviar novamente.';
     const confirmed = await this.confirmation.confirm({
-      title: 'Devolver entrega',
-      message: `Devolver a entrega ao grupo ${this.projectName()}? As respostas e os arquivos enviados serão apagados. ${after}`,
-      confirmText: 'Devolver',
+      title: 'Desfazer envio',
+      message: `Desfazer o envio da atividade "${this.activity().titulo}" do grupo ${this.projectName()}? A submissão atual é apagada do zero: as respostas e os arquivos enviados são removidos e a atividade volta a pendente ou atrasada. ${after} Para pedir ajustes mantendo o histórico, use "Solicitar correção".`,
+      confirmText: 'Desfazer envio',
       danger: true,
     });
     if (!confirmed) {

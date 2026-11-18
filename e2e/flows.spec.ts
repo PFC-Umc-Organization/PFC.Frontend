@@ -610,14 +610,14 @@ test.describe('advisor', () => {
     await signIn(page, ADVISOR);
     await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
     await expect(page.getByRole('heading', { name: 'Validação da entrega' })).toBeVisible();
-    await page.getByRole('button', { name: 'Não validar' }).click();
+    await page.getByRole('button', { name: 'Solicitar correção' }).click();
     await expect(page.getByText('escreva no comentário o que o grupo precisa corrigir')).toBeVisible();
     expect(api.db.submissions[0].validacao).toBeUndefined();
 
     await page.getByLabel('Comentário para o grupo').fill('Falta a seção de resultados.');
-    await page.getByRole('button', { name: 'Não validar' }).click();
-    await confirmDialog(page, 'Não validar');
-    await expect(page.getByRole('heading', { name: 'Você não validou esta entrega' })).toBeVisible();
+    await page.getByRole('button', { name: 'Solicitar correção' }).click();
+    await confirmDialog(page, 'Solicitar correção');
+    await expect(page.getByRole('heading', { name: 'Você solicitou correção desta entrega' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Athena, Monografia: Devolvida' })).toBeVisible();
     expect(api.db.submissions[0].validacao).toMatchObject({ status: 'NAO_VALIDADA', comentario: 'Falta a seção de resultados.', por: 'u-ana' });
 
@@ -625,6 +625,26 @@ test.describe('advisor', () => {
     await confirmDialog(page, 'Validar');
     await expect(page.getByRole('heading', { name: 'Você validou esta entrega' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Athena, Monografia: Concluído' })).toBeVisible();
+    // Once validated, only the secondary action remains; no open comment field.
+    await expect(page.getByRole('button', { name: 'Validar entrega' })).toHaveCount(0);
+    await expect(page.getByLabel('Comentário para o grupo')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Solicitar correção' }).click();
+    await expect(page.getByLabel('Comentário para o grupo')).toBeVisible();
+    expect(api.failed).toEqual([]);
+  });
+});
+
+test.describe('undoing a submission', () => {
+  test('explains the difference from asking for a correction and removes the submission', async ({ page, api }) => {
+    await signIn(page, ADVISOR);
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    await expect(page.getByText('use se o grupo enviou o arquivo errado')).toBeVisible();
+    await page.getByRole('button', { name: 'Desfazer envio' }).click();
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toContainText('apagada do zero');
+    await expect(dialog).toContainText('Solicitar correção');
+    await dialog.getByRole('button', { name: 'Desfazer envio' }).click();
+    await expect.poll(() => api.db.submissions.length).toBe(0);
     expect(api.failed).toEqual([]);
   });
 });

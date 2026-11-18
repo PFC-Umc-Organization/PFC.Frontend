@@ -66,9 +66,9 @@ export class CellMenuComponent {
       ? 'Como o prazo já encerrou, o grupo não poderá enviar novamente.'
       : 'O grupo poderá enviar novamente até o prazo.';
     const confirmed = await this.confirmation.confirm({
-      title: 'Devolver para correção',
-      message: `Devolver a entrega "${c.activityTitle}" ao grupo ${c.projectName}? As respostas e os arquivos enviados serão apagados. ${after}`,
-      confirmText: 'Devolver',
+      title: 'Desfazer envio',
+      message: `Desfazer o envio da atividade "${c.activityTitle}" do grupo ${c.projectName}? A submissão atual é apagada do zero: as respostas e os arquivos enviados são removidos e a atividade volta a pendente ou atrasada. ${after} Para pedir ajustes mantendo o histórico, abra os detalhes e use "Solicitar correção".`,
+      confirmText: 'Desfazer envio',
       danger: true,
     });
     if (confirmed) {

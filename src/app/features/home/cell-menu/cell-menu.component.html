@@ -3,8 +3,8 @@
   <p class="menu__title">{{ cell().projectName }} · {{ cell().activityTitle }}</p>
   @if (showHandBack()) {
     <button type="button" class="menu__item" role="menuitem" [disabled]="pending()" (click)="handBack()">
-      <app-icon name="edit" />
-      Devolver para correção
+      <app-icon name="undo" />
+      Desfazer envio
     </button>
   }
   @if (showWaive()) {

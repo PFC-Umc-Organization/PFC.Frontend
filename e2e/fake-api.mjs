@@ -202,6 +202,13 @@ export function fakeApi() {
       e.validacao = { status: body.status, ...(comentario ? { comentario } : {}), por: me.sub, porNome: me.name, em: new Date().toISOString() };
       return json(200, e);
     }
+    if ((mm = p.match(/^\/projetos\/([^/]+)\/entregas\/([^/]+)$/)) && m === 'DELETE') {
+      if (!staff) return forbidden();
+      const at = db.submissions.findIndex((e) => e.projetoId === mm[1] && e.atividadeId === mm[2]);
+      if (at < 0) return json(404, { erro: 'Entrega não encontrada' });
+      db.submissions.splice(at, 1);
+      return route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } });
+    }
     if ((mm = p.match(/^\/projetos\/([^/]+)\/entregas\/([^/]+)$/)) && m === 'PUT') {
       const previous = db.submissions.find((x) => x.projetoId === mm[1] && x.atividadeId === mm[2]);
       const due = db.activities.find((a) => a.id === mm[2]).prazo;

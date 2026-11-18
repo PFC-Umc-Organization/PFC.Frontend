@@ -66,3 +66,18 @@ app-answer-list {
   font-size: 0.8125rem;
   color: var(--success);
 }
+
+.undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.undo__hint {
+  flex: 1 1 18rem;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}

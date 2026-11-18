@@ -29,23 +29,27 @@
       <div class="validation" [class]="'validation validation--' + (s.validacao?.status ?? 'pending')">
         <h3 class="validation__title">
           @if (canValidate()) {
-            {{ s.validacao ? (s.validacao.status === 'VALIDADA' ? 'Você validou esta entrega' : 'Você não validou esta entrega') : 'Validação da entrega' }}
+            {{ s.validacao ? (s.validacao.status === 'VALIDADA' ? 'Você validou esta entrega' : 'Você solicitou correção desta entrega') : 'Validação da entrega' }}
           } @else {
-            {{ s.validacao ? 'Entrega ' + (s.validacao.status === 'VALIDADA' ? 'validada' : 'não validada') + ' pelo orientador' : validationLabel(null) }}
+            {{ s.validacao ? 'Entrega ' + (s.validacao.status === 'VALIDADA' ? 'validada' : 'com correção solicitada') + ' pelo orientador' : validationLabel(null) }}
           }
         </h3>
         @if (s.validacao; as v) {
           <p class="meta">
             {{ v.porNome }}, em {{ v.em | date: 'dd/MM/yyyy HH:mm' }}
           </p>
-          @if (v.comentario && !canValidate()) {
+          @if (v.comentario && (!canValidate() || validated())) {
             <p class="validation__comment">{{ v.comentario }}</p>
           }
         } @else if (canValidate()) {
           <p class="meta">O grupo verá a sua avaliação e o comentário. Se o grupo editar a entrega, ela volta a aguardar a sua validação.</p>
         }
 
-        @if (canValidate()) {
+        @if (canValidate() && validated() && !reopening()) {
+          <div class="row validation__actions">
+            <button type="button" class="btn btn--outline btn--sm" (click)="reopening.set(true)">Solicitar correção</button>
+          </div>
+        } @else if (canValidate()) {
           <div class="field">
             <label class="field__label" for="validation-comment">Comentário para o grupo</label>
             <textarea
@@ -56,32 +60,41 @@
               [value]="comment()"
               (input)="setComment($event)"
             ></textarea>
-            <span class="field__hint" id="validation-comment-hint">Obrigatório para não validar. Diga o que o grupo precisa corrigir. O comentário fica visível para o grupo. Não inclua informações de saúde nem outros dados pessoais sensíveis.</span>
+            <span class="field__hint" id="validation-comment-hint">Obrigatório para solicitar correção. Diga o que o grupo precisa ajustar. O comentário fica visível para o grupo. Não inclua informações de saúde nem outros dados pessoais sensíveis.</span>
           </div>
           <div class="row validation__actions">
-            <button type="button" class="btn btn--primary btn--sm" [disabled]="validating()" (click)="validate('VALIDADA')">
-              Validar entrega
-            </button>
+            @if (!validated()) {
+              <button type="button" class="btn btn--primary btn--sm" [disabled]="validating()" (click)="validate('VALIDADA')">
+                Validar entrega
+              </button>
+            }
             <button type="button" class="btn btn--outline btn--sm" [disabled]="validating()" (click)="validate('NAO_VALIDADA')">
-              Não validar
+              Solicitar correção
             </button>
+            @if (reopening()) {
+              <button type="button" class="btn btn--ghost btn--sm" [disabled]="validating()" (click)="reopening.set(false)">Cancelar</button>
+            }
           </div>
+          <p class="field__hint">Solicitar correção mantém este envio no histórico e devolve a atividade para o grupo ajustar.</p>
           @if (validationError()) {
             <p class="field__error" role="alert">{{ validationError() }}</p>
           }
-          @if (validationDone()) {
-            <p class="ok-text" role="status">{{ validationDone() }}</p>
-          }
+        }
+        @if (canValidate() && validationDone()) {
+          <p class="ok-text" role="status">{{ validationDone() }}</p>
         }
       </div>
 
       @if (error()) {
         <p class="alert alert--inline" role="alert">{{ error() }}</p>
       }
-      <button type="button" class="btn btn--outline btn--sm" [disabled]="removing()" (click)="handBack()">
-        <app-icon name="trash" class="btn__icon" />
-        Devolver entrega ao grupo
-      </button>
+      <div class="undo">
+        <button type="button" class="btn btn--ghost btn--sm" [disabled]="removing()" (click)="handBack()">
+          <app-icon name="undo" class="btn__icon" />
+          Desfazer envio
+        </button>
+        <span class="undo__hint">Remove o arquivo enviado e volta a atividade para pendente/atrasada (use se o grupo enviou o arquivo errado).</span>
+      </div>
     } @else if (deadlinePassed()) {
       <p class="meta">
         O prazo encerrou em {{ activity().prazo | deadline: true }} sem entrega do grupo, o que gerou uma penalidade.

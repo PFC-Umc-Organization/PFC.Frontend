@@ -19,6 +19,7 @@ export type IconName =
   | 'alert'
   | 'landmark'
   | 'edit'
+  | 'undo'
   | 'menu'
   | 'close'
   | 'eye'
