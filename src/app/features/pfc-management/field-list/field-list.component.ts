@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-import { FIELD_TYPE_LABEL, NewField } from '../../../core/models';
+import { FIELD_TYPE_LABEL, NewField, formatLabel } from '../../../core/models';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
 // Componente
@@ -17,4 +17,5 @@ export class FieldListComponent {
   readonly remove = output<number>();
 
   protected readonly typeLabel = FIELD_TYPE_LABEL;
+  protected readonly formatLabel = formatLabel;
 }

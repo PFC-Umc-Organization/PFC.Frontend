@@ -118,11 +118,13 @@ export const FILE_EXTENSIONS = [
 ];
 
 // Validação
-export function fileProblem(file: File): string {
+export function fileProblem(file: File, extensions: readonly string[] = FILE_EXTENSIONS): string {
   const dot = file.name.lastIndexOf('.');
   const extension = dot >= 0 ? file.name.slice(dot).toLowerCase() : '';
-  if (!FILE_EXTENSIONS.includes(extension)) {
-    return 'Tipo de arquivo não aceito. Envie PDF, documento do Office/LibreOffice, imagem, ZIP ou texto.';
+  if (!extensions.includes(extension)) {
+    return extensions === FILE_EXTENSIONS
+      ? 'Tipo de arquivo não aceito. Envie PDF, documento do Office/LibreOffice, imagem, ZIP ou texto.'
+      : `Tipo de arquivo não aceito neste campo. Envie um arquivo ${extensions.map((e) => e.slice(1).toUpperCase()).join(', ')}.`;
   }
   if (file.size === 0) {
     return 'O arquivo está vazio.';

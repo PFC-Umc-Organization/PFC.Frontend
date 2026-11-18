@@ -12,7 +12,7 @@ import {
   viewChild,
 } from '@angular/core';
 
-import { Activity, Project, Submission, validationLabel } from '../../../core/models';
+import { Activity, Project, Submission, linkProblem, validationLabel } from '../../../core/models';
 import { SubmissionService } from '../../../core/services/submission.service';
 import { editedLater } from '../../../core/services/submission-status';
 import { action } from '../../../core/state/action';
@@ -97,6 +97,7 @@ export class DeliveryPanelComponent {
     return (
       this.fields().length > 0 &&
       this.fields().every((f) => !f.obrigatorio || !!answers[f.id]?.trim()) &&
+      this.fields().every((f) => f.tipo !== 'LINK' || !linkProblem(answers[f.id] ?? '', f.formato)) &&
       this.uploading().size === 0 &&
       !this.sending()
     );

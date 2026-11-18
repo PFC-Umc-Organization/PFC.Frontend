@@ -17,6 +17,18 @@
     <option [value]="t">{{ typeLabel[t] }}</option>
   }
 </select>
+@if (formats().length) {
+  <select
+    class="control"
+    [attr.aria-label]="formatLabel()"
+    [value]="format()"
+    (change)="format.set($any($event.target).value)"
+  >
+    @for (f of formats(); track f.id) {
+      <option [value]="f.id" [selected]="f.id === format()">{{ f.label }}</option>
+    }
+  </select>
+}
 <label class="required">
   <input type="checkbox" [checked]="required()" (change)="required.set($any($event.target).checked)" />
   Obrigatório

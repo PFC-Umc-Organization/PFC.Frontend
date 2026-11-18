@@ -10,3 +10,4 @@ export * from './enrollment.model';
 export * from './reference.model';
 export * from './penalty.model';
 export * from './announcement.model';
+export * from './field-format';
