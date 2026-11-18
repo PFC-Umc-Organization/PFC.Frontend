@@ -7,7 +7,7 @@ import { ProjectService } from '../../../core/services/project.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** Edits a project in place: name, description and members (by RGM). */
+// Componente
 @Component({
   selector: 'app-project-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,22 +47,27 @@ export class ProjectEditorComponent implements OnInit {
   });
   readonly saving = this.saveAction.pending;
   readonly error = this.saveAction.error;
-  /** Validation of the typed RGM, or the failure of adding or removing one. */
   private readonly rgmFormatError = signal('');
   readonly memberError = computed(() => this.rgmFormatError() || this.addMemberAction.error() || this.removeMemberAction.error());
 
-  /** Filled once: reloading the list after a member change keeps what was typed. */
+  // Inicialização
   ngOnInit(): void {
     const { nome, descricao } = this.project();
     this.form.setValue({ nome, descricao });
   }
 
+  // Validação
   nameInvalid(): boolean {
     const c = this.form.controls.nome;
     return c.invalid && c.touched;
   }
 
+<<<<<<< HEAD
+  // Gravação
+  save(): void {
+=======
   async save(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -78,14 +83,19 @@ export class ProjectEditorComponent implements OnInit {
     this.saveAction.run(this.project().id, this.form.getRawValue());
   }
 
-  /** Keeps digits only, up to 11. */
+  // Digitação
   typeRgm(event: Event): void {
     const field = event.target as HTMLInputElement;
     field.value = field.value.replace(/\D/g, '').slice(0, 11);
     this.rgm.set(field.value);
   }
 
+<<<<<<< HEAD
+  // Inclusão
+  addMember(): void {
+=======
   async addMember(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     const rgm = this.rgm().trim();
     this.rgmFormatError.set('');
     if (!/^\d{11}$/.test(rgm)) {
@@ -103,7 +113,12 @@ export class ProjectEditorComponent implements OnInit {
     this.addMemberAction.run(this.project().id, rgm);
   }
 
+<<<<<<< HEAD
+  // Remoção
+  removeMember(rgm: string): void {
+=======
   async removeMember(rgm: string): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.rgmFormatError.set('');
     const name = this.nameByRgm()(rgm);
     const confirmed = await this.confirmation.confirm({

@@ -14,6 +14,7 @@ import { AnswerListComponent } from '../../../shared/components/answer-list/answ
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
+// Tipo
 export interface ActivityGroupItem {
   projectId: string;
   projectName: string;
@@ -22,7 +23,7 @@ export interface ActivityGroupItem {
   submission: Submission | null;
 }
 
-/** What every group of the cohort delivered for one activity, opened from the grid's column title. */
+// Componente
 @Component({
   selector: 'app-activity-submissions',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,7 +37,6 @@ export class ActivitySubmissionsComponent {
   readonly activity = input.required<Activity>();
   readonly items = input.required<ActivityGroupItem[]>();
   readonly closed = output();
-  /** Opens the group's own panel, where the advisor validates and the staff hands back. */
   readonly openGroup = output<{ projectId: string; projectName: string }>();
 
   protected readonly statusLabel = STATUS_LABEL;
@@ -48,6 +48,7 @@ export class ActivitySubmissionsComponent {
 
   readonly delivered = computed(() => this.items().filter((i) => i.submission).length);
 
+  // Texto
   validationText(v: ValidationStatus | undefined): string {
     if (!v) {
       return 'Aguardando validação';
@@ -55,6 +56,7 @@ export class ActivitySubmissionsComponent {
     return v === 'VALIDADA' ? 'Validada pelo orientador' : 'Não validada pelo orientador';
   }
 
+  // Download
   download(projectId: string, fieldId: string): void {
     this.downloadAction.run(projectId, fieldId);
   }

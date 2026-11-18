@@ -7,10 +7,7 @@ import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ProjectEditorComponent } from '../../pfc-management/project-editor/project-editor.component';
 
-/**
- * A group as the coordination manages it from the panel's grid: advisor,
- * members, edit and delete. Whatever changes asks the screen to reload.
- */
+// Componente
 @Component({
   selector: 'app-project-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,11 +20,9 @@ export class ProjectPanelComponent {
   private readonly confirmation = inject(ConfirmationService);
 
   readonly project = input.required<Project>();
-  /** Advisors and admins an advisor can be picked from. */
   readonly advisors = input.required<User[]>();
   readonly nameByRgm = input.required<(rgm: string) => string>();
   readonly closed = output();
-  /** After any change, so the grid and the list read the group again. */
   readonly changed = output();
 
   readonly editing = signal(false);
@@ -47,6 +42,12 @@ export class ProjectPanelComponent {
 
   readonly members = computed(() => this.project().integrantes.map((rgm) => ({ rgm, nome: this.nameByRgm()(rgm) })));
 
+<<<<<<< HEAD
+  // Atribuição
+  setAdvisor(event: Event): void {
+    const advisorId = (event.target as HTMLSelectElement).value;
+    this.advisorAction.run(this.project().id, advisorId);
+=======
   /** A cancelled confirmation puts the select back on the current advisor. */
   async setAdvisor(event: Event): Promise<void> {
     const select = event.target as HTMLSelectElement;
@@ -63,13 +64,16 @@ export class ProjectPanelComponent {
       return;
     }
     this.advisorAction.run(project.id, advisorId);
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   }
 
+  // Gravação
   saved(): void {
     this.editing.set(false);
     this.changed.emit();
   }
 
+  // Exclusão
   async remove(): Promise<void> {
     const name = this.project().nome;
     const confirmed = await this.confirmation.confirm({

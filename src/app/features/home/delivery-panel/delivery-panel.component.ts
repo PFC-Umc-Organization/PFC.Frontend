@@ -21,15 +21,10 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { AnswerFieldComponent } from './answer-field/answer-field.component';
 
-/**
- * What the group can do with an activity, as its cell shows it:
- * `open` is the nearest one still to submit, `submitted` can be read and edited,
- * `blocked` waits for an earlier one, `closed` is past the deadline without a
- * submission and `failed` is a group that can no longer submit.
- */
+// Tipo
 export type DeliveryMode = 'open' | 'submitted' | 'blocked' | 'closed' | 'failed';
 
-/** The group's submission of one activity, below the grid: read it, send it or edit it. */
+// Componente
 @Component({
   selector: 'app-delivery-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,17 +39,14 @@ export class DeliveryPanelComponent {
   readonly activity = input.required<Activity>();
   readonly submission = input<Submission | undefined>(undefined);
   readonly mode = input.required<DeliveryMode>();
-  /** The title of the activity a blocked one waits for. */
   readonly blockedBy = input('');
   readonly closed = output();
 
   protected readonly editedLater = editedLater;
   protected readonly validationLabel = validationLabel;
 
-  /** Stable while the grid reloads the same activity, so a reload keeps the message. */
   private readonly activityId = computed(() => this.activity().id);
 
-  /** Each activity starts reading, with nothing said about a past send. */
   readonly editing = linkedSignal(() => {
     this.activityId();
     return false;
@@ -92,15 +84,12 @@ export class DeliveryPanelComponent {
   readonly showForm = computed(() => this.mode() === 'open' || (this.mode() === 'submitted' && this.editing()));
   readonly fields = computed(() => this.activity().campos);
 
-  /** Starts from what was sent whenever another activity is chosen. */
   readonly answers = linkedSignal<Record<string, string | undefined>>(() => ({ ...this.submission()?.respostas }));
-  /** Fields uploading right now; a new activity, or opening/closing the form, starts with none. */
   private readonly uploading = linkedSignal<Set<string>>(() => {
     this.activityId();
     this.editing();
     return new Set();
   });
-  /** On a phone the button ends a long form: the result is brought into view. */
   private readonly outcome = viewChild<ElementRef<HTMLElement>>('outcome');
 
   readonly canSend = computed(() => {
@@ -113,6 +102,7 @@ export class DeliveryPanelComponent {
     );
   });
 
+  // Edição
   edit(): void {
     this.message.set('');
     this.error.set('');
@@ -120,15 +110,18 @@ export class DeliveryPanelComponent {
     this.editing.set(true);
   }
 
+  // Cancelamento
   cancelEdit(): void {
     this.editing.set(false);
   }
 
+  // Resposta
   setAnswer(fieldId: string, value: string): void {
     this.message.set('');
     this.answers.update((a) => ({ ...a, [fieldId]: value }));
   }
 
+  // Upload
   setUploading(fieldId: string, busy: boolean): void {
     this.uploading.update((s) => {
       const next = new Set(s);
@@ -141,6 +134,7 @@ export class DeliveryPanelComponent {
     });
   }
 
+  // Envio
   send(): void {
     if (!this.canSend()) {
       return;
@@ -153,10 +147,12 @@ export class DeliveryPanelComponent {
     this.sendAction.run(this.activity().id, this.project().id, answers, edit);
   }
 
+  // Download
   download(fieldId: string): void {
     this.downloadAction.run(this.project().id, this.activity().id, fieldId);
   }
 
+  // Exibição
   private showOutcome(): void {
     queueMicrotask(() => this.outcome()?.nativeElement.scrollIntoView?.({ behavior: 'smooth', block: 'center' }));
   }

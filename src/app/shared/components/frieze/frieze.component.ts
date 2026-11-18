@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 
-/** The greek key band that closes the hero; a `<pattern>` so it repeats at any width. */
+// Componente
 @Component({
   selector: 'app-frieze',
   changeDetection: ChangeDetectionStrategy.OnPush,

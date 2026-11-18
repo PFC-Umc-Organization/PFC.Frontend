@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 
+// Tipo
 export type IconName =
   | 'graduation-cap'
   | 'dashboard'
@@ -24,7 +25,7 @@ export type IconName =
   | 'eye-off'
   | 'download';
 
-/** Inline Lucide-style icons: a package for a couple dozen shapes would weigh more. */
+// Componente
 @Component({
   selector: 'app-icon',
   changeDetection: ChangeDetectionStrategy.OnPush,

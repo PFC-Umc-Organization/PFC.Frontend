@@ -6,7 +6,7 @@ import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { AddReferenceComponent } from '../add-reference/add-reference.component';
 
-/** Search by topic on OpenAlex, one page at a time. */
+// Componente
 @Component({
   selector: 'app-topic-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,7 +17,6 @@ import { AddReferenceComponent } from '../add-reference/add-reference.component'
 export class TopicSearchComponent {
   private readonly referenceService = inject(ReferenceService);
 
-  /** Empty without a group: articles can be searched but not added. */
   readonly projectId = input.required<string>();
   readonly inList = input.required<Set<string>>();
   readonly added = output();
@@ -40,24 +39,27 @@ export class TopicSearchComponent {
     concurrency: 'switch',
   });
   readonly searching = this.searchAction.pending;
-  /** A failure of adding an article, reported by the add button. */
   readonly addFailure = signal('');
   readonly error = computed(() => this.searchAction.error() || this.addFailure());
 
+  // Digitação
   typeTerm(event: Event): void {
     this.term.set((event.target as HTMLInputElement).value);
   }
 
+  // Contagem
   count(n: number): string {
     return n.toLocaleString('pt-BR');
   }
 
+  // Detalhes
   details(a: FoundArticle): string {
     return [a.veiculo, a.ano?.toString(), `${this.count(a.citacoes)} ${a.citacoes === 1 ? 'citação' : 'citações'}`]
       .filter(Boolean)
       .join(' · ');
   }
 
+  // Busca
   search(event: Event): void {
     event.preventDefault();
     const term = this.term().trim();
@@ -70,10 +72,12 @@ export class TopicSearchComponent {
     this.load(1);
   }
 
+  // Expansão
   more(): void {
     this.load(this.page() + 1);
   }
 
+  // Carregamento
   private load(page: number): void {
     this.addFailure.set('');
     this.page.set(page);

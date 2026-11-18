@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 import { FIELD_TYPE_LABEL, NewField } from '../../../core/models';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** The submission form of an activity; the last field cannot be removed. */
+// Componente
 @Component({
   selector: 'app-field-list',
   changeDetection: ChangeDetectionStrategy.OnPush,

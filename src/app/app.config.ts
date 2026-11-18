@@ -51,12 +51,9 @@ import {
   UserService,
 } from './core/services/user.service';
 
-/** The one place that picks each service's implementation. */
+// Configuração
 export const appConfig: ApplicationConfig = {
   providers: [
-    // No zone.js: a view is checked only when a signal it reads changes (or on
-    // a template event). Every component is OnPush and all screen state is a
-    // signal; see the README, "Detecção de mudanças".
     provideZonelessChangeDetection(),
     provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(

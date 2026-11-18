@@ -7,10 +7,7 @@ import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
-/**
- * The project's references in ABNT and alphabetical order, as in the
- * paper's "Referências" section. The student edits; the staff only reads.
- */
+// Componente
 @Component({
   selector: 'app-reference-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,7 +26,6 @@ export class ReferenceListComponent {
   readonly error = input('');
   readonly changed = output();
 
-  /** A failed action (remove, copy) shows without hiding the list. */
   private readonly copyWarning = signal('');
   private readonly removeAction = action((projectId: string, id: string) => this.referenceService.remove(projectId, id), {
     onSuccess: () => this.changed.emit(),
@@ -73,14 +69,15 @@ export class ReferenceListComponent {
   }
   private readonly removing = signal<string | null>(null);
   readonly removingId = computed(() => (this.removeAction.pending() ? this.removing() : null));
-  /** The reference just copied, or 'all'; swaps the button's label. */
   readonly copied = signal<string | null>(null);
   private copiedTimer?: ReturnType<typeof setTimeout>;
 
+  // Cópia individual
   copy(r: Reference): void {
     void this.toClipboard(r.abnt, r.abntHtml, r.id);
   }
 
+  // Cópia em lote
   copyAll(): void {
     const list = this.references();
     void this.toClipboard(
@@ -90,6 +87,7 @@ export class ReferenceListComponent {
     );
   }
 
+  // Exclusão
   async remove(r: Reference): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Remover referência',
@@ -106,7 +104,7 @@ export class ReferenceListComponent {
     this.removeAction.run(r.projetoId, r.id);
   }
 
-  /** As text and HTML: pasted into Word or Google Docs, the ABNT bold comes along. */
+  // Cópia
   private async toClipboard(text: string, html: string, marker: string): Promise<void> {
     try {
       if (typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {

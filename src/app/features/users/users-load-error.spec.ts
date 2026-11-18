@@ -12,20 +12,23 @@ import { UsersComponent } from './users.component';
 const cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE', periodo: '2026.2' } as Cohort;
 const enrollment = { rgm: '111', status: 'ATIVO', turmaId: 't1' } as Enrollment;
 const account = { id: 'u1', nome: 'Ana', perfil: 'ALUNO', rgm: '111', email: '111@alunos.umc.br', status: 'ATIVO' } as User;
+// Falha
 const failure = <T>(): Observable<T> => throwError(() => new Error('serviço fora do ar'));
 
-/** Fails on the first `times` calls and answers normally afterwards. */
+// Falha parcial
 function failing<T>(value: T, times = 1): () => Observable<T> {
   let calls = 0;
   return () => (++calls <= times ? failure<T>() : of(value));
 }
 
+// Tipo
 interface Answers {
   cohorts?: () => Observable<Cohort[]>;
   enrollments?: () => Observable<Enrollment[]>;
   users?: () => Observable<User[]>;
 }
 
+// Renderização
 async function render(answers: Answers = {}) {
   TestBed.configureTestingModule({
     providers: [
@@ -50,7 +53,7 @@ async function render(answers: Answers = {}) {
 
 describe('UsersComponent load errors', () => {
   beforeAll(() => {
-    // The table's scroll hint needs it; the test environment has no layout.
+    // Stub do ResizeObserver
     globalThis.ResizeObserver ??= class {
       observe(): void {}
       unobserve(): void {}
@@ -89,7 +92,6 @@ describe('UsersComponent load errors', () => {
   });
 
   it('enrollments: does not claim an account is missing when users failed, and recovers on retry', async () => {
-    // The accounts tab reads the users first, so only the enrollments tab's call fails.
     const { host, click } = await render({ users: failing([account], 0) });
     TestBed.inject(UserService).list = failing([account]);
     await click('Pré-autorização de alunos');

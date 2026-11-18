@@ -4,6 +4,7 @@ import { MATERIAL_KIND_LABEL, Material } from '../../../core/models';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
+// Componente
 @Component({
   selector: 'app-material-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -13,7 +14,6 @@ import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 })
 export class MaterialCardComponent {
   readonly material = input.required<Material>();
-  /** "Todas as turmas", the cohort's label or "Para a sua turma". */
   readonly audience = input.required<string>();
   readonly removable = input(false);
   readonly removed = output();

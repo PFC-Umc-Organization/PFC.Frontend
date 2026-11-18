@@ -7,12 +7,7 @@ import { SubmissionService } from '../../../../core/services/submission.service'
 import { action } from '../../../../core/state/action';
 import { FilePickerComponent } from '../../../../shared/components/file-picker/file-picker.component';
 
-/**
- * One field of the submission form. A file goes straight to the bucket when
- * picked; the submission only changes when the group sends the form. A failed
- * upload leaves the answer as it was: a 503 also comes from an overloaded
- * gateway, and the file would look sent without being so.
- */
+// Componente
 @Component({
   selector: 'app-answer-field',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,10 +27,8 @@ export class AnswerFieldComponent {
   readonly uploading = output<boolean>();
 
   readonly progress = signal<number | null>(null);
-  /** Registered before the action, so it runs first when the field goes away and no output is emitted after that. */
   private alive = true;
   private readonly onDestroy = inject(DestroyRef).onDestroy(() => (this.alive = false));
-  /** Any way an upload ends (done, error, cancelled, replaced, field removed) releases the form's lock. */
   private readonly uploadAction = action(
     (projectId: string, activityId: string, fieldId: string, file: File) =>
       defer(() => {
@@ -61,19 +54,23 @@ export class AnswerFieldComponent {
   readonly error = signal('');
   protected readonly fileNameOf = fileNameOf;
 
+  // Identificação
   get inputId(): string {
     return 'field-' + this.field().id;
   }
 
+  // Digitação
   type(event: Event): void {
     this.changed.emit((event.target as HTMLInputElement | HTMLTextAreaElement).value);
   }
 
+  // Upload
   upload(file: File): void {
     this.error.set('');
     this.uploadAction.run(this.projectId(), this.activityId(), this.field().id, file);
   }
 
+  // Progresso
   private setProgress(value: number | null): void {
     this.progress.set(value);
     if (this.alive) {

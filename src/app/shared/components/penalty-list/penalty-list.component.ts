@@ -6,7 +6,7 @@ import { Penalty, penaltyTitle } from '../../../core/models';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { action } from '../../../core/state/action';
 
-/** The group's penalties, active then waived; the staff waives one with a reason. */
+// Componente
 @Component({
   selector: 'app-penalty-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -33,12 +33,14 @@ export class PenaltyListComponent {
   readonly busy = this.waiveAction.pending;
   readonly error = signal('');
 
+  // Início
   start(penalty: Penalty): void {
     this.waiving.set(penalty.id);
     this.reason.reset();
     this.error.set('');
   }
 
+  // Perdão
   waive(penalty: Penalty): void {
     const reason = this.reason.value.trim();
     if (!reason) {

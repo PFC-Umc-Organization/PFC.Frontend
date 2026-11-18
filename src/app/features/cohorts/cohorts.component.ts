@@ -8,12 +8,10 @@ import { ProjectSectionComponent } from '../pfc-management/project-section/proje
 import { CohortsStore } from './cohorts.store';
 import { StructureSectionComponent } from './structure-section/structure-section.component';
 
+// Tipo
 type Section = 'structure' | 'projects' | 'activities';
 
-/**
- * The coordination's setup of a term: courses with their cohorts and PFC
- * programs in one list, the groups with their status and the activities.
- */
+// Componente
 @Component({
   selector: 'app-cohorts',
   changeDetection: ChangeDetectionStrategy.OnPush,

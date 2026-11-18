@@ -12,9 +12,10 @@ import { FieldAdderComponent } from '../field-adder/field-adder.component';
 import { FieldListComponent } from '../field-list/field-list.component';
 import { PfcManagementStore } from '../pfc-management.store';
 
-/** The choice that creates one copy of the activity in every cohort. */
+// Constante
 export const ALL_COHORTS = 'TODAS';
 
+// Componente
 @Component({
   selector: 'app-new-activity',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,9 +32,9 @@ export class NewActivityComponent {
   protected readonly allCohorts = ALL_COHORTS;
   protected readonly cohorts = this.store.cohorts.value;
   private readonly chosen = signal<string | null>(null);
-  /** The cohort open on the screen, until another is picked. */
   readonly target = computed(() => this.chosen() ?? (this.store.cohortId() || ALL_COHORTS));
 
+  // Seleção
   chooseTarget(event: Event): void {
     this.chosen.set((event.target as HTMLSelectElement).value);
   }
@@ -44,7 +45,6 @@ export class NewActivityComponent {
   readonly created = output();
   private readonly missingCohort = signal('');
   private readonly failure = signal('');
-  // One activity per cohort, independent afterwards: a failure in one does not undo the others.
   private readonly publishAction = action(
     (targets: Cohort[], body: Parameters<ActivityService['create']>[0]) =>
       forkJoin(
@@ -76,16 +76,23 @@ export class NewActivityComponent {
   readonly saving = this.publishAction.pending;
   readonly error = computed(() => this.missingCohort() || this.failure());
 
+  // Inclusão
   addField(field: NewField): void {
     this.fields.update((fields) => [...fields, field]);
     this.adder().reset();
   }
 
+  // Remoção
   removeField(index: number): void {
     this.fields.update((fields) => (fields.length <= 1 ? fields : fields.filter((_, i) => i !== index)));
   }
 
+<<<<<<< HEAD
+  // Publicação
+  publish(): void {
+=======
   async publish(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.missingCohort.set('');
     this.failure.set('');
     if (this.form.invalid) {

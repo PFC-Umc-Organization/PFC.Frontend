@@ -10,14 +10,16 @@ import { ReferenceService } from '../../core/services/reference.service';
 import { ReferencesComponent } from './references.component';
 
 const project: Project = { id: 'pr1', nome: 'Athena', descricao: '', programaId: 'p1', integrantes: ['111'] };
+// Falha
 const failure = <T>(): Observable<T> => throwError(() => new Error('serviço fora do ar'));
 
-/** Fails on the first call and answers normally on the retry. */
+// Falha parcial
 function failingOnce<T>(value: T): () => Observable<T> {
   let calls = 0;
   return () => (++calls === 1 ? failure<T>() : of(value));
 }
 
+// Renderização
 async function render(role: 'ALUNO' | 'ADMIN', projects: Partial<ProjectService>) {
   TestBed.configureTestingModule({
     providers: [

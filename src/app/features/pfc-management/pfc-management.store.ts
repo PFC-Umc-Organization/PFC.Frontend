@@ -7,7 +7,7 @@ import { ProgramService } from '../../core/services/program.service';
 import { ProjectService } from '../../core/services/project.service';
 import { loadable } from '../../core/state/loadable';
 
-/** State shared by the sections of the management screen; provided by it. */
+// Store
 @Injectable()
 export class PfcManagementStore {
   private readonly auth = inject(AuthService);
@@ -20,17 +20,12 @@ export class PfcManagementStore {
   readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
   private readonly chosenCohort = signal<string | null>(null);
 
-  /** An advisor's projects, to open on a cohort they follow; the coordination does not need them. */
   private readonly advised = loadable({
     source: () => this.projectService.list(),
     params: computed(() => (this.isAdmin() ? null : true)),
     initial: [] as Project[],
   });
 
-  /**
-   * The chosen cohort or, at first, one of the current term: for an advisor,
-   * the first where they advise a project.
-   */
   readonly cohortId = computed(() => {
     const cohorts = this.cohorts.value();
     const chosen = this.chosenCohort();
@@ -46,9 +41,9 @@ export class PfcManagementStore {
 
   readonly programs = loadable({ source: () => this.programService.list(), initial: [] as Program[] });
 
-  /** Without cohorts, programs or the advisor's projects, an empty list says nothing about the data. */
   readonly loadError = computed(() => this.cohorts.error() || this.programs.error() || this.advised.error());
 
+  // Nova tentativa
   retryLoad(): void {
     this.cohorts.reload();
     this.programs.reload();
@@ -57,10 +52,12 @@ export class PfcManagementStore {
 
   readonly program = computed(() => this.programs.value().find((p) => p.cursoId === this.cohortId()) ?? null);
 
+  // Seleção
   chooseCohort(id: string): void {
     this.chosenCohort.set(id);
   }
 
+  // Recarga
   reloadPrograms(): void {
     this.programs.reload();
   }

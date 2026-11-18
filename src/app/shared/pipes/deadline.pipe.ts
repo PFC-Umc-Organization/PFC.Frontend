@@ -1,8 +1,9 @@
 import { Pipe, PipeTransform } from '@angular/core';
 
-/** "20/08 às 23:59"; with `long`, "20/08/2026 às 23:59". */
+// Pipe
 @Pipe({ name: 'deadline' })
 export class DeadlinePipe implements PipeTransform {
+  // Formatação
   transform(iso: string | null | undefined, long = false): string {
     if (!iso) {
       return '—';

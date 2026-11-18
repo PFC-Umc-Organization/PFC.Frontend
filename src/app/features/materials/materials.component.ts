@@ -11,7 +11,7 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 import { MaterialCardComponent } from './material-card/material-card.component';
 import { MaterialFormComponent } from './material-form/material-form.component';
 
-/** The staff publishes (link or file); everyone reads. */
+// Componente
 @Component({
   selector: 'app-materials',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,7 +27,6 @@ export class MaterialsComponent {
   readonly staff = computed(() => isStaff(this.auth.role()));
 
   private readonly cohortService = inject(CohortService);
-  /** Only the staff sees which cohort a material is for. */
   readonly cohorts = loadable({
     source: () => this.cohortService.list(),
     params: computed(() => (this.staff() ? true : null)),
@@ -46,22 +45,25 @@ export class MaterialsComponent {
   readonly formOpen = signal(false);
   readonly done = signal('');
 
+  // Abertura
   open(): void {
     this.done.set('');
     this.formOpen.set(true);
   }
 
+  // Publicação
   published(): void {
     this.formOpen.set(false);
     this.done.set('Material publicado e disponível para os grupos.');
   }
 
-  /** The coordination removes any material; an advisor, their own. */
+  // Permissão
   canRemove(m: Material): boolean {
     const u = this.auth.user();
     return u?.perfil === 'ADMIN' || (u?.perfil === 'ORIENTADOR' && m.autorId === u.id);
   }
 
+  // Público
   audience(m: Material): string {
     if (!m.cursoId) {
       return 'Todas as turmas';
@@ -76,6 +78,7 @@ export class MaterialsComponent {
     return this.cohorts.error() ? 'Turma não identificada' : 'Turma removida';
   }
 
+  // Exclusão
   async remove(m: Material): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Remover material',
@@ -89,6 +92,7 @@ export class MaterialsComponent {
     this.removeAction.run(m.id);
   }
 
+  // Download
   download(m: Material): void {
     this.downloadAction.run(m.id);
   }

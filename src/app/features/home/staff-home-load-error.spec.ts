@@ -13,8 +13,10 @@ import { UserService } from '../../core/services/user.service';
 import { StaffHomeComponent } from './staff-home/staff-home.component';
 
 const cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE', periodo: '2026.2' } as Cohort;
+// Falha
 const failure = <T>(): Observable<T> => throwError(() => new Error('serviço fora do ar'));
 
+// Configuração
 function configure(cohorts: () => Observable<Cohort[]>, programs: () => Observable<unknown[]> = () => of([])) {
   TestBed.configureTestingModule({
     providers: [
@@ -32,6 +34,7 @@ function configure(cohorts: () => Observable<Cohort[]>, programs: () => Observab
 
 describe('StaffHomeComponent load errors', () => {
   beforeAll(() => {
+    // Stub do ResizeObserver
     globalThis.ResizeObserver ??= class {
       observe(): void {}
       unobserve(): void {}

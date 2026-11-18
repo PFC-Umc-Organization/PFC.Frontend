@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 
 import { ProjectPenalties } from '../../../core/models';
 
-/** One segment per penalty up to the limit; at the limit, "Reprovado". */
+// Componente
 @Component({
   selector: 'app-penalty-counter',
   changeDetection: ChangeDetectionStrategy.OnPush,

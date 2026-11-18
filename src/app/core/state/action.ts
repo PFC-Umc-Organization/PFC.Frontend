@@ -2,30 +2,21 @@ import { DestroyRef, Signal, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, Subject, catchError, defer, exhaustMap, finalize, mergeMap, switchMap, tap, EMPTY } from 'rxjs';
 
+// Ação
 export interface Action<A extends unknown[]> {
-  /** True while at least one run is in flight. */
   readonly pending: Signal<boolean>;
-  /** The message of the last failed run; cleared when a new run starts. */
   readonly error: Signal<string>;
   run(...args: A): void;
 }
 
+// Opções
 export interface ActionOptions<A extends unknown[], R> {
   onSuccess?: (result: R, ...args: A) => void;
   onError?: (error: Error, ...args: A) => void;
-  /**
-   * `exhaust` (default) ignores a run while another is in flight (double click);
-   * `switch` cancels the previous one; `merge` runs all of them (one action for
-   * many rows, e.g. "remove" on a list).
-   */
   concurrency?: 'exhaust' | 'switch' | 'merge';
 }
 
-/**
- * An imperative write (create, update, remove, submit...). Needs an injection
- * context. The request is cancelled with the component, so no callback runs on
- * a destroyed screen, and a failure never ends the action: it can be run again.
- */
+// Fábrica
 export function action<A extends unknown[], R>(
   fn: (...args: A) => Observable<R>,
   opts: ActionOptions<A, R> = {},

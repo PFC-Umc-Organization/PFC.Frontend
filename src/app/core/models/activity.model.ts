@@ -1,5 +1,10 @@
+// ---------------------------------------------------------------------------
+// Campos
+// ---------------------------------------------------------------------------
+
 export type FieldType = 'ARQUIVO' | 'TEXTO' | 'TEXTO_LONGO' | 'LINK';
 
+// Rótulos
 export const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   ARQUIVO: 'Arquivo',
   TEXTO: 'Texto curto',
@@ -7,7 +12,6 @@ export const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   LINK: 'Link',
 };
 
-/** One field of the form a group fills in to submit an activity. */
 export interface Field {
   id: string;
   rotulo: string;
@@ -17,11 +21,16 @@ export interface Field {
 
 export type NewField = Omit<Field, 'id'>;
 
+// Padrão
 export const DEFAULT_FIELD: NewField = {
   rotulo: 'Arquivo da entrega',
   tipo: 'ARQUIVO',
   obrigatorio: true,
 };
+
+// ---------------------------------------------------------------------------
+// Atividades
+// ---------------------------------------------------------------------------
 
 export interface Activity {
   id: string;
@@ -29,22 +38,20 @@ export interface Activity {
   descricao: string;
   prazo: string;
   publicadaEm: string;
-  /** Never empty. */
   campos: Field[];
-  /** The cohort that delivers it; absent on an old activity, which applies to every cohort. */
   turmaId?: string;
 }
 
+// Criação
 export interface NewActivity {
   titulo: string;
   descricao: string;
   prazo: string;
-  /** Without it the activity gets the default field. */
   campos?: NewField[];
-  /** The cohort the activity belongs to. */
   turmaId?: string;
 }
 
+// Atualização
 export interface ActivityUpdate {
   titulo?: string;
   descricao?: string;

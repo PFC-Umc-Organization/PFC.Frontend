@@ -7,11 +7,7 @@ import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { AuthCardComponent } from '../auth-card/auth-card.component';
 
-/**
- * Cognito e-mails a 6-digit code after sign-up and refuses the login until
- * it is confirmed. The e-mail comes in the query string, from the sign-up or
- * the login.
- */
+// Componente
 @Component({
   selector: 'app-confirm-account',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,11 +37,13 @@ export class ConfirmAccountComponent {
     codigo: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]],
   });
 
+  // Validação
   invalid(name: 'email' | 'codigo'): boolean {
     const c = this.form.controls[name];
     return c.invalid && c.touched;
   }
 
+  // Confirmação
   confirm(): void {
     this.error.set('');
     this.notice.set('');
@@ -57,6 +55,7 @@ export class ConfirmAccountComponent {
     this.confirmAction.run(email.trim(), codigo.trim());
   }
 
+  // Reenvio
   resend(): void {
     this.error.set('');
     this.notice.set('');

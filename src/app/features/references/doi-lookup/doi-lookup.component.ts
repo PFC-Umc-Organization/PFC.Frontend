@@ -5,7 +5,7 @@ import { ReferenceService } from '../../../core/services/reference.service';
 import { action } from '../../../core/state/action';
 import { AddReferenceComponent } from '../add-reference/add-reference.component';
 
-/** Looks a DOI up on Crossref and previews the ABNT reference. */
+// Componente
 @Component({
   selector: 'app-doi-lookup',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,10 +31,12 @@ export class DoiLookupComponent {
   });
   readonly looking = this.lookup.pending;
 
+  // Digitação
   typeDoi(event: Event): void {
     this.doi.set((event.target as HTMLInputElement).value);
   }
 
+  // Consulta
   lookUp(event: Event): void {
     event.preventDefault();
     const doi = this.doi().trim();

@@ -15,8 +15,10 @@ import { CohortsComponent } from '../cohorts/cohorts.component';
 const cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE', periodo: '2026.2' } as Cohort;
 const program: Program = { id: 'p1', cursoId: 't1' };
 const project: Project = { id: 'pr1', nome: 'Athena', descricao: '', programaId: 'p1', integrantes: ['111'] };
+// Falha
 const failure = <T>(): Observable<T> => throwError(() => new Error('serviço fora do ar'));
 
+// Tipo
 interface Answers {
   cohorts?: () => Observable<Cohort[]>;
   programs?: () => Observable<Program[]>;
@@ -26,12 +28,13 @@ interface Answers {
   role?: 'ADMIN' | 'ORIENTADOR';
 }
 
-/** Fails on the first call and answers normally on the retry. */
+// Falha parcial
 function failingOnce<T>(value: T): () => Observable<T> {
   let calls = 0;
   return () => (++calls === 1 ? failure<T>() : of(value));
 }
 
+// Renderização
 async function render(answers: Answers = {}) {
   TestBed.configureTestingModule({
     providers: [
@@ -60,7 +63,7 @@ async function render(answers: Answers = {}) {
 
 describe('PFC management load errors (Turmas e PFC)', () => {
   beforeAll(() => {
-    // The table's scroll hint needs it; the test environment has no layout.
+    // Stub do ResizeObserver
     globalThis.ResizeObserver ??= class {
       observe(): void {}
       unobserve(): void {}
@@ -150,8 +153,6 @@ describe('PFC management load errors (Turmas e PFC)', () => {
   });
 
   it('keeps move and remove locked when the project count is unknown, until a retry works', async () => {
-    // Only the count asks for every project; the default tab asks for one program.
-    // The first two reads fail: the one the screen opens with and the one when coming back to this tab.
     let reads = 0;
     const allProjects = () => (++reads <= 2 ? failure<Project[]>() : of([] as Project[]));
     const { host, click } = await render({

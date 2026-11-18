@@ -6,36 +6,54 @@ import { environment } from '../../../environments/environment';
 import { Invitation, Project } from '../models';
 import { toApiError } from './http-error';
 
-/**
- * Classmates join a group by accepting an invitation. There is no e-mail:
- * invitations show up in the app (Meu PFC).
- */
+// Serviço
 export abstract class InvitationService {
-  /** Invitations received by the signed-in student. */
+  // ---------------------------------------------------------------------------
+  // Recebidos
+  // ---------------------------------------------------------------------------
+
+  // Consulta
   abstract mine(): Observable<Invitation[]>;
-  /** Returns the project with the student among `integrantes`. */
+  // Aceite
   abstract accept(projectId: string): Observable<Project>;
+  // Recusa
   abstract decline(projectId: string): Observable<void>;
+
+  // ---------------------------------------------------------------------------
+  // Enviados
+  // ---------------------------------------------------------------------------
+
+  // Consulta
   abstract ofProject(projectId: string): Observable<Invitation[]>;
+  // Convite
   abstract invite(projectId: string, rgm: string): Observable<Invitation>;
+  // Cancelamento
   abstract cancel(projectId: string, rgm: string): Observable<void>;
 }
 
+// Serviço
 @Injectable()
 export class InvitationHttpService extends InvitationService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiBaseUrl;
 
+  // ---------------------------------------------------------------------------
+  // Recebidos
+  // ---------------------------------------------------------------------------
+
+  // Consulta
   override mine(): Observable<Invitation[]> {
     return this.http.get<Invitation[]>(`${this.base}/meus-convites`).pipe(catchError(toApiError));
   }
 
+  // Aceite
   override accept(projectId: string): Observable<Project> {
     return this.http
       .post<Project>(`${this.base}/meus-convites/${projectId}/aceitar`, {})
       .pipe(catchError(toApiError));
   }
 
+  // Recusa
   override decline(projectId: string): Observable<void> {
     return this.http.post(`${this.base}/meus-convites/${projectId}/recusar`, {}).pipe(
       map(() => undefined),
@@ -43,18 +61,25 @@ export class InvitationHttpService extends InvitationService {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Enviados
+  // ---------------------------------------------------------------------------
+
+  // Consulta
   override ofProject(projectId: string): Observable<Invitation[]> {
     return this.http
       .get<Invitation[]>(`${this.base}/projetos/${projectId}/convites`)
       .pipe(catchError(toApiError));
   }
 
+  // Convite
   override invite(projectId: string, rgm: string): Observable<Invitation> {
     return this.http
       .post<Invitation>(`${this.base}/projetos/${projectId}/convites`, { rgm })
       .pipe(catchError(toApiError));
   }
 
+  // Cancelamento
   override cancel(projectId: string, rgm: string): Observable<void> {
     return this.http
       .delete(`${this.base}/projetos/${projectId}/convites/${encodeURIComponent(rgm)}`)

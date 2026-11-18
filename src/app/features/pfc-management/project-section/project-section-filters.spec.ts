@@ -26,6 +26,7 @@ const penalties: ProjectPenalties[] = [
   { projetoId: 'h', ativas: 3, limite: 3, reprovado: true, penalidades: [] },
 ];
 
+// Renderização
 async function render(role: 'ADMIN' | 'ORIENTADOR', ofProgram: () => Observable<ProjectPenalties[]> = () => of(penalties)) {
   TestBed.configureTestingModule({
     providers: [
@@ -63,7 +64,7 @@ async function render(role: 'ADMIN' | 'ORIENTADOR', ofProgram: () => Observable<
 
 describe('PFC management filters', () => {
   beforeAll(() => {
-    // The table's scroll hint needs it; the test environment has no layout.
+    // Stub do ResizeObserver
     globalThis.ResizeObserver ??= class {
       observe(): void {}
       unobserve(): void {}

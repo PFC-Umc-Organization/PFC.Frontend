@@ -10,13 +10,10 @@ import { PfcManagementStore } from '../../pfc-management/pfc-management.store';
 import { CohortFieldsComponent, cohortForm } from '../cohort-fields/cohort-fields.component';
 import { CohortsStore } from '../cohorts.store';
 
+// Formulário
 const nameForm = () => new FormGroup({ nome: new FormControl('', { nonNullable: true, validators: [Validators.required] }) });
 
-/**
- * Courses, their cohorts and each cohort's PFC program in one list: the course
- * row has the button for a new cohort and the cohort row the one for its program.
- * The data and the changes are in `CohortsStore`; here is only what the screen has open.
- */
+// Componente
 @Component({
   selector: 'app-structure-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,12 +26,20 @@ export class StructureSectionComponent implements OnInit {
   protected readonly pfc = inject(PfcManagementStore);
   private readonly confirmation = inject(ConfirmationService);
 
+  // ---------------------------------------------------------------------------
+  // Apoio
+  // ---------------------------------------------------------------------------
+
+  // Nome
   protected shiftName(cohort: Cohort): string {
     return SHIFT_LABEL[cohort.turno];
   }
   protected readonly cohortLabel = cohortLabel;
 
-  // Courses
+  // ---------------------------------------------------------------------------
+  // Estado
+  // ---------------------------------------------------------------------------
+
   readonly courseForm = nameForm();
   readonly courseEditForm = nameForm();
   readonly courseName = this.courseForm.controls.nome;
@@ -42,29 +47,41 @@ export class StructureSectionComponent implements OnInit {
   readonly courseFormOpen = signal(false);
   readonly editingCourseId = signal<string | null>(null);
 
-  // Cohorts
   readonly newCohortForm = cohortForm();
   readonly cohortEditForm = cohortForm();
-  /** The course (id) whose new-cohort form is open; "" is a cohort of an unregistered course. */
   readonly newCohortFor = signal<string | null>(null);
   readonly editingCohortId = signal<string | null>(null);
 
-  // Programs
   readonly movingProgramId = signal<string | null>(null);
   readonly moveToCohortId = signal('');
 
+  // ---------------------------------------------------------------------------
+  // Ciclo e apoio
+  // ---------------------------------------------------------------------------
+
+  // Inicialização
   ngOnInit(): void {
     this.store.recount();
   }
 
+  // Validação
   invalid(control: FormControl<string>): boolean {
     return control.touched && !control.value.trim();
   }
 
+  // Confirmação
   private confirmDelete(title: string, message: string): Promise<boolean> {
     return this.confirmation.confirm({ title, message, confirmText: 'Excluir', danger: true });
   }
 
+<<<<<<< HEAD
+  // ---------------------------------------------------------------------------
+  // Cursos
+  // ---------------------------------------------------------------------------
+
+  // Criação
+  createCourse(): void {
+=======
   /** Every change of the coordination is confirmed before it is saved. */
   private confirmSave(title: string, message: string, confirmText = 'Salvar'): Promise<boolean> {
     return this.confirmation.confirm({ title, message, confirmText });
@@ -77,6 +94,7 @@ export class StructureSectionComponent implements OnInit {
   // --- Courses
 
   async createCourse(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (!this.courseName.value.trim()) {
       this.store.clearErrors();
       this.courseName.markAsTouched();
@@ -91,13 +109,19 @@ export class StructureSectionComponent implements OnInit {
     });
   }
 
+  // Edição
   startEditCourse(course: Course): void {
     this.store.clearErrors();
     this.editingCourseId.set(course.id);
     this.courseEditName.setValue(course.nome);
   }
 
+<<<<<<< HEAD
+  // Gravação
+  saveCourse(courseId: string): void {
+=======
   async saveCourse(courseId: string): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (!this.courseEditName.value.trim()) {
       this.courseEditName.markAsTouched();
       return;
@@ -108,6 +132,7 @@ export class StructureSectionComponent implements OnInit {
     this.store.updateCourse(courseId, this.courseEditName.value, () => this.editingCourseId.set(null));
   }
 
+  // Exclusão
   async removeCourse(course: Course): Promise<void> {
     const confirmed = await this.confirmDelete(
       'Excluir curso',
@@ -118,8 +143,11 @@ export class StructureSectionComponent implements OnInit {
     }
   }
 
-  // --- Cohorts
+  // ---------------------------------------------------------------------------
+  // Turmas
+  // ---------------------------------------------------------------------------
 
+  // Abertura
   openNewCohort(course: Course): void {
     this.store.clearErrors();
     this.editingCohortId.set(null);
@@ -127,7 +155,12 @@ export class StructureSectionComponent implements OnInit {
     this.newCohortFor.set(course.id);
   }
 
+<<<<<<< HEAD
+  // Criação
+  createCohort(): void {
+=======
   async createCohort(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.store.clearErrors();
     if (this.newCohortForm.invalid) {
       this.newCohortForm.markAllAsTouched();
@@ -139,6 +172,7 @@ export class StructureSectionComponent implements OnInit {
     this.store.createCohort(this.newCohortForm.getRawValue(), () => this.newCohortFor.set(null));
   }
 
+  // Edição
   startEditCohort(cohort: Cohort): void {
     this.store.clearErrors();
     this.newCohortFor.set(null);
@@ -150,7 +184,12 @@ export class StructureSectionComponent implements OnInit {
     this.editingCohortId.set(cohort.id);
   }
 
+<<<<<<< HEAD
+  // Gravação
+  saveCohort(cohortId: string): void {
+=======
   async saveCohort(cohortId: string): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (this.cohortEditForm.invalid) {
       this.cohortEditForm.markAllAsTouched();
       return;
@@ -161,6 +200,7 @@ export class StructureSectionComponent implements OnInit {
     this.store.updateCohort(cohortId, this.cohortEditForm.getRawValue(), () => this.editingCohortId.set(null));
   }
 
+  // Exclusão
   async removeCohort(cohort: Cohort): Promise<void> {
     const confirmed = await this.confirmDelete(
       'Excluir turma',
@@ -171,14 +211,21 @@ export class StructureSectionComponent implements OnInit {
     }
   }
 
-  // --- Programs
+  // ---------------------------------------------------------------------------
+  // Programas
+  // ---------------------------------------------------------------------------
 
+  // Movimentação
   startMoveProgram(programId: string): void {
     this.store.clearErrors();
     this.moveToCohortId.set('');
     this.movingProgramId.set(programId);
   }
 
+<<<<<<< HEAD
+  // Gravação
+  saveMoveProgram(programId: string): void {
+=======
   async createProgram(cohort: Cohort): Promise<void> {
     const message = `Criar o programa de PFC da turma ${cohortLabel(cohort)}? Depois disso, os alunos da turma já podem cadastrar o PFC do grupo.`;
     if (await this.confirmSave('Criar programa de PFC', message, 'Criar')) {
@@ -192,9 +239,11 @@ export class StructureSectionComponent implements OnInit {
     if (!(await this.confirmSave('Mover programa de PFC', message, 'Mover'))) {
       return;
     }
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.store.moveProgram(programId, this.moveToCohortId(), () => this.movingProgramId.set(null));
   }
 
+  // Exclusão
   async removeProgram(programId: string, label: string): Promise<void> {
     const confirmed = await this.confirmDelete(
       'Excluir programa de PFC',

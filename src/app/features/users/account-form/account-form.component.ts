@@ -6,7 +6,7 @@ import { UserService } from '../../../core/services/user.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** An advisor or coordination account; Cognito e-mails the temporary password. */
+// Componente
 @Component({
   selector: 'app-account-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,7 +23,6 @@ export class AccountFormComponent {
     perfil: ['ORIENTADOR' as 'ORIENTADOR' | 'ADMIN', [Validators.required]],
   });
   readonly closed = output();
-  /** With the backend's confirmation message. */
   readonly created = output<string>();
   private readonly createAction = action((body: Parameters<UserService['createAccount']>[0]) => this.userService.createAccount(body), {
     onSuccess: (response) => {
@@ -34,12 +33,18 @@ export class AccountFormComponent {
   readonly saving = this.createAction.pending;
   readonly error = this.createAction.error;
 
+  // Validação
   invalid(name: 'nome' | 'email'): boolean {
     const c = this.form.controls[name];
     return c.invalid && c.touched;
   }
 
+<<<<<<< HEAD
+  // Criação
+  create(): void {
+=======
   async create(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;

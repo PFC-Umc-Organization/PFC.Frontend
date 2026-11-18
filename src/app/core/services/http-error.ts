@@ -1,11 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 
-/** An API error carrying the backend's message and the HTTP status. */
+// Tipo
 export interface ApiError extends Error {
   status?: number;
 }
 
+// Conversão
 export function toApiError(e: HttpErrorResponse): Observable<never> {
   const body = e.error as unknown;
   const message =

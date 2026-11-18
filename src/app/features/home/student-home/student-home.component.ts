@@ -20,16 +20,13 @@ import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
 const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
 
+// Tipo
 interface Home {
   project: Project | null;
   items: TimelineItem[];
 }
 
-/**
- * The activities' schedule. Without a group the student still sees the
- * deadlines (activities are the same for every cohort) and a notice that
- * submitting is done by the group.
- */
+// Componente
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,7 +40,6 @@ export class StudentHomeComponent {
   private readonly penaltyService = inject(PenaltyService);
   private readonly projectService = inject(ProjectService);
 
-  /** The student's group (or none) with the timeline; without a group, the plain schedule. Null until it arrives. */
   readonly home = loadable({
     source: () =>
       this.projectService
@@ -69,10 +65,8 @@ export class StudentHomeComponent {
     initial: null as Home | null,
   });
 
-  /** Every submit moves it, so the grid reads again. */
   private readonly submitCount = toSignal(this.submissionService.changes().pipe(scan((n) => n + 1, 0)), { initialValue: 0 });
 
-  /** The group's own row, in the same grid the staff reads; read again after every submit. */
   private readonly gridLoad = loadable({
     source: ({ project }: { project: Project; version: number }) =>
       combineLatest([this.activityService.list(), this.submissionService.ofProject(project.id)]).pipe(
@@ -87,17 +81,16 @@ export class StudentHomeComponent {
   readonly grid = this.gridLoad.value;
   readonly gridError = this.gridLoad.error;
 
+  // Nova tentativa
   retryGrid(): void {
     this.gridLoad.reload();
   }
 
-  /** The group's penalties by project id, as the grid reads them. */
   readonly penaltiesByProject = computed(() => {
     const p = this.penalties();
     return p ? new Map([[p.projetoId, p]]) : new Map<string, ProjectPenalties>();
   });
 
-  /** The activity opened below the grid, to read, send or edit its submission. */
   readonly selectedActivity = signal<string | null>(null);
 
   private readonly states = computed(() => cellStates(this.grid().rows[0]?.cells ?? []));
@@ -131,7 +124,7 @@ export class StudentHomeComponent {
     };
   });
 
-  /** A cell or a date opens the activity below the grid; the same one again closes it. */
+  // Abertura
   openActivity(activityId: string): void {
     this.selectedActivity.set(this.selectedActivity() === activityId ? null : activityId);
     if (this.selectedActivity()) {
@@ -141,17 +134,22 @@ export class StudentHomeComponent {
     }
   }
 
+<<<<<<< HEAD
+  // Exibição
+  showPenalties(): void {
+    document.getElementById('penalties-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+=======
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   readonly project = computed(() => this.home.value()?.project ?? null);
-  /**
-   * Undefined while loading, so the top of the page waits instead of showing
-   * "Próxima entrega" to a failed group; null without a group or on failure.
-   */
   private readonly penaltyLoad = loadable({
     source: (project: Project) => this.penaltyService.ofProject(project.id),
     params: this.project,
     initial: null as ProjectPenalties | null,
   });
   readonly penaltiesError = this.penaltyLoad.error;
+  // Nova tentativa
   retryPenalties(): void {
     this.penaltyLoad.reload();
   }
@@ -160,7 +158,6 @@ export class StudentHomeComponent {
   readonly penalties = this.penaltyLoad.value;
   readonly failed = computed(() => this.penalties()?.reprovado ?? false);
 
-  /** With a group, read from the grid so it follows every submit; without one, from the plain schedule. */
   readonly items = computed(() => {
     const row = this.grid().rows[0];
     if (this.project() && row) {
@@ -175,7 +172,6 @@ export class StudentHomeComponent {
     return this.home.value()?.items ?? [];
   });
   readonly error = computed(() => (this.home.error() ? `Não foi possível carregar as atividades. ${this.home.error()}` : ''));
-  /** The pending activity with the closest deadline. */
   readonly next = computed(() =>
     this.items()
       .filter((i) => i.status === 'PENDENTE')
@@ -184,6 +180,7 @@ export class StudentHomeComponent {
   readonly pendingCount = computed(() => this.items().filter((i) => i.status === 'PENDENTE').length);
   readonly missed = computed(() => this.items().some((i) => i.status === 'ATRASADO'));
 
+  // Prazo
   timeLeft(deadline: string, now = new Date()): string {
     const hours = Math.floor((new Date(deadline).getTime() - now.getTime()) / 3_600_000);
     if (hours < 1) {

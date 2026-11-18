@@ -1,6 +1,7 @@
 import { Cohort, Program } from '../../../core/models';
 import { pickCohortId } from './staff-home.selection';
 
+// Fábricas
 const cohort = (id: string, periodo: string): Cohort => ({ id, nome: 'Engenharia de Software', turno: 'NOITE', periodo }) as Cohort;
 const program = (id: string, cursoId: string): Program => ({ id, cursoId }) as Program;
 

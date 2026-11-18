@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, input, signal } from '@angular/core
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PrivacyPolicyComponent } from '../privacy-policy/privacy-policy.component';
 
-/** The frame of the signed-out screens. */
+// Componente
 @Component({
   selector: 'app-auth-card',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,6 +17,7 @@ export class AuthCardComponent {
 
   readonly policyOpen = signal(false);
 
+  // Abertura
   openPolicy(event: Event): void {
     event.preventDefault();
     this.policyOpen.set(true);

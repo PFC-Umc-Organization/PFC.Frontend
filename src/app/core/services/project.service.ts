@@ -7,29 +7,71 @@ import { MyPfc, NewStudentProject, Project, ProjectDetail, ProjectUpdate } from 
 import { toApiError } from './http-error';
 import { ProgramService } from './program.service';
 
+// Serviço
 export abstract class ProjectService {
-  /** Without `programId`, the projects of every program. */
+  // ---------------------------------------------------------------------------
+  // Consultas
+  // ---------------------------------------------------------------------------
+
+  // Listagem
   abstract list(programId?: string): Observable<Project[]>;
+  // Detalhe
   abstract detail(projectId: string): Observable<ProjectDetail>;
-  /** The signed-in student's group, or the cohort where they can create one. */
+  // Meu PFC
   abstract myPfc(): Observable<MyPfc>;
+  // Projeto do aluno
   abstract myProject(): Observable<Project | null>;
-  /** The signed-in student creates their group's project, in their cohort. */
+
+  // ---------------------------------------------------------------------------
+  // Criação
+  // ---------------------------------------------------------------------------
+
   abstract createMine(project: NewStudentProject): Observable<Project>;
+
+  // ---------------------------------------------------------------------------
+  // Integrantes
+  // ---------------------------------------------------------------------------
+
+  // Inclusão
   abstract addMember(projectId: string, rgm: string): Observable<void>;
+  // Remoção
   abstract removeMember(projectId: string, rgm: string): Observable<void>;
+
+  // ---------------------------------------------------------------------------
+  // Edição
+  // ---------------------------------------------------------------------------
+
+  // Atualização
   abstract update(projectId: string, changes: ProjectUpdate): Observable<void>;
+
+  // ---------------------------------------------------------------------------
+  // Orientador
+  // ---------------------------------------------------------------------------
+
+  // Atribuição
   abstract setAdvisor(projectId: string, advisorId: string): Observable<void>;
+  // Remoção
   abstract removeAdvisor(projectId: string): Observable<void>;
+
+  // ---------------------------------------------------------------------------
+  // Exclusão
+  // ---------------------------------------------------------------------------
+
   abstract remove(projectId: string): Observable<void>;
 }
 
+// Serviço
 @Injectable()
 export class ProjectHttpService extends ProjectService {
   private readonly http = inject(HttpClient);
   private readonly programs = inject(ProgramService);
   private readonly url = `${environment.apiBaseUrl}/projetos`;
 
+  // ---------------------------------------------------------------------------
+  // Consultas
+  // ---------------------------------------------------------------------------
+
+  // Listagem
   override list(programId?: string): Observable<Project[]> {
     if (programId) {
       return this.ofProgram(programId);
@@ -42,23 +84,31 @@ export class ProjectHttpService extends ProjectService {
     );
   }
 
+  // Por programa
   private ofProgram(programId: string): Observable<Project[]> {
     return this.http
       .get<Project[]>(`${environment.apiBaseUrl}/programas/${programId}/projetos`)
       .pipe(catchError(toApiError));
   }
 
+  // Detalhe
   override detail(projectId: string): Observable<ProjectDetail> {
     return this.http.get<ProjectDetail>(`${this.url}/${projectId}`).pipe(catchError(toApiError));
   }
 
+  // Meu PFC
   override myPfc(): Observable<MyPfc> {
     return this.http.get<MyPfc>(`${environment.apiBaseUrl}/meu-pfc`).pipe(catchError(toApiError));
   }
 
+  // Projeto do aluno
   override myProject(): Observable<Project | null> {
     return this.myPfc().pipe(map((m) => m.grupo?.projeto ?? null));
   }
+
+  // ---------------------------------------------------------------------------
+  // Criação
+  // ---------------------------------------------------------------------------
 
   override createMine(project: NewStudentProject): Observable<Project> {
     return this.http
@@ -66,6 +116,11 @@ export class ProjectHttpService extends ProjectService {
       .pipe(catchError(toApiError));
   }
 
+  // ---------------------------------------------------------------------------
+  // Integrantes
+  // ---------------------------------------------------------------------------
+
+  // Inclusão
   override addMember(projectId: string, rgm: string): Observable<void> {
     return this.http.put(`${this.url}/${projectId}/integrantes`, { rgm }).pipe(
       map(() => undefined),
@@ -73,6 +128,7 @@ export class ProjectHttpService extends ProjectService {
     );
   }
 
+  // Remoção
   override removeMember(projectId: string, rgm: string): Observable<void> {
     return this.http
       .request('DELETE', `${this.url}/${projectId}/integrantes`, { body: { rgm } })
@@ -82,6 +138,11 @@ export class ProjectHttpService extends ProjectService {
       );
   }
 
+  // ---------------------------------------------------------------------------
+  // Edição
+  // ---------------------------------------------------------------------------
+
+  // Atualização
   override update(projectId: string, changes: ProjectUpdate): Observable<void> {
     return this.http.put(`${this.url}/${projectId}`, changes).pipe(
       map(() => undefined),
@@ -89,6 +150,11 @@ export class ProjectHttpService extends ProjectService {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Orientador
+  // ---------------------------------------------------------------------------
+
+  // Atribuição
   override setAdvisor(projectId: string, advisorId: string): Observable<void> {
     return this.http.put(`${this.url}/${projectId}/orientador`, { orientadorId: advisorId }).pipe(
       map(() => undefined),
@@ -96,12 +162,17 @@ export class ProjectHttpService extends ProjectService {
     );
   }
 
+  // Remoção
   override removeAdvisor(projectId: string): Observable<void> {
     return this.http.delete(`${this.url}/${projectId}/orientador`).pipe(
       map(() => undefined),
       catchError(toApiError),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Exclusão
+  // ---------------------------------------------------------------------------
 
   override remove(projectId: string): Observable<void> {
     return this.http.delete(`${this.url}/${projectId}`).pipe(

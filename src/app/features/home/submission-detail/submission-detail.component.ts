@@ -12,10 +12,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { CellPenaltiesComponent } from '../cell-penalties/cell-penalties.component';
 
-/**
- * What a group answered for one activity. The staff can hand it back; the
- * project's advisor validates it, which the coordination and the group read.
- */
+// Componente
 @Component({
   selector: 'app-submission-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,13 +44,10 @@ export class SubmissionDetailComponent {
   readonly removing = this.removeAction.pending;
   readonly deadlinePassed = computed(() => new Date(this.activity().prazo) < new Date());
 
-  /** The panel only lists an advisor's own projects, so an advisor here advises this one. */
   private readonly auth = inject(AuthService);
   readonly canValidate = computed(() => this.auth.role() === 'ORIENTADOR');
   protected readonly validationLabel = validationLabel;
-  /** Starts from the current comment whenever another cell opens. */
   readonly comment = linkedSignal(() => this.submission()?.validacao?.comentario ?? '');
-  /** Group and activity being read; the feedback below belongs to this pair only. */
   private readonly targetKey = computed(() => `${this.projectId()}/${this.activity().id}`);
   readonly validationDone = linkedSignal(() => {
     this.targetKey();
@@ -77,11 +71,17 @@ export class SubmissionDetailComponent {
   readonly validating = this.validateAction.pending;
   readonly validationError = computed(() => this.missingComment() || this.validateAction.error());
 
+  // Comentário
   setComment(event: Event): void {
     this.comment.set((event.target as HTMLTextAreaElement).value);
   }
 
+<<<<<<< HEAD
+  // Validação
+  validate(status: ValidationStatus): void {
+=======
   async validate(status: ValidationStatus): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     const comentario = this.comment().trim();
     if (status === 'NAO_VALIDADA' && !comentario) {
       this.missingComment.set('Para não validar, escreva no comentário o que o grupo precisa corrigir.');
@@ -110,10 +110,12 @@ export class SubmissionDetailComponent {
     this.validateAction.run(this.targetKey(), status, { status, ...(comentario ? { comentario } : {}) });
   }
 
+  // Download
   download(fieldId: string): void {
     this.downloadAction.run(fieldId);
   }
 
+  // Devolução
   async handBack(): Promise<void> {
     const after =
       new Date(this.activity().prazo) > new Date()

@@ -14,20 +14,23 @@ const invitation: Invitation = {
   convidadoPor: 'Ana',
   criadoEm: '2026-10-01T12:00:00Z',
 };
+// Falha
 const failure = () => throwError(() => new Error('serviço fora do ar'));
 
-/** Fails on the first call and answers with the invitation on the retry. */
+// Falha parcial
 function failingOnce(): () => Observable<Invitation[]> {
   let calls = 0;
   return () => (++calls === 1 ? failure() : of([invitation]));
 }
 
+// Configuração
 function configure(service: Partial<InvitationService>): void {
   TestBed.configureTestingModule({
     providers: [provideZonelessChangeDetection(), { provide: InvitationService, useValue: service }],
   });
 }
 
+// Nova tentativa
 function retry(host: HTMLElement): void {
   const button = Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes('Tentar novamente'));
   button!.click();

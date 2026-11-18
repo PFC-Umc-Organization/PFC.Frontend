@@ -1,5 +1,6 @@
 import { Activity, ProjectStatusRow, Submission, SubmissionStatus, ValidationStatus, fileNameOf } from '../models';
 
+// Status
 export function submissionStatus(
   deadline: string,
   submittedAt: string | null | undefined,
@@ -12,7 +13,7 @@ export function submissionStatus(
   return now > limit ? 'ATRASADO' : 'PENDENTE';
 }
 
-/** The answer of the activity's first file field, as a file name. */
+// Nome
 export function submittedFileName(
   activity: Activity,
   answers: Record<string, string> | undefined,
@@ -22,7 +23,7 @@ export function submittedFileName(
   return answer ? fileNameOf(answer) : undefined;
 }
 
-/** An edit in the same minute as the submission is not worth showing. */
+// Comparação
 export function editedLater(s: Pick<Submission, 'entregueEm' | 'atualizadaEm'>): boolean {
   if (!s.atualizadaEm || !s.entregueEm) {
     return !!s.atualizadaEm;
@@ -31,6 +32,13 @@ export function editedLater(s: Pick<Submission, 'entregueEm' | 'atualizadaEm'>):
   return minute(s.atualizadaEm) !== minute(s.entregueEm);
 }
 
+<<<<<<< HEAD
+// Tipo
+export type CellState = 'done' | 'done-late' | 'late' | 'waiting' | 'blocked';
+
+// Estados
+export function cellStates(statuses: SubmissionStatus[]): { state: CellState; blockedBy?: number }[] {
+=======
 /**
  * What a grid cell shows, along the way of a delivery: `waiting` for the group,
  * `review` while the advisor has not answered, then `done` or, when sent back,
@@ -58,6 +66,7 @@ function submittedState(validation: ValidationStatus | undefined): CellState {
  * blocks nothing: it can no longer be submitted and already cost a penalty.
  */
 export function cellStates(cells: CellInput[]): { state: CellState; blockedBy?: number }[] {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   let firstWaiting: number | undefined;
   return cells.map(({ status, validation, waived }, i) => {
     switch (status) {
@@ -76,13 +85,12 @@ export function cellStates(cells: CellInput[]): { state: CellState; blockedBy?: 
   });
 }
 
-/** Project × activity grid; `submissions` may hold more projects than `projects`. */
+// Montagem
 export function buildStatusGrid(
   unordered: Activity[],
   projects: { id: string; nome: string; orientadorId?: string }[],
   submissions: Submission[],
 ): { activities: Activity[]; rows: ProjectStatusRow[]; submissions: Submission[] } {
-  // The order rule and the columns follow the deadlines, whatever order the API answers in.
   const activities = [...unordered].sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime());
   return {
     activities,

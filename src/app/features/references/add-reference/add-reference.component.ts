@@ -4,7 +4,7 @@ import { ReferenceService } from '../../../core/services/reference.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** Adds an article to the group's list by its DOI, or says it is already there. */
+// Componente
 @Component({
   selector: 'app-add-reference',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,7 +26,6 @@ export class AddReferenceComponent {
 
   readonly projectId = input.required<string>();
   readonly doi = input<string | undefined>();
-  /** The DOIs already in the list, lowercase. */
   readonly inList = input.required<Set<string>>();
   readonly added = output();
   readonly failed = output<string>();
@@ -38,6 +37,7 @@ export class AddReferenceComponent {
   readonly adding = this.addAction.pending;
   readonly present = computed(() => !!this.doi() && this.inList().has(this.doi()!.toLowerCase()));
 
+  // Inclusão
   add(): void {
     const doi = this.doi();
     if (!doi) {

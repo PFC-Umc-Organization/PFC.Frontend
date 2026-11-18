@@ -4,7 +4,7 @@ import { authGuard, guestGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
 import { LayoutComponent } from './shared/components/layout/layout.component';
 
-/** Paths are what the user sees in the address bar, so they stay in Portuguese. */
+// Rotas
 export const routes: Routes = [
   {
     path: 'entrar',

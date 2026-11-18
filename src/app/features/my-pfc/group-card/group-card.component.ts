@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { ProjectDetail, cohortLabel, rgmOf } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 
-/** The group's cohort, advisor and members; the page title already names the project. */
+// Componente
 @Component({
   selector: 'app-group-card',
   changeDetection: ChangeDetectionStrategy.OnPush,

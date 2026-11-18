@@ -10,7 +10,7 @@ import { PasswordFieldComponent } from '../../../shared/components/password-fiel
 import { AuthCardComponent } from '../auth-card/auth-card.component';
 import { passwordsMatch } from '../passwords-match';
 
-/** Two steps: ask for the code, then use it with the new password. */
+// Componente
 @Component({
   selector: 'app-forgot-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -63,14 +63,17 @@ export class ForgotPasswordComponent {
       : 'Informe o e-mail da sua conta. Enviaremos um código para você definir uma nova senha.',
   );
 
+  // Validação
   touchedInvalid(control: { invalid: boolean; touched: boolean }): boolean {
     return control.invalid && control.touched;
   }
 
+  // Confirmação
   mismatch(): boolean {
     return this.reset.hasError('diferentes') && this.reset.controls.confirmacao.touched;
   }
 
+  // Envio
   sendCode(): void {
     this.error.set('');
     this.notice.set('');
@@ -81,6 +84,7 @@ export class ForgotPasswordComponent {
     this.sendAction.run(this.request.controls.email.value.trim());
   }
 
+  // Redefinição
   resetPassword(): void {
     this.error.set('');
     this.notice.set('');
@@ -92,6 +96,7 @@ export class ForgotPasswordComponent {
     this.resetAction.run(this.request.controls.email.value.trim(), codigo.trim(), senha);
   }
 
+  // Troca de e-mail
   changeEmail(): void {
     this.codeSent.set(false);
     this.notice.set('');
