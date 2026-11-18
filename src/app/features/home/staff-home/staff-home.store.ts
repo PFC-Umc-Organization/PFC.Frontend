@@ -1,6 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { combineLatest, map } from 'rxjs';
+import { Observable, combineLatest, map, of } from 'rxjs';
 
 import { Cohort, Program, Project, ProjectPenalties, User, cohortLabel, currentTerm, isStaff } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
@@ -30,6 +30,11 @@ interface Scope {
 }
 
 const EMPTY_SCOPE: Scope = { grid: EMPTY_GRID, programOf: new Map() };
+
+// Lote
+function inBatch<T>(ids: string[], gate: Gate, fetch: (id: string) => Observable<T>): Observable<T[]> {
+  return ids.length === 0 ? of([] as T[]) : combineLatest(ids.map((id) => gate.run(fetch(id).pipe(retryTransient()))));
+}
 
 // Junção
 function mergeScope(parts: { programId: string; grid: StatusGrid }[]): Scope {
@@ -96,21 +101,24 @@ export class StaffHomeStore {
   readonly programId = computed(() => this.programByCohort().get(this.cohortId())?.id);
   readonly selectedValue = computed(() => (this.allCohorts() ? ALL_COHORTS : this.cohortId()));
 
-  readonly scopeIds = computed(() => {
+  readonly scopeIds = computed<string[]>(() => {
     const cohortIds = new Set(this.cohorts.value().map((c) => c.id));
     const advised = this.isAdvisor() ? new Set(this.advised.value().map((p) => p.programaId)) : null;
     return this.programs.value().filter((p) => !!p.id && cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
-  });
+  }, { equal: (a, b) => a.length === b.length && a.every((id, i) => id === b[i]) });
   private readonly scopeParams = computed(() => (this.scopeIds().length ? this.scopeIds() : null));
 
   readonly gridLoad = loadable({
     source: (ids: string[]) =>
-      combineLatest(
-        ids.map((programId) => this.gate.run(this.submissionService.statusGrid(programId).pipe(retryTransient(), map((grid) => ({ programId, grid }))))),
-      ).pipe(map(mergeScope)),
+      inBatch(ids, this.gate, (programId) => this.submissionService.statusGrid(programId).pipe(map((grid) => ({ programId, grid })))).pipe(map(mergeScope)),
     params: this.scopeParams,
     initial: EMPTY_SCOPE,
   });
+  // Carregamento
+  readonly loading = computed(
+    () => this.gridLoad.loading() || this.cohorts.loading() || this.programs.loading() || (this.isAdvisor() && this.advised.loading()),
+  );
+
   readonly fullGrid = computed(() => this.gridLoad.value().grid);
 
   // Visão
@@ -135,7 +143,7 @@ export class StaffHomeStore {
   readonly nameOf = (rgm: string): string => this.nameByRgm().get(rgm) ?? rgm;
 
   readonly projectList = loadable({
-    source: (ids: string[]) => combineLatest(ids.map((id) => this.gate.run(this.projectService.list(id).pipe(retryTransient())))).pipe(map((lists) => lists.flat())),
+    source: (ids: string[]) => inBatch(ids, this.gate, (id) => this.projectService.list(id)).pipe(map((lists) => lists.flat())),
     params: computed(() => (this.isAdmin() ? this.scopeParams() : null)),
     initial: [] as Project[],
   });
@@ -187,7 +195,7 @@ export class StaffHomeStore {
   });
 
   readonly penaltyList = loadable({
-    source: (ids: string[]) => combineLatest(ids.map((id) => this.gate.run(this.penaltyService.ofProgram(id).pipe(retryTransient())))).pipe(map((lists) => lists.flat())),
+    source: (ids: string[]) => inBatch(ids, this.gate, (id) => this.penaltyService.ofProgram(id)).pipe(map((lists) => lists.flat())),
     params: this.scopeParams,
     initial: [] as ProjectPenalties[],
   });

@@ -47,14 +47,16 @@ export class NewActivityComponent {
   private readonly failure = signal('');
   private readonly publishAction = action(
     (targets: Cohort[], body: Parameters<ActivityService['create']>[0]) =>
-      forkJoin(
-        targets.map((cohort) =>
-          this.activityService.create({ ...body, turmaId: cohort.id }).pipe(
-            map(() => null),
-            catchError((e: Error) => of({ cohort, message: e.message })),
+      targets.length === 0
+        ? of([] as ({ cohort: Cohort; message: string } | null)[])
+        : forkJoin(
+            targets.map((cohort) =>
+              this.activityService.create({ ...body, turmaId: cohort.id }).pipe(
+                map(() => null),
+                catchError((e: Error) => of({ cohort, message: e.message })),
+              ),
+            ),
           ),
-        ),
-      ),
     {
       onSuccess: (results, targets) => {
         const failures = results.filter((r) => r !== null);

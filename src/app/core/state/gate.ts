@@ -8,7 +8,10 @@ export class Gate {
   private active = 0;
   private queue: (() => void)[] = [];
 
-  constructor(private readonly limit: number) {}
+  constructor(
+    private readonly limit: number,
+    private readonly holdMs = 20_000,
+  ) {}
 
   // Execução
   run<T>(source: Observable<T>): Observable<T> {
@@ -16,8 +19,10 @@ export class Gate {
       let inner: Subscription | undefined;
       let started = false;
       let released = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
 
       const release = () => {
+        clearTimeout(timer);
         if (started && !released) {
           released = true;
           this.active--;
@@ -27,6 +32,7 @@ export class Gate {
       const start = () => {
         started = true;
         this.active++;
+        timer = setTimeout(release, this.holdMs);
         inner = source.subscribe({
           next: (value) => {
             subscriber.next(value);

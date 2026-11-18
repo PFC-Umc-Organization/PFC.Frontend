@@ -140,7 +140,7 @@
 @if (store.allCohorts()) {
   <app-consolidated-table
     [rows]="consolidated()"
-    [loading]="store.gridLoad.loading()"
+    [loading]="store.loading()"
     [emptyText]="emptyText()"
     [openable]="store.isAdmin()"
     [selectedProject]="selectedProject()"
@@ -161,7 +161,7 @@
 } @else {
 <app-status-grid
   [grid]="visibleGrid()"
-  [loading]="store.gridLoad.loading()"
+  [loading]="store.loading()"
   [selected]="selected()"
   [emptyText]="emptyText()"
   [penalties]="store.penalties()"

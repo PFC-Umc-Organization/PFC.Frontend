@@ -63,19 +63,21 @@ export class KpiStripComponent {
   private readonly filtered = computed<StatusGrid>(() => {
     const cohort = this.cohort();
     const advisor = this.advisor();
-    const rows = this.grid().rows.filter(
-      (r) => (!cohort || this.cohortIdOf()(r.project.id) === cohort) && (!advisor || r.project.orientadorId === advisor),
+    const grid = this.grid();
+    const cohortOf = this.cohortIdOf();
+    const rows = (grid?.rows ?? []).filter(
+      (r) => (!cohort || cohortOf?.(r.project.id) === cohort) && (!advisor || r.project.orientadorId === advisor),
     );
     const ids = new Set(rows.map((r) => r.project.id));
-    return { ...this.grid(), rows, submissions: this.grid().submissions.filter((s) => ids.has(s.projetoId)) };
+    return { activities: grid?.activities ?? [], rows, submissions: (grid?.submissions ?? []).filter((s) => ids.has(s.projetoId)) };
   });
   private readonly facts = computed(() => factsOf(this.filtered(), this.penalties()));
   readonly kpis = computed(() => kpisOf(this.filtered(), this.facts()));
   readonly byCohort = computed(() =>
-    breakdownOf(this.filtered(), this.facts(), (f) => this.cohortIdOf()(f.projectId), (f) => this.cohortLabelOf()(f.projectId)),
+    breakdownOf(this.filtered(), this.facts(), (f) => this.cohortIdOf()?.(f.projectId) ?? '', (f) => this.cohortLabelOf()?.(f.projectId) ?? '—'),
   );
   readonly byAdvisor = computed(() =>
-    breakdownOf(this.filtered(), this.facts(), (f) => f.advisorId ?? '', (f) => this.advisorNameOf()(f.advisorId)),
+    breakdownOf(this.filtered(), this.facts(), (f) => f.advisorId ?? '', (f) => this.advisorNameOf()?.(f.advisorId) ?? '—'),
   );
 
   // ---------------------------------------------------------------------------

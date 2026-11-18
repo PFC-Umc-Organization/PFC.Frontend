@@ -51,4 +51,16 @@ describe('Gate', () => {
     first.unsubscribe();
     expect(secondStarted).toBe(true);
   });
+
+  it('releases a slot held too long by a source that never emits', () => {
+    vi.useFakeTimers();
+    const gate = new Gate(1, 1000);
+    let secondStarted = false;
+    gate.run(new Subject<number>()).subscribe();
+    gate.run(counted(new Subject<number>(), () => (secondStarted = true))).subscribe();
+    expect(secondStarted).toBe(false);
+    vi.advanceTimersByTime(1000);
+    expect(secondStarted).toBe(true);
+    vi.useRealTimers();
+  });
 });
