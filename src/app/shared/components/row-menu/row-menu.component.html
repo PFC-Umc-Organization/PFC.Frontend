@@ -11,7 +11,7 @@
 </button>
 @if (open()) {
   <button type="button" class="backdrop" tabindex="-1" aria-label="Fechar o menu" (click)="open.set(false)"></button>
-  <div class="menu" role="menu" [style.top.px]="top()" [style.left.px]="left()">
+  <div class="menu" role="menu" [style.top.px]="top()" [style.bottom.px]="bottom()" [style.left.px]="left()">
     @for (item of items(); track item.id) {
       <button
         type="button"

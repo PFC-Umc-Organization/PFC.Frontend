@@ -1,13 +1,24 @@
 <section class="strip" aria-label="Fechamento da turma">
-  <div class="strip__head">
-    <h2 class="strip__title">Fechamento</h2>
-    <button type="button" class="btn btn--ghost btn--sm" [attr.aria-expanded]="open()" aria-controls="kpi-cards" (click)="open.set(!open())">
-      <app-icon [name]="open() ? 'close' : 'eye'" class="btn__icon" />
-      {{ open() ? 'Recolher' : 'Mostrar indicadores' }}
-    </button>
-  </div>
-
-  @if (open()) {
+  @if (!open()) {
+    <div class="bar">
+      <span class="bar__label">Fechamento</span>
+      <span class="bar__summary">{{ summary() }}</span>
+      @if (band() !== null) {
+        <button type="button" class="chip chip--active bar__filter" aria-label="Limpar o filtro de faixa de penalidades" (click)="bandChange.emit(null)">
+          Faixa: {{ bandLabel[band()!] }} ×
+        </button>
+      }
+      <button type="button" class="btn btn--ghost btn--sm bar__toggle" [attr.aria-expanded]="false" aria-controls="kpi-cards" (click)="open.set(true)">
+        Expandir detalhes
+      </button>
+    </div>
+  } @else {
+    <div class="strip__head">
+      <h2 class="strip__title">Fechamento</h2>
+      <button type="button" class="btn btn--ghost btn--sm" [attr.aria-expanded]="true" aria-controls="kpi-cards" (click)="open.set(false)">
+        Recolher
+      </button>
+    </div>
     <div class="cards" id="kpi-cards">
       <article class="kpi kpi--primary">
         <h3 class="kpi__title">Desfecho da turma</h3>
@@ -46,21 +57,21 @@
       <article class="kpi kpi--bronze">
         <h3 class="kpi__title">Termômetro de penalidades</h3>
         @if (kpis().bands.known) {
-          <ul class="bands">
+          <ul class="chips">
             @for (b of kpis().bands.items; track b.band) {
               <li>
                 <button
                   type="button"
-                  class="band"
-                  [class.band--active]="band() === b.band"
-                  [class.band--bad]="b.band === 3"
+                  class="chip"
+                  [class.chip--active]="band() === b.band"
+                  [class.chip--bad]="b.band === 3"
                   [attr.aria-pressed]="band() === b.band"
                   [attr.aria-label]="'Filtrar grupos com ' + bandLabel[b.band].toLowerCase() + ' ativa: ' + b.count"
                   (click)="toggleBand(b.band)"
                 >
-                  <span class="band__value">{{ b.count }}</span>
-                  <span class="band__label">{{ bandLabel[b.band] }}</span>
-                  <span class="band__pct">{{ b.pct | number: '1.0-0' }}%</span>
+                  <span class="chip__label">{{ bandLabel[b.band] }}</span>
+                  <span class="chip__value">{{ b.count }}</span>
+                  <span class="chip__pct">{{ b.pct | number: '1.0-0' }}%</span>
                 </button>
               </li>
             }

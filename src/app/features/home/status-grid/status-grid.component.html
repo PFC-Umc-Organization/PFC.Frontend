@@ -6,6 +6,7 @@
     }
     <div class="actions"><ng-content select="[actions]" /></div>
   </div>
+  <ng-content select="[filters]" />
 
   @if (error()) {
     <p class="alert" role="alert">

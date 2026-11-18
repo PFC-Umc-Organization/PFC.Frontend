@@ -60,38 +60,43 @@
       </div>
     </div>
     <app-kpi-strip [kpis]="kpis()" [band]="band()" (bandChange)="band.set($event)" />
-    <div class="filters">
+  </section>
+}
+
+<ng-template #filterBar>
+@if (store.grid().rows.length) {
+  <div class="filters">
+    <div class="field">
+      <label class="field__label" for="project-search">Buscar projeto</label>
+      <input id="project-search" type="search" class="control" placeholder="Projeto, integrante ou RGM" [value]="search()" (input)="setSearch($event)" />
+    </div>
+    @if (store.isAdmin() && store.gridAdvisors().length) {
       <div class="field">
-        <label class="field__label" for="project-search">Buscar projeto</label>
-        <input id="project-search" type="search" class="control" placeholder="Projeto, integrante ou RGM" [value]="search()" (input)="setSearch($event)" />
-      </div>
-      @if (store.isAdmin() && store.gridAdvisors().length) {
-        <div class="field">
-          <label class="field__label" for="advisor-filter">Orientador</label>
-          <select id="advisor-filter" class="control" [value]="advisorFilter()" (change)="setAdvisorFilter($event)">
-            <option value="">Todos os orientadores</option>
-            @for (a of store.gridAdvisors(); track a.id) {
-              <option [value]="a.id">{{ a.nome }}</option>
-            }
-          </select>
-        </div>
-      }
-      <div class="field">
-        <label class="field__label" for="project-filter">Filtrar por</label>
-        <select id="project-filter" class="control" [value]="filter()" (change)="setFilter($event)">
-          <option value="all">Todos os projetos</option>
-          <option value="failed">Reprovados</option>
-          <option value="late">Com atividade não entregue</option>
-          <option value="awaiting">Com entrega aguardando validação</option>
-          <option value="rejected">Com entrega não validada</option>
-          @if (store.isAdmin()) {
-            <option value="no-advisor">Sem orientador</option>
+        <label class="field__label" for="advisor-filter">Orientador</label>
+        <select id="advisor-filter" class="control" [value]="advisorFilter()" (change)="setAdvisorFilter($event)">
+          <option value="">Todos os orientadores</option>
+          @for (a of store.gridAdvisors(); track a.id) {
+            <option [value]="a.id">{{ a.nome }}</option>
           }
         </select>
       </div>
+    }
+    <div class="field">
+      <label class="field__label" for="project-filter">Filtrar por</label>
+      <select id="project-filter" class="control" [value]="filter()" (change)="setFilter($event)">
+        <option value="all">Todos os projetos</option>
+        <option value="failed">Reprovados</option>
+        <option value="late">Com atividade não entregue</option>
+        <option value="awaiting">Com entrega aguardando validação</option>
+        <option value="rejected">Com entrega não validada</option>
+        @if (store.isAdmin()) {
+          <option value="no-advisor">Sem orientador</option>
+        }
+      </select>
     </div>
-  </section>
+  </div>
 }
+</ng-template>
 
 @if (exportError()) {
   <p class="alert" role="alert">
@@ -109,6 +114,7 @@
     [selectedProject]="selectedProject()"
     (openProject)="openProject($event)"
   >
+  <div filters><ng-container *ngTemplateOutlet="filterBar" /></div>
   <div actions class="export">
     <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('xlsx')">
       <app-icon name="download" class="btn__icon" />
@@ -137,6 +143,7 @@
   (menu)="openMenu($event)"
   (openActivity)="openActivity($event)"
 >
+  <div filters><ng-container *ngTemplateOutlet="filterBar" /></div>
   <div actions class="export">
     <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('xlsx')">
       <app-icon name="download" class="btn__icon" />

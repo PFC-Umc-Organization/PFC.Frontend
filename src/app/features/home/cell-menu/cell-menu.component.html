@@ -1,5 +1,5 @@
 <button type="button" class="backdrop" aria-label="Fechar o menu da célula" tabindex="-1" (click)="closed.emit()"></button>
-<div class="menu" role="menu" [attr.aria-label]="'Ações de ' + cell().activityTitle + ' em ' + cell().projectName" [style.top.px]="cell().top" [style.left.px]="cell().left">
+<div class="menu" role="menu" [attr.aria-label]="'Ações de ' + cell().activityTitle + ' em ' + cell().projectName" [style.top.px]="cell().top" [style.bottom.px]="cell().bottom" [style.left.px]="cell().left">
   <p class="menu__title">{{ cell().projectName }} · {{ cell().activityTitle }}</p>
   @if (showHandBack()) {
     <button type="button" class="menu__item" role="menuitem" [disabled]="pending()" (click)="handBack()">

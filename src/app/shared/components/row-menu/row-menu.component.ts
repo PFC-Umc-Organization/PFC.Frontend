@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output, signal } from '@angular/core';
 
+const MENU_HEIGHT = 160;
+
 // Tipo
 export interface RowMenuItem {
   id: string;
@@ -25,7 +27,8 @@ export class RowMenuComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly open = signal(false);
-  readonly top = signal(0);
+  readonly top = signal<number | null>(0);
+  readonly bottom = signal<number | null>(null);
   readonly left = signal(0);
 
   // Alternância
@@ -35,7 +38,9 @@ export class RowMenuComponent {
       return;
     }
     const rect = this.host.nativeElement.querySelector('button')!.getBoundingClientRect();
-    this.top.set(rect.bottom + 4);
+    const flip = rect.bottom + 4 + MENU_HEIGHT > window.innerHeight;
+    this.top.set(flip ? null : rect.bottom + 4);
+    this.bottom.set(flip ? window.innerHeight - rect.top + 4 : null);
     this.left.set(Math.max(8, rect.right - 208));
     this.open.set(true);
   }

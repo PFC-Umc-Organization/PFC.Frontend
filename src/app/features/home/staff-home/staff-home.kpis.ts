@@ -67,7 +67,7 @@ export interface Share {
 
 export interface Kpis {
   outcome: { known: boolean; total: number; approved: Share; failed: Share; ongoing: Share };
-  bands: { known: boolean; items: ({ band: PenaltyBand } & Share)[]; waived: number };
+  bands: { known: boolean; items: ({ band: PenaltyBand } & Share)[]; waived: number; activeTotal: number };
   efficiency: {
     due: number;
     completedRate: number | null;
@@ -106,7 +106,12 @@ export function kpisOf(grid: StatusGrid, facts: RowFacts[], now = new Date()): K
 
   return {
     outcome: { known, total, approved: share(count('approved'), total), failed: share(count('failed'), total), ongoing: share(count('ongoing'), total) },
-    bands: { known, items: bands, waived: facts.reduce((sum, f) => sum + (f.waived ?? 0), 0) },
+    bands: {
+      known,
+      items: bands,
+      waived: facts.reduce((sum, f) => sum + (f.waived ?? 0), 0),
+      activeTotal: facts.reduce((sum, f) => sum + (f.active ?? 0), 0),
+    },
     efficiency: {
       due: dueCells.length,
       completedRate: dueCells.length ? (completed / dueCells.length) * 100 : null,

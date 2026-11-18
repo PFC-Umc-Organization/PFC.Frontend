@@ -6,6 +6,7 @@
     }
     <div class="actions"><ng-content select="[actions]" /></div>
   </div>
+  <ng-content select="[filters]" />
 
   @if (loading()) {
     <p class="empty" role="status">Carregando projetos…</p>

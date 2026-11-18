@@ -107,6 +107,9 @@ button.indicator:focus-visible {
   display: grid;
   gap: 1rem;
   grid-template-columns: 1fr;
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
 }
 
 /* Search, advisor and filter share one row; the advisor one only exists for the coordination. */

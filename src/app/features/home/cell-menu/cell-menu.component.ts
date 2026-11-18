@@ -14,7 +14,8 @@ export interface CellMenuRef extends CellRef {
   activityTitle: string;
   deadlinePassed: boolean;
   penaltyId?: string;
-  top: number;
+  top: number | null;
+  bottom: number | null;
   left: number;
 }
 

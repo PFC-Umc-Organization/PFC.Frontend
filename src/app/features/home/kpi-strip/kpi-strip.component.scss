@@ -114,60 +114,98 @@
   background: var(--destructive);
 }
 
-.bands {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.5rem;
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.75rem;
+  padding: 0 0.5rem 0 1rem;
+  border: 1px solid var(--border);
+  background: #fff;
+}
+
+.bar__label {
+  flex: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.bar__summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.bar__toggle {
+  flex: none;
+}
+
+.bar__filter {
+  flex: none;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.band {
-  display: grid;
-  gap: 0.125rem;
-  width: 100%;
-  padding: 0.5rem 0.5rem 0.625rem;
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
   border: 1px solid var(--border);
-  background: var(--card);
-  text-align: left;
+  border-radius: var(--radius-pill);
+  background: transparent;
   font: inherit;
+  font-size: 0.8125rem;
   color: var(--foreground);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
-.band:hover,
-.band--active {
-  background: color-mix(in oklch, var(--bronze) 10%, var(--card));
+.chip:hover {
+  background: color-mix(in oklch, var(--bronze) 8%, transparent);
 }
 
-.band--active {
-  box-shadow: inset 0 -2px 0 var(--bronze);
-}
-
-.band:focus-visible {
+.chip:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
-.band__value {
-  font-size: 1.25rem;
+.chip--active,
+.chip--active:hover {
+  border-color: var(--primary);
+  background: color-mix(in oklch, var(--primary) 10%, transparent);
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--bronze);
+  color: var(--primary);
 }
 
-.band--bad .band__value {
+.chip__label {
+  color: inherit;
+}
+
+.chip__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip--bad .chip__value {
   color: var(--destructive);
 }
 
-.band__label {
+.chip__pct {
   font-size: 0.75rem;
   color: var(--muted-foreground);
-}
-
-.band__pct {
-  font-size: 0.75rem;
-  font-variant-numeric: tabular-nums;
 }

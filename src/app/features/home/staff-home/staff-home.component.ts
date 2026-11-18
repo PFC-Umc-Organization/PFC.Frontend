@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { from } from 'rxjs';
 
@@ -20,6 +21,8 @@ import { ALL_COHORTS, StaffHomeStore } from './staff-home.store';
 // Tipos
 export type { RowFilter } from './staff-home.grid';
 
+const MENU_HEIGHT = 220;
+
 type GroupRef = { projectId: string; projectName: string };
 
 // Componente
@@ -27,6 +30,7 @@ type GroupRef = { projectId: string; projectName: string };
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    NgTemplateOutlet,
     IconComponent,
     StatusGridComponent,
     ConsolidatedTableComponent,
@@ -201,7 +205,8 @@ export class StaffHomeComponent {
       activityTitle: activity?.titulo ?? '',
       deadlinePassed: !!activity && new Date(activity.prazo) < new Date(),
       penaltyId,
-      top: rect.bottom + 4,
+      top: rect.bottom + 4 + MENU_HEIGHT > window.innerHeight ? null : rect.bottom + 4,
+      bottom: rect.bottom + 4 + MENU_HEIGHT > window.innerHeight ? window.innerHeight - rect.top + 4 : null,
       left: Math.max(8, Math.min(rect.left, window.innerWidth - 328)),
     });
   }
