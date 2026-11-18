@@ -1,0 +1,28 @@
+<nav class="timeline" aria-label="Cronograma de atividades">
+  <h3 class="timeline__title">Cronograma de atividades</h3>
+  <div class="timeline__scroll" appScrollHint>
+    <ol class="timeline__list">
+      <li>
+        <button type="button" class="step step--all" [class.step--active]="selected() === null" [attr.aria-pressed]="selected() === null" (click)="choose.emit(null)">
+          Todas as atividades
+        </button>
+      </li>
+      @for (a of items(); track a.id) {
+        <li>
+          <button
+            type="button"
+            class="step"
+            [class.step--active]="selected() === a.id"
+            [attr.aria-pressed]="selected() === a.id"
+            [attr.title]="(a.deadline | date: 'dd/MM/yyyy') + ' · ' + a.title"
+            (click)="choose.emit(selected() === a.id ? null : a.id)"
+          >
+            <span class="step__date">{{ a.deadline | date: 'dd/MM' }}</span>
+            <span class="step__name">{{ a.title }}</span>
+            <span class="step__count">{{ a.delivered }}/{{ a.of }}</span>
+          </button>
+        </li>
+      }
+    </ol>
+  </div>
+</nav>

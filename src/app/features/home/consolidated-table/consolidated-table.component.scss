@@ -139,10 +139,38 @@ button.project:focus-visible {
 }
 
 .dot {
-  width: 0.5rem;
-  height: 0.5rem;
+  width: 0.625rem;
+  height: 0.625rem;
+  padding: 0;
   background: var(--muted);
   border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.dot:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.badge {
+  font-weight: 600;
+}
+
+.badge--done {
+  color: var(--success);
+}
+
+.badge--late,
+.badge--returned {
+  color: var(--destructive);
+}
+
+.badge--review {
+  color: var(--primary);
+}
+
+.badge--waived {
+  color: var(--bronze);
 }
 
 .dot--done {

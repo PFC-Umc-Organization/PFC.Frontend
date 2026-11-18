@@ -44,7 +44,7 @@ export function indicatorsOf(grid: StatusGrid, penalties: PenaltyMap, now = new 
 // Filtro
 export function visibleGridOf(
   grid: StatusGrid,
-  q: { search: string; advisorId: string; filter: RowFilter; penalties: PenaltyMap; band?: PenaltyBand | null; members?: MemberMap },
+  q: { search: string; advisorId: string; filter: RowFilter; penalties: PenaltyMap; band?: PenaltyBand | null; members?: MemberMap; activityId?: string | null },
 ): StatusGrid {
   const term = folded(q.search.trim());
   const matches = (row: ProjectStatusRow): boolean =>
@@ -60,17 +60,18 @@ export function visibleGridOf(
     if (q.band !== null && q.band !== undefined && q.penalties && bandOf(q.penalties.get(row.project.id)?.ativas ?? 0) !== q.band) {
       return false;
     }
+    const cells = q.activityId ? row.cells.filter((c) => c.activityId === q.activityId) : row.cells;
     switch (q.filter) {
       case 'failed':
         return !!q.penalties?.get(row.project.id)?.reprovado;
       case 'no-advisor':
         return !row.project.orientadorId;
       case 'late':
-        return hasLate(row);
+        return cells.some((c) => c.status === 'ATRASADO');
       case 'awaiting':
-        return awaitingValidation(row);
+        return cells.some((c) => isSubmitted(c.status) && !c.validation);
       case 'rejected':
-        return row.cells.some((c) => c.validation === 'NAO_VALIDADA');
+        return cells.some((c) => c.validation === 'NAO_VALIDADA');
     }
     return true;
   };
@@ -152,4 +153,26 @@ export function overviewOf(grid: StatusGrid, projectId: string, penalties: Penal
         ]
       : [];
   });
+}
+
+// ---------------------------------------------------------------------------
+// Cronograma
+// ---------------------------------------------------------------------------
+
+export interface TimelineItem {
+  id: string;
+  title: string;
+  deadline: string;
+  delivered: number;
+  of: number;
+}
+
+// Atividades
+export function timelineOf(grid: StatusGrid): TimelineItem[] {
+  return [...grid.activities]
+    .sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime())
+    .map((a) => {
+      const cells = grid.rows.flatMap((r) => r.cells.filter((c) => c.activityId === a.id));
+      return { id: a.id, title: a.titulo, deadline: a.prazo, delivered: cells.filter((c) => isSubmitted(c.status)).length, of: cells.length };
+    });
 }

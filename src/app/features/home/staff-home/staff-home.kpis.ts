@@ -14,6 +14,7 @@ export interface RowFacts {
   name: string;
   advisorId?: string;
   states: CellState[];
+  cells: { activityId: string; state: CellState }[];
   delivered: number;
   total: number;
   active?: number;
@@ -42,6 +43,7 @@ export function factsOf(grid: StatusGrid, penalties: PenaltyMap): RowFacts[] {
     const waived = waivedActivities(p);
     const states = cellStates(row.cells.map((c) => ({ ...c, waived: waived.has(c.activityId) }))).map((c) => c.state);
     return {
+      cells: row.cells.map((c, i) => ({ activityId: c.activityId, state: states[i] })),
       projectId: row.project.id,
       name: row.project.nome,
       advisorId: row.project.orientadorId,
@@ -133,6 +135,7 @@ export interface ConsolidatedRow {
   members: string[];
   memberList: { rgm: string; nome: string }[];
   states: CellState[];
+  cells: { activityId: string; state: CellState }[];
   cohort: string;
   advisor: string;
   delivered: number;
@@ -156,6 +159,7 @@ export function consolidatedRowsOf(facts: RowFacts[], ctx: RowContext): Consolid
     members: (ctx.members.get(f.projectId) ?? []).map((m) => m.nome),
     memberList: ctx.members.get(f.projectId) ?? [],
     states: f.states,
+    cells: f.cells,
     cohort: ctx.cohortOf(f.projectId),
     advisor: ctx.advisorOf(f.advisorId),
     delivered: f.delivered,

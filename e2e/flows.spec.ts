@@ -486,6 +486,33 @@ test.describe('session and quick menu', () => {
     await expect(overview.locator('.reveal--flash, .reveal').first()).toBeInViewport();
   });
 
+  test('the schedule strip shows each date and filters the table by one activity', async ({ page }) => {
+    await signIn(page, ADMIN);
+    const strip = page.getByRole('navigation', { name: 'Cronograma de atividades' });
+    await expect(strip.getByRole('button', { name: 'Todas as atividades' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(strip.getByRole('button', { name: /10\/10 Monografia 1\/2/ })).toBeVisible();
+    await expect(strip.getByRole('button', { name: /19\/11 1º CRUD 0\/2/ })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Entregas' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Athena, 10\/10 · Monografia · Em validação/ })).toHaveAttribute('title', /Monografia/);
+
+    await strip.getByRole('button', { name: /10\/10 Monografia 1\/2/ }).click();
+    await expect(page.getByRole('columnheader', { name: 'Situação na atividade' })).toBeVisible();
+    await expect(page.getByRole('row', { name: /Athena/ })).toContainText('Em validação');
+    await expect(page.getByRole('row', { name: /Web-Cursos/ })).toContainText('Atrasado');
+
+    await page.locator('#project-filter').selectOption('awaiting');
+    await expect(page.getByRole('rowheader', { name: /Athena/ })).toBeVisible();
+    await expect(page.getByRole('rowheader', { name: /Web-Cursos/ })).toHaveCount(0);
+
+    // Opening a project lands on that activity's detail.
+    await page.getByRole('row', { name: /Athena/ }).getByRole('cell').first().click();
+    await expect(page.locator('app-submission-detail')).toBeVisible();
+    await expect(page.locator('app-submission-detail')).toBeInViewport();
+
+    await strip.getByRole('button', { name: 'Todas as atividades' }).click();
+    await expect(page.getByRole('columnheader', { name: 'Entregas' })).toBeVisible();
+  });
+
   test('the penalty meter opens the overview straight at the penalties section', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.getByRole('button', { name: /^Athena, penalidades:/ }).click();

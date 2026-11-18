@@ -11,10 +11,11 @@ import { ConsolidatedTableComponent } from '../consolidated-table/consolidated-t
 import { KpiStripComponent } from '../kpi-strip/kpi-strip.component';
 import { ProjectOverviewComponent } from '../project-overview/project-overview.component';
 import { ProjectPanelComponent } from '../project-panel/project-panel.component';
+import { ActivityTimelineComponent } from '../activity-timeline/activity-timeline.component';
 import { CellRef } from '../status-grid/status-grid.component';
 import { SubmissionDetailComponent } from '../submission-detail/submission-detail.component';
 import { ExportData, exportExcel, exportPdf } from './staff-home.export';
-import { PenaltyBand, RowFilter, cellDetailOf, indicatorsOf, overviewOf, visibleGridOf } from './staff-home.grid';
+import { PenaltyBand, RowFilter, cellDetailOf, indicatorsOf, overviewOf, timelineOf, visibleGridOf } from './staff-home.grid';
 import { consolidatedRowsOf, factsOf, kpisOf } from './staff-home.kpis';
 import { ALL_COHORTS, StaffHomeStore } from './staff-home.store';
 
@@ -29,6 +30,7 @@ export type { RowFilter } from './staff-home.grid';
     NgTemplateOutlet,
     IconComponent,
     ConsolidatedTableComponent,
+    ActivityTimelineComponent,
     KpiStripComponent,
     SubmissionDetailComponent,
     ProjectOverviewComponent,
@@ -58,6 +60,22 @@ export class StaffHomeComponent {
   readonly band = linkedSignal<string, PenaltyBand | null>({ source: this.store.selectedValue, computation: () => null });
   readonly kpisOpen = signal(false);
 
+  // ---------------------------------------------------------------------------
+  // Cronograma
+  // ---------------------------------------------------------------------------
+
+  private readonly chosenActivity = signal<string | null>(null);
+  readonly timeline = computed(() => timelineOf(this.store.grid()));
+  readonly activityFilter = computed(() => {
+    const id = this.chosenActivity();
+    return id && this.store.grid().activities.some((a) => a.id === id) ? id : null;
+  });
+
+  // Escolha
+  chooseActivity(id: string | null): void {
+    this.chosenActivity.set(id);
+  }
+
   // Fechamento
   openClosing(): void {
     this.store.wantClosing();
@@ -82,6 +100,7 @@ export class StaffHomeComponent {
       penalties: this.store.penalties(),
       band: this.band(),
       members: this.store.membersByProject(),
+      activityId: this.activityFilter(),
     }),
   );
 
@@ -180,8 +199,9 @@ export class StaffHomeComponent {
   });
 
   // Abertura de projeto
-  openProject({ projectId, section }: { projectId: string; section?: 'penalties' }): void {
-    this.selected.set(null);
+  openProject({ projectId, projectName, section, activityId }: { projectId: string; projectName?: string; section?: 'penalties'; activityId?: string }): void {
+    this.selected.set(activityId ? { projectId, projectName: projectName ?? this.store.projectById().get(projectId)?.nome ?? '', activityId } : null);
+    this.cellReveal.update((n) => n + 1);
     this.selectedProject.set(projectId);
     this.penaltyFocus.set(section === 'penalties' ? this.projectReveal() + 1 : null);
     this.projectReveal.update((n) => n + 1);

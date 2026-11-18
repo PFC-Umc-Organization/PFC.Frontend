@@ -6,6 +6,7 @@
     }
     <div class="actions"><ng-content select="[actions]" /></div>
   </div>
+  <ng-content select="[timeline]" />
   <ng-content select="[filters]" />
 
   @if (loading()) {
@@ -20,7 +21,7 @@
             <th scope="col">Projeto</th>
             <th scope="col">Turma</th>
             <th scope="col">Orientador</th>
-            <th scope="col">Entregas</th>
+            <th scope="col">{{ activityId() ? 'Situação na atividade' : 'Entregas' }}</th>
             <th scope="col">Penalidades</th>
             <th scope="col">Status</th>
           </tr>
@@ -62,12 +63,26 @@
                 }
               </td>
               <td class="num">
-                <span class="delivered">{{ r.delivered }}/{{ r.total }}</span>
-                <span class="trail" role="img" [attr.aria-label]="r.delivered + ' de ' + r.total + ' entregas feitas'">
-                  @for (s of r.states; track $index) {
-                    <span class="dot dot--{{ s }}" [attr.title]="cellLabel[s]"></span>
+                @if (activityId(); as id) {
+                  @if (stateOf(r, id); as st) {
+                    <span class="badge badge--{{ st }}">{{ cellLabel[st] }}</span>
+                  } @else {
+                    <span class="muted">Não se aplica</span>
                   }
-                </span>
+                } @else {
+                  <span class="delivered">{{ r.delivered }}/{{ r.total }}</span>
+                  <span class="trail">
+                    @for (c of r.cells; track c.activityId) {
+                      <button
+                        type="button"
+                        class="dot dot--{{ c.state }}"
+                        [attr.title]="tip(c.activityId, c.state)"
+                        [attr.aria-label]="r.name + ', ' + tip(c.activityId, c.state)"
+                        (click)="openSegment($event, r, c.activityId)"
+                      ></button>
+                    }
+                  </span>
+                }
               </td>
               <td>
                 @if (r.active === undefined) {

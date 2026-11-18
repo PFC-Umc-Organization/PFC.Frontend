@@ -1,5 +1,5 @@
 import { StatusGrid } from '../../../core/services/submission.service';
-import { activityDetailOf, indicatorsOf, overviewOf, visibleGridOf } from './staff-home.grid';
+import { activityDetailOf, indicatorsOf, overviewOf, timelineOf, visibleGridOf } from './staff-home.grid';
 
 const grid = {
   activities: [
@@ -52,5 +52,16 @@ describe('staff home grid', () => {
       ['Final', 'waiting', null],
     ]);
     expect(overviewOf(grid, 'nope', undefined)).toEqual([]);
+  });
+
+  it('lists the activities by date with how many groups delivered each', () => {
+    expect(timelineOf(grid).map((t) => [t.id, t.delivered, t.of])).toEqual([['a1', 1, 2], ['a2', 1, 2]]);
+  });
+
+  it('filters by status within one activity', () => {
+    const q = { search: '', advisorId: '', penalties: undefined, activityId: 'a2' };
+    expect(visibleGridOf(grid, { ...q, filter: 'late' }).rows).toHaveLength(0);
+    expect(visibleGridOf(grid, { ...q, filter: 'awaiting' }).rows.map((r) => r.project.id)).toEqual(['p1']);
+    expect(visibleGridOf(grid, { ...q, filter: 'late', activityId: 'a1' }).rows.map((r) => r.project.id)).toEqual(['p2']);
   });
 });

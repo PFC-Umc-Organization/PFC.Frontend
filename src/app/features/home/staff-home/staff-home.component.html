@@ -144,8 +144,15 @@
   [loading]="store.loading()"
   [emptyText]="emptyText()"
   [selectedProject]="selectedProject()"
+  [activities]="store.grid().activities"
+  [activityId]="activityFilter()"
   (openProject)="openProject($event)"
 >
+  <div timeline>
+    @if (timeline().length) {
+      <app-activity-timeline [items]="timeline()" [selected]="activityFilter()" (choose)="chooseActivity($event)" />
+    }
+  </div>
   <div filters><ng-container *ngTemplateOutlet="filterBar" /></div>
   <div actions class="export">
     <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('xlsx')">
@@ -161,7 +168,7 @@
 
 @if (overview(); as o) {
   <app-project-overview
-    [appReveal]="penaltyFocus() ? null : projectReveal()"
+    [appReveal]="penaltyFocus() || selected() ? null : projectReveal()"
     [name]="o.name"
     [cohort]="o.cohort"
     [advisor]="o.advisor"
