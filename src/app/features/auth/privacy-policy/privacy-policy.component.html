@@ -1,134 +1,138 @@
 <div class="overlay" (click)="closed.emit()">
-  <div class="box" (click)="$event.stopPropagation()">
+  <div class="box" role="dialog" aria-modal="true" aria-labelledby="policy-title" (click)="$event.stopPropagation()">
     <header class="box__head">
-      <h2>Política de privacidade e termos de uso</h2>
-      <p>Rafa Manager, o Portal do PFC · Versão 3.0 (outubro de 2026) · UMC</p>
+      <div>
+        <h2 id="policy-title">Política de privacidade e termos de uso</h2>
+        <p>Rafa Manager, o Portal do PFC · Versão 4.0 · Última atualização: novembro de 2026 · UMC</p>
+      </div>
+      <button type="button" class="box__close" aria-label="Fechar a política de privacidade" (click)="closed.emit()">×</button>
     </header>
-    
+
     <div class="box__body">
-      <h3>1. Identificação do controlador e do sistema</h3>
-      <p>
-        O <strong>Rafa Manager</strong> é uma plataforma acadêmica para acompanhamento de cronogramas e gestão de entregas de Projetos de Final de Curso dos cursos de Bacharelado em Sistemas de Informação e Engenharia de Software da Universidade de Mogi das Cruzes (UMC). Ele foi desenvolvido como Projeto de Final de Curso.
-      </p>
-      <p>
-        Nesta fase, os dados pessoais são tratados pelos autores do projeto, integrantes do grupo de PFC que desenvolveu o sistema, sob a supervisão do professor orientador, que atuam como controladores. Em uma implantação institucional, a UMC deverá ser formalmente identificada como controladora.
+      <p class="lead">
+        Este documento explica como o Rafa Manager trata dados pessoais, em conformidade com a Lei Geral de Proteção de Dados Pessoais (LGPD, Lei nº 13.709/2018), e quais são as regras de uso da plataforma.
       </p>
 
-      <h4>1.1 Canal de contato e encarregado</h4>
+      <h3>1. Controlador e finalidade</h3>
       <p>
-        Dúvidas sobre o tratamento de dados pessoais e pedidos de exercício de direitos (art. 18 da LGPD) podem ser enviados ao canal do grupo responsável: <strong>pfc.srvlss@gmail.com</strong>.
+        O <strong>Rafa Manager</strong> é a plataforma de gestão do Projeto Final de Curso (PFC) da <strong>Universidade de Mogi das Cruzes (UMC)</strong>. A UMC é a controladora dos dados tratados, e a finalidade do tratamento é a gestão acadêmica do PFC: cadastro de turmas e grupos, acompanhamento de entregas e prazos, orientação, avaliação e comunicação com os alunos.
       </p>
       <p>
-        Não há, até o momento, encarregado (DPO) formalmente designado. O contato acima é atendido pelos autores do projeto. Em uma implantação institucional, a UMC deverá designar o encarregado.
+        A plataforma foi desenvolvida como Projeto de Final de Curso por um grupo de alunos, sob a supervisão do professor orientador, e é operada tecnicamente por esse grupo. Dúvidas sobre privacidade e pedidos dos titulares podem ser enviados a <strong>pfc.srvlss@gmail.com</strong>. A UMC designará o encarregado (DPO) e o canal institucional de privacidade quando a implantação for formalizada.
       </p>
 
-      <h3>2. Dados pessoais tratados e finalidades</h3>
-      <p>O sistema trata apenas os dados necessários ao fluxo acadêmico do PFC:</p>
+      <h3>2. Dados coletados</h3>
+      <h4>2.1 Dados cadastrais e acadêmicos</h4>
       <ul>
-        <li><strong>RGM:</strong> pré-autorização do aluno numa turma, liberação do cadastro e identificação do aluno como integrante de um grupo.</li>
-        <li><strong>Nome e e-mail institucional:</strong> criação da conta, entrada no sistema e identificação de quem enviou, editou, validou ou publicou algo.</li>
-        <li><strong>Senha:</strong> autenticação. É guardada apenas pelo Amazon Cognito, que não a armazena em texto puro; o sistema nunca a grava.</li>
-        <li><strong>Perfil e vínculos:</strong> perfil de acesso (aluno, orientador ou coordenação), turma, grupo de PFC, orientador do grupo e convites entre colegas.</li>
-        <li><strong>Entregas:</strong> respostas de texto, links e arquivos enviados pelo grupo (PDF, documentos do Office ou LibreOffice, imagens, ZIP ou texto, até 50 MB cada), com data e autor do envio e da última edição.</li>
-        <li><strong>Validação e feedback das entregas:</strong> a indicação do orientador de que a entrega foi validada ou não validada, o comentário escrito para o grupo, o nome de quem validou e a data.</li>
-        <li><strong>Penalidades:</strong> penalidades por prazo vencido ou aplicadas pela equipe, com o motivo informado, quem aplicou ou perdoou e quando.</li>
-        <li><strong>Referências bibliográficas:</strong> as obras que o grupo adiciona ao projeto e quem as adicionou.</li>
-        <li><strong>Materiais de apoio:</strong> links e arquivos publicados pela equipe acadêmica, com o nome de quem publicou.</li>
-        <li><strong>Registros de auditoria:</strong> as operações feitas no sistema (por exemplo, entrar, enviar uma entrega, aplicar uma penalidade), com identificador da conta, perfil, e-mail, endereço IP e data, para segurança e rastreabilidade.</li>
+        <li><strong>Nome, RGM e e-mail institucional:</strong> criação da conta, entrada no sistema e identificação de quem enviou, editou, validou ou publicou algo. O RGM também libera o cadastro do aluno numa turma.</li>
+        <li><strong>Curso, turma e turno:</strong> vínculo do aluno com a turma e com o programa de PFC.</li>
+        <li><strong>Perfil e vínculos:</strong> perfil de acesso (aluno, orientador ou coordenação), grupo de PFC, orientador do grupo e convites entre colegas.</li>
+        <li><strong>Senha:</strong> guardada apenas pelo Amazon Cognito, que não a armazena em texto puro. O sistema nunca a grava.</li>
       </ul>
-      <p>
-        Os tratamentos acima se baseiam na execução de contrato ou de procedimentos preliminares relacionados ao serviço educacional (art. 7º, V, da LGPD) e no exercício regular de direitos (art. 7º, VI, da LGPD). Os registros de auditoria são mantidos para a segurança das operações e a apuração de incidentes.
-      </p>
-      <p>
-        Os campos de texto livre (respostas, comentários e motivos) não devem conter dados de saúde nem outros dados pessoais sensíveis: o conteúdo fica visível para o grupo, para o orientador e para a coordenação.
-      </p>
-
-      <h3>3. Compartilhamento e infraestrutura</h3>
-      <p>
-        Os dados pessoais não são vendidos nem compartilhados para outras finalidades. O sistema funciona na Amazon Web Services (AWS), com estes serviços:
-      </p>
+      <h4>2.2 Dados do projeto e das entregas</h4>
       <ul>
-        <li><strong>Amazon CloudFront e Amazon S3:</strong> publicação da interface web e armazenamento privado dos arquivos enviados, acessados apenas por links assinados que expiram em poucos minutos.</li>
-        <li><strong>Amazon Cognito:</strong> contas, senhas, confirmação de e-mail e sessões.</li>
-        <li><strong>Amazon API Gateway e AWS Lambda:</strong> recebimento das requisições e execução das regras do sistema, com o perfil de acesso verificado em cada operação.</li>
-        <li><strong>Amazon DynamoDB:</strong> turmas, grupos, entregas, validações, penalidades, referências e materiais.</li>
-        <li><strong>Amazon CloudWatch:</strong> registros de funcionamento e de auditoria. Senhas e tokens de acesso não são gravados nesses registros.</li>
+        <li><strong>Entregas:</strong> respostas de texto, links de repositórios e documentos, e arquivos enviados pelo grupo (até 50 MB cada), com data e autor do envio e da última edição.</li>
+        <li><strong>Status, pareceres e feedback:</strong> a indicação do orientador de que a entrega foi validada ou não validada, o comentário escrito para o grupo, o nome de quem validou e a data.</li>
+        <li><strong>Penalidades e perdões:</strong> penalidades por prazo vencido ou aplicadas pela equipe, com motivo, quem aplicou ou perdoou e quando.</li>
+        <li><strong>Referências bibliográficas e materiais de apoio:</strong> as obras que o grupo adiciona ao projeto e o material publicado pela equipe, com o nome de quem os incluiu.</li>
       </ul>
+      <h4>2.3 Registros técnicos</h4>
       <p>
-        Na busca de referências bibliográficas, os serviços públicos <strong>OpenAlex</strong> e <strong>Crossref</strong> recebem apenas o termo pesquisado ou o DOI informado, sem nome, e-mail ou RGM de quem pesquisou.
+        Registros de funcionamento e de auditoria da plataforma, descritos na seção 4. Os campos de texto livre (respostas, comentários e motivos) não devem conter dados de saúde nem outros dados pessoais sensíveis: o conteúdo fica visível para o grupo, para o orientador e para a coordenação.
       </p>
 
-      <h4>3.1 Transferência internacional de dados</h4>
-      <p>
-        Os serviços da AWS usados pelo sistema estão na região <code>us-east-1</code> (Norte da Virgínia, Estados Unidos). Os dados pessoais são, portanto, armazenados e processados fora do Brasil, o que caracteriza transferência internacional nos termos do art. 33 da LGPD. A mudança para a região de São Paulo (<code>sa-east-1</code>) está planejada.
-      </p>
-
-      <h4>3.2 Cookies e armazenamento no navegador</h4>
-      <p>
-        O Rafa Manager não usa cookies de rastreamento, publicidade ou análise de comportamento. Para manter a sessão, o navegador guarda o token de acesso e os dados básicos da conta (nome, e-mail e perfil) no armazenamento local do próprio navegador, removidos ao sair da conta. As fontes são servidas pelo próprio site, sem chamadas a serviços de terceiros.
-      </p>
-
-      <h3>4. Retenção e descarte</h3>
+      <h3>3. Segurança, sessão e MFA</h3>
       <ul>
-        <li><strong>Dados cadastrais, entregas e arquivos:</strong> ficam guardados por até 1 (um) ano. O marco a partir do qual esse prazo é contado e a forma de exclusão ainda estão sendo definidos; enquanto isso, a exclusão é feita manualmente, mediante pedido pelo canal de contato.</li>
-        <li><strong>Registros de funcionamento e de auditoria:</strong> mantidos por 365 dias no Amazon CloudWatch e apagados automaticamente depois disso.</li>
-        <li><strong>Cópias de segurança:</strong> o banco de dados mantém recuperação dos últimos 35 dias, e versões substituídas ou apagadas de arquivos enviados são mantidas por até 30 dias antes de serem excluídas automaticamente.</li>
+        <li><strong>Autenticação:</strong> contas, senhas, confirmação de e-mail e sessões são gerenciadas pelo AWS Cognito.</li>
+        <li><strong>Criptografia:</strong> o tráfego é protegido por TLS (HTTPS), e os dados armazenados (banco de dados e arquivos) ficam criptografados em repouso na AWS.</li>
+        <li><strong>Autorização:</strong> o perfil de acesso é verificado no servidor em cada operação. O aluno acessa apenas o próprio grupo, e o orientador, apenas os grupos que orienta.</li>
+        <li><strong>Arquivos:</strong> ficam em armazenamento privado e são entregues por links assinados que expiram em poucos minutos.</li>
+        <li><strong>Sessão:</strong> para manter a sessão, o navegador guarda o token de acesso e os dados básicos da conta (nome, e-mail e perfil) no armazenamento local, removidos ao sair da conta. A sessão expira por segurança e exige nova entrada. Não há cookies de rastreamento, publicidade ou análise de comportamento.</li>
+        <li><strong>Autenticação multifator (MFA/TOTP):</strong> a plataforma oferece verificação em duas etapas por aplicativo autenticador. Ela é ativada pela coordenação nas contas de orientação e administrativas e, uma vez ativa, exige o código de 6 dígitos a cada entrada.</li>
       </ul>
 
-      <h3>5. Direitos dos titulares</h3>
+      <h3>4. Auditoria e rastreabilidade</h3>
       <p>
-        O titular pode pedir confirmação de tratamento, acesso, correção, eliminação e os demais direitos do art. 18 da LGPD pelo canal indicado no item 1.1. A correção do nome de uma conta também pode ser feita pela coordenação do curso. Os pedidos serão respondidos em até 15 (quinze) dias, contados da data do pedido.
+        A plataforma registra logs de auditoria das operações relevantes, como entrar, enviar uma entrega, validar, aplicar ou perdoar uma penalidade. Cada registro contém o identificador do usuário, o perfil, a data e a hora, a ação realizada e o endereço IP. Esses registros existem para a segurança da plataforma, a prevenção e a apuração de incidentes e a integridade dos registros acadêmicos. Senhas e tokens de acesso não são gravados.
       </p>
 
-      <h3>6. Segurança da informação e resposta a incidentes</h3>
-      <h4>6.1 Medidas de segurança</h4>
+      <h3>5. Bases legais (LGPD, art. 7º)</h3>
+      <ul>
+        <li><strong>Execução de contrato ou de procedimentos preliminares (inciso V):</strong> prestação do serviço educacional, ou seja, cadastro, entregas, orientação e avaliação do PFC.</li>
+        <li><strong>Cumprimento de obrigação legal ou regulatória (inciso II):</strong> manutenção dos registros acadêmicos exigidos pela legislação educacional.</li>
+        <li><strong>Legítimo interesse (inciso IX):</strong> segurança da plataforma, auditoria e prevenção de fraudes e de acessos indevidos, respeitados os direitos e as liberdades dos titulares.</li>
+      </ul>
+
+      <h3>6. Armazenamento, transferência internacional e retenção</h3>
+      <h4>6.1 Infraestrutura</h4>
+      <p>A plataforma usa serviços da Amazon Web Services (AWS), com padrões internacionais de segurança:</p>
+      <ul>
+        <li><strong>Amazon CloudFront e Amazon S3:</strong> publicação da interface web e armazenamento privado dos arquivos enviados.</li>
+        <li><strong>Amazon Cognito:</strong> contas, senhas e sessões.</li>
+        <li><strong>Amazon API Gateway e AWS Lambda:</strong> recebimento das requisições e execução das regras do sistema.</li>
+        <li><strong>Amazon DynamoDB:</strong> turmas, grupos, entregas, validações, penalidades, referências, materiais e avisos.</li>
+        <li><strong>Amazon CloudWatch:</strong> registros de funcionamento e de auditoria.</li>
+      </ul>
       <p>
-        Entre as medidas adotadas estão: senhas guardadas apenas pelo Amazon Cognito; tráfego por HTTPS; autorização por perfil verificada no servidor em cada operação (o aluno só acessa o próprio grupo e o orientador, apenas os grupos que orienta); arquivos em armazenamento privado, entregues por links assinados de curta duração; e registros de auditoria das operações.
+        Os dados pessoais não são vendidos nem compartilhados com terceiros para fins comerciais. Na busca de referências, os serviços públicos <strong>OpenAlex</strong> e <strong>Crossref</strong> recebem apenas o termo pesquisado ou o DOI informado, sem nome, e-mail ou RGM de quem pesquisou.
+      </p>
+      <h4>6.2 Transferência internacional</h4>
+      <p>
+        Os serviços ficam na região <code>us-east-1</code> (Norte da Virgínia, Estados Unidos). Os dados são, portanto, armazenados e processados fora do Brasil, o que caracteriza transferência internacional nos termos do art. 33 da LGPD. A mudança para a região de São Paulo (<code>sa-east-1</code>) está planejada.
+      </p>
+      <h4>6.3 Retenção e descarte</h4>
+      <ul>
+        <li><strong>Dados cadastrais, entregas e arquivos:</strong> mantidos conforme o calendário acadêmico e a legislação educacional aplicável. A regra operacional atual prevê a guarda por até 1 (um) ano; o marco de contagem e a rotina de exclusão ainda estão sendo definidos, e a exclusão é feita manualmente mediante pedido pelo canal de contato.</li>
+        <li><strong>Registros de funcionamento e de auditoria:</strong> mantidos por 365 dias e apagados automaticamente depois disso.</li>
+        <li><strong>Cópias de segurança:</strong> o banco de dados mantém recuperação dos últimos 35 dias, e versões substituídas ou apagadas de arquivos são mantidas por até 30 dias antes da exclusão automática.</li>
+      </ul>
+
+      <h3>7. Direitos dos titulares (LGPD, art. 18)</h3>
+      <p>
+        O titular pode pedir confirmação do tratamento, acesso, correção, anonimização, eliminação, portabilidade e os demais direitos do art. 18. Os pedidos podem ser feitos à coordenação do curso ou ao canal de privacidade informado na seção 1, e serão respondidos em até 15 (quinze) dias. A correção do nome de uma conta também pode ser feita pela coordenação.
       </p>
 
-      <h4>6.2 Resposta a incidentes</h4>
-      <p>Em caso de incidente de segurança envolvendo dados pessoais, o grupo responsável seguirá este fluxo:</p>
+      <h3>8. Resposta a incidentes</h3>
+      <p>Em caso de incidente de segurança envolvendo dados pessoais, o fluxo é este:</p>
       <ol>
-        <li>Detecção e confirmação do incidente a partir dos registros do Amazon CloudWatch ou de notificação recebida;</li>
+        <li>Detecção e confirmação a partir dos registros ou de notificação recebida;</li>
         <li>Contenção do problema e preservação das evidências;</li>
         <li>Identificação dos dados e dos titulares potencialmente afetados;</li>
         <li>Avaliação do risco aos titulares;</li>
-        <li>Comunicação, quando aplicável, à Autoridade Nacional de Proteção de Dados (ANPD) e aos titulares afetados, nos termos do art. 48 da LGPD;</li>
+        <li>Comunicação, quando aplicável, à Autoridade Nacional de Proteção de Dados (ANPD) e aos titulares, nos termos do art. 48 da LGPD;</li>
         <li>Correção da causa e registro das medidas adotadas.</li>
       </ol>
 
-      <h4>6.3 Versionamento da política</h4>
+      <h3>9. Termos de uso da plataforma</h3>
+      <h4>9.1 Acesso, login e segundo fator</h4>
       <p>
-        Esta política é identificada pelo número de versão e pela data indicados no cabeçalho. Alterações relevantes serão comunicadas pela própria plataforma.
+        O uso é destinado a alunos, orientadores e à coordenação, com vínculo institucional válido. O aluno só se cadastra com RGM pré-autorizado. Cada pessoa é responsável por manter a confidencialidade do seu login e do seu segundo fator (MFA), por não compartilhá-los e por comunicar de imediato qualquer suspeita de uso indevido da conta.
       </p>
-
-      <h3>7. Termos de uso e condutas proibidas</h3>
-      <p>É proibido:</p>
+      <h4>9.2 Links e conteúdo enviado</h4>
+      <ul>
+        <li>Os links enviados devem ser válidos, completos e abrir o conteúdo indicado. Encurtadores de endereço (como bit.ly e tinyurl.com) não são permitidos.</li>
+        <li>Campos de repositório e de vídeo exigem links dos serviços indicados em cada atividade.</li>
+        <li>É vedado enviar conteúdo que viole a integridade acadêmica, como plágio ou autoria de terceiros, ou direitos autorais, e arquivos maliciosos ou corrompidos.</li>
+        <li>Os trabalhos mantêm a autoria dos respectivos alunos, conforme a legislação de direitos autorais e o regulamento da instituição.</li>
+      </ul>
+      <h4>9.3 Prazos e penalidades</h4>
+      <p>
+        O usuário declara ciência de que as atividades têm prazo, de que a atividade vencida sem entrega gera penalidade ao grupo, e de que o grupo que atinge o limite de penalidades ativas fica impedido de enviar entregas, até que a equipe acadêmica perdoe penalidades. Penalidades e perdões ficam registrados com motivo, autor e data.
+      </p>
+      <h4>9.4 Condutas proibidas</h4>
       <ul>
         <li>Usar RGM ou e-mail de outra pessoa no cadastro;</li>
-        <li>Tentar acessar funcionalidades ou dados fora do perfil atribuído (aluno, orientador ou coordenação);</li>
-        <li>Enviar arquivos maliciosos ou corrompidos;</li>
-        <li>Tentar alterar as datas registradas de envio das entregas.</li>
+        <li>Tentar acessar funcionalidades ou dados fora do perfil atribuído;</li>
+        <li>Tentar burlar o segundo fator, os prazos ou as datas registradas de envio das entregas.</li>
       </ul>
-
-      <h4>7.1 Propriedade intelectual</h4>
+      <h4>9.5 Disponibilidade e desativação</h4>
       <p>
-        Os trabalhos acadêmicos enviados pela plataforma têm a autoria preservada em favor dos respectivos alunos, conforme a legislação de direitos autorais e o regulamento da instituição.
+        O Rafa Manager é uma ferramenta de apoio acadêmico desenvolvida como Projeto de Final de Curso, sem garantia de disponibilidade contínua; não deixe entregas para os últimos minutos do prazo. A coordenação pode desativar uma conta ao fim do vínculo com a instituição ou em caso de violação destes termos, e os dados seguem o disposto na seção 6.3.
       </p>
 
-      <h4>7.2 Disponibilidade</h4>
+      <h3>10. Versionamento</h3>
       <p>
-        O Rafa Manager é uma ferramenta de apoio acadêmica desenvolvida como Projeto de Final de Curso, sem garantia de disponibilidade contínua. Recomenda-se não deixar entregas para os últimos minutos do prazo.
-      </p>
-
-      <h4>7.3 Requisitos de acesso</h4>
-      <p>
-        O uso é destinado a alunos, orientadores e à coordenação dos cursos atendidos, com vínculo institucional válido. Alunos só se cadastram com RGM pré-autorizado pela coordenação; contas de orientador e da coordenação são criadas pela coordenação.
-      </p>
-
-      <h4>7.4 Desativação de conta</h4>
-      <p>
-        A coordenação do curso pode desativar uma conta, por exemplo ao fim do vínculo com a instituição ou em caso de violação destes termos. A conta desativada deixa de entrar no sistema; os dados seguem o disposto na seção 4.
+        Esta política é identificada pela versão e pela data do cabeçalho. Alterações relevantes serão comunicadas pela própria plataforma.
       </p>
 
       <p class="note">
@@ -137,9 +141,7 @@
     </div>
 
     <footer class="box__foot">
-      <button type="button" class="btn btn--primary btn--sm" (click)="closed.emit()">
-        Entendi
-      </button>
+      <button type="button" class="btn btn--primary btn--sm" (click)="closed.emit()">Voltar</button>
     </footer>
   </div>
 </div>

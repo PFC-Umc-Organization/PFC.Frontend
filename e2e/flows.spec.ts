@@ -458,6 +458,18 @@ test.describe('session and quick menu', () => {
   });
 });
 
+test.describe('privacy policy', () => {
+  test('opens from the footer with the current version and closes with Voltar', async ({ page }) => {
+    await signIn(page, STUDENT_WITH_GROUP);
+    await page.getByRole('button', { name: 'Política de Privacidade e Termos de Uso' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Política de privacidade e termos de uso' });
+    await expect(dialog).toContainText('novembro de 2026');
+    await expect(dialog.getByRole('heading', { name: '3. Segurança, sessão e MFA' })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Voltar' }).click();
+    await expect(dialog).toBeHidden();
+  });
+});
+
 test.describe('closing modal', () => {
   test('opens from the action bar, filters inside without new calls, applies a band and closes', async ({ page, api }) => {
     await signIn(page, ADMIN);
