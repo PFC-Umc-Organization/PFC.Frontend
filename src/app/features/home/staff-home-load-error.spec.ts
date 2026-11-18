@@ -4,6 +4,7 @@ import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 
 import { Cohort } from '../../core/models';
+import { ActivityService } from '../../core/services/activity.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CohortService } from '../../core/services/cohort.service';
 import { PenaltyService } from '../../core/services/penalty.service';
@@ -29,7 +30,8 @@ function configure(cohorts: () => Observable<Cohort[]>, programs: () => Observab
       { provide: ProjectService, useValue: { list: () => of([]) } },
       { provide: UserService, useValue: { list: () => of([]) } },
       { provide: PenaltyService, useValue: { ofProgram: () => of([]) } },
-      { provide: SubmissionService, useValue: { statusGrid: () => of({ activities: [], rows: [], submissions: [] }) } },
+      { provide: SubmissionService, useValue: { ofProgram: () => of([]) } },
+      { provide: ActivityService, useValue: { list: () => of([]) } },
     ],
   });
 }

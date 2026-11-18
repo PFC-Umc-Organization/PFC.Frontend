@@ -4,6 +4,7 @@ import { ActivatedRoute, provideRouter } from '@angular/router';
 import { Observable, delay, of } from 'rxjs';
 
 import { Cohort } from '../../core/models';
+import { ActivityService } from '../../core/services/activity.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CohortService } from '../../core/services/cohort.service';
 import { PenaltyService } from '../../core/services/penalty.service';
@@ -29,13 +30,11 @@ function configure(role: 'ADMIN' | 'ORIENTADOR') {
       { provide: AuthService, useValue: { role: signal(role), user: signal({ id: 'u1', perfil: role, nome: 'Ana' }) } },
       { provide: CohortService, useValue: { list: () => later(cohorts) } },
       { provide: ProgramService, useValue: { list: () => later(programs, 20) } },
-      { provide: ProjectService, useValue: { list: (programId?: string) => later(programId ? [] : []) } },
+      { provide: ProjectService, useValue: { list: (programId?: string) => later(programId ? [{ id: `pr-${programId}`, nome: `Projeto ${programId}`, descricao: '', programaId: programId, integrantes: [], orientadorId: 'u1' }] : []) } },
       { provide: UserService, useValue: { list: () => later([]) } },
       { provide: PenaltyService, useValue: { ofProgram: () => later([]) } },
-      {
-        provide: SubmissionService,
-        useValue: { statusGrid: (id: string) => later({ activities: [], rows: [{ project: { id: `pr-${id}`, nome: `Projeto ${id}`, orientadorId: 'u1' }, cells: [] }], submissions: [] }) },
-      },
+      { provide: SubmissionService, useValue: { ofProgram: () => later([]) } },
+      { provide: ActivityService, useValue: { list: () => later([]) } },
     ],
   });
 }

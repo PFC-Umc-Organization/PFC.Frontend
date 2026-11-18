@@ -6,9 +6,7 @@ import { environment } from '../../../environments/environment';
 import { Activity, Answers, ProjectStatusRow, Submission, TimelineItem, UploadEvent, ValidationInput } from '../models';
 import { ActivityService } from './activity.service';
 import { toApiError } from './http-error';
-import { ProgramService } from './program.service';
-import { ProjectService } from './project.service';
-import { buildStatusGrid, submissionStatus, submittedFileName } from './submission-status';
+import { submissionStatus, submittedFileName } from './submission-status';
 import { UploadTicket, uploadToBucket } from './upload';
 
 // Tipo
@@ -26,8 +24,8 @@ export abstract class SubmissionService {
 
   // Cronograma
   abstract projectTimeline(projectId: string, projectName?: string): Observable<TimelineItem[]>;
-  // Quadro de status
-  abstract statusGrid(programId: string): Observable<StatusGrid>;
+  // Por programa
+  abstract ofProgram(programId: string): Observable<Submission[]>;
   // Por projeto
   abstract ofProject(projectId: string): Observable<Submission[]>;
 
@@ -63,8 +61,6 @@ export abstract class SubmissionService {
 export class SubmissionHttpService extends SubmissionService {
   private readonly http = inject(HttpClient);
   private readonly activities = inject(ActivityService);
-  private readonly projects = inject(ProjectService);
-  private readonly programs = inject(ProgramService);
   private readonly reload$ = new BehaviorSubject<void>(undefined);
   private readonly base = `${environment.apiBaseUrl}/projetos`;
 
@@ -101,24 +97,12 @@ export class SubmissionHttpService extends SubmissionService {
     );
   }
 
-  // Consulta
-  override statusGrid(programId: string): Observable<StatusGrid> {
-    const submissions$ = this.reload$.pipe(
+  // Por programa
+  override ofProgram(programId: string): Observable<Submission[]> {
+    return this.reload$.pipe(
       switchMap(() =>
-        this.http
-          .get<Submission[]>(`${environment.apiBaseUrl}/programas/${programId}/entregas`)
-          .pipe(catchError(toApiError)),
+        this.http.get<Submission[]>(`${environment.apiBaseUrl}/programas/${programId}/entregas`).pipe(catchError(toApiError)),
       ),
-    );
-    return combineLatest([this.projects.list(programId), this.activities.list(), submissions$, this.programs.list()]).pipe(
-      map(([projects, activities, submissions, programs]) => {
-        const cohortId = programs.find((p) => p.id === programId)?.cursoId;
-        return buildStatusGrid(
-          activities.filter((a) => !a.turmaId || a.turmaId === cohortId),
-          projects,
-          submissions,
-        );
-      }),
     );
   }
 
