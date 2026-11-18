@@ -139,6 +139,9 @@
               } @else {
                 <span class="status-text status-text--ok">Ativa</span>
               }
+              @if (u.status === 'ATIVO') {
+                <span class="muted mfa-status">{{ u.mfaAtivo ? 'MFA ativo' : 'MFA inativo' }}</span>
+              }
             </td>
             <td class="row-actions">
               @if (renamingId() !== u.id) {
@@ -154,6 +157,11 @@
                   @if (u.perfil !== 'ALUNO' && u.status === 'ATIVO' && u.aguardandoPrimeiroAcesso) {
                     <button type="button" class="text-action" [disabled]="busy()" (click)="resendInvitation(u)" [attr.aria-label]="'Reenviar convite para ' + u.email">
                       Reenviar convite
+                    </button>
+                  }
+                  @if (u.status === 'ATIVO') {
+                    <button type="button" class="text-action" [disabled]="busy()" (click)="toggleMfa(u)" [attr.aria-label]="(u.mfaAtivo ? 'Desativar MFA de ' : 'Ativar MFA de ') + u.email">
+                      {{ u.mfaAtivo ? 'Desativar MFA' : 'Ativar MFA' }}
                     </button>
                   }
                   @if (u.id !== myId()) {

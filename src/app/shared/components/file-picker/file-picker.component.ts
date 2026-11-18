@@ -14,9 +14,11 @@ export class FilePickerComponent {
   readonly fileName = input<string | null | undefined>(null);
   readonly progress = input<number | null | undefined>(null);
   readonly error = input('');
+  readonly extensions = input<readonly string[]>(FILE_EXTENSIONS);
+  readonly hint = input('PDF, Office/LibreOffice, imagem, ZIP ou texto, até 50 MB.');
   readonly picked = output<File>();
 
-  protected readonly accept = FILE_EXTENSIONS.join(',');
+  protected readonly accept = computed(() => this.extensions().join(','));
   protected readonly problem = signal('');
   readonly busy = computed(() => this.progress() != null);
 
@@ -28,7 +30,7 @@ export class FilePickerComponent {
     if (!file) {
       return;
     }
-    this.problem.set(fileProblem(file));
+    this.problem.set(fileProblem(file, this.extensions()));
     if (!this.problem()) {
       this.picked.emit(file);
     }

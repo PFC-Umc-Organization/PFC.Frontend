@@ -7,6 +7,8 @@ import {
   AuthResult,
   Credentials,
   LoginResult,
+  MfaKind,
+  MfaSetup,
   MessageResponse,
   NewAccount,
   NewUser,
@@ -19,7 +21,7 @@ import { toApiError } from './http-error';
 export interface UserFilter {
   search?: string;
   role?: Role | 'TODOS';
-  /** Students of this cohort; staff accounts belong to none. */
+  // Turma
   cohortId?: string;
 }
 
@@ -50,6 +52,10 @@ export abstract class UserService {
   abstract login(credentials: Credentials): Observable<LoginResult>;
   // Troca de senha
   abstract setNewPassword(email: string, session: string, password: string): Observable<AuthResult>;
+  // MFA
+  abstract startMfaSetup(email: string, session: string): Observable<MfaSetup>;
+  // Verificação
+  abstract verifyMfa(email: string, session: string, kind: MfaKind, code: string): Observable<AuthResult>;
   // Recuperação
   abstract forgotPassword(email: string): Observable<MessageResponse>;
   // Redefinição
@@ -71,14 +77,12 @@ export abstract class UserService {
   abstract enable(userId: string): Observable<MessageResponse>;
   // Reenvio
   abstract resendInvitation(userId: string): Observable<MessageResponse>;
+  // Alternância
+  abstract toggleMfa(id: string, ativo: boolean): Observable<MessageResponse>;
 }
 
-<<<<<<< HEAD
 // Filtro
-function applyFilter(users: User[], { search, role }: UserFilter): User[] {
-=======
 function applyFilter(users: User[], { search, role, cohortId }: UserFilter): User[] {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   const term = (search ?? '').trim().toLowerCase();
   return users.filter((u) => {
     const roleMatches = !role || role === 'TODOS' || u.perfil === role;
@@ -126,6 +130,18 @@ export class UserHttpService extends UserService {
   override setNewPassword(email: string, session: string, password: string): Observable<AuthResult> {
     return this.http
       .post<AuthResult>(`${this.base}/auth/nova-senha`, { email, sessao: session, senha: password })
+      .pipe(catchError(toApiError));
+  }
+
+  // MFA
+  override startMfaSetup(email: string, session: string): Observable<MfaSetup> {
+    return this.http.post<MfaSetup>(`${this.base}/auth/mfa/configurar`, { email, sessao: session }).pipe(catchError(toApiError));
+  }
+
+  // Verificação
+  override verifyMfa(email: string, session: string, kind: MfaKind, code: string): Observable<AuthResult> {
+    return this.http
+      .post<AuthResult>(`${this.base}/auth/mfa/verificar`, { email, sessao: session, desafio: kind, codigo: code })
       .pipe(catchError(toApiError));
   }
 
@@ -191,6 +207,11 @@ export class UserHttpService extends UserService {
   // Reenvio
   override resendInvitation(userId: string): Observable<MessageResponse> {
     return this.change(this.http.post<MessageResponse>(`${this.accounts(userId)}/convite`, {}));
+  }
+
+  // Alternância
+  override toggleMfa(id: string, ativo: boolean): Observable<MessageResponse> {
+    return this.change(this.http.put<MessageResponse>(`${this.accounts(id)}/mfa`, { ativo }));
   }
 
   // Contas

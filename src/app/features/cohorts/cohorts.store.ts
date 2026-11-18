@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { catchError, map, of, switchMap } from 'rxjs';
 
 import { Cohort, Course, Program, Project } from '../../core/models';
 import { CohortService } from '../../core/services/cohort.service';
@@ -160,13 +161,27 @@ export class CohortsStore {
     onError: this.failCourse,
     concurrency: 'merge',
   });
-  private readonly createCohortAction = action((body: CohortBody, _done?: Done) => this.cohortService.create(body), {
-    onSuccess: (_r, _body, done) => {
-      done?.();
-      this.cohortsChanged();
+  private readonly createCohortAction = action(
+    (body: CohortBody, _done?: Done) =>
+      this.cohortService.create(body).pipe(
+        switchMap((cohort) =>
+          this.programService.create({ cursoId: cohort.id }).pipe(
+            catchError((e: Error) => {
+              this.programsError.set(`A turma foi criada, mas o programa de PFC não pôde ser criado. ${e.message} Crie o programa pelo menu da turma.`);
+              return of(null);
+            }),
+            map(() => cohort),
+          ),
+        ),
+      ),
+    {
+      onSuccess: (_r, _body, done) => {
+        done?.();
+        this.cohortsChanged();
+      },
+      onError: this.failCourse,
     },
-    onError: this.failCourse,
-  });
+  );
   private readonly updateCohortAction = action((id: string, body: CohortChanges, _done?: Done) => this.cohortService.update(id, body), {
     onSuccess: (_r, _id, _body, done) => {
       done?.();
@@ -174,11 +189,15 @@ export class CohortsStore {
     },
     onError: this.failCourse,
   });
-  private readonly removeCohortAction = action((id: string) => this.cohortService.remove(id), {
-    onSuccess: () => this.cohortsChanged(),
-    onError: this.failCourse,
-    concurrency: 'merge',
-  });
+  private readonly removeCohortAction = action(
+    (id: string, programId: string | null) =>
+      (programId ? this.programService.remove(programId) : of(undefined)).pipe(switchMap(() => this.cohortService.remove(id))),
+    {
+      onSuccess: () => this.cohortsChanged(),
+      onError: this.failCourse,
+      concurrency: 'merge',
+    },
+  );
   private readonly createProgramAction = action((cohortId: string) => this.programService.create({ cursoId: cohortId }), {
     onSuccess: () => this.pfc.reloadPrograms(),
     onError: this.failProgram,
@@ -263,9 +282,9 @@ export class CohortsStore {
   }
 
   // Exclusão
-  removeCohort(id: string): void {
+  removeCohort(id: string, programId: string | null = null): void {
     this.clearErrors();
-    this.removeCohortAction.run(id);
+    this.removeCohortAction.run(id, programId);
   }
 
   // ---------------------------------------------------------------------------

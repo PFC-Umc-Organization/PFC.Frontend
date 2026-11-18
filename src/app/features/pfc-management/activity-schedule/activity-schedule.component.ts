@@ -9,15 +9,18 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ActivityEditorComponent } from '../activity-editor/activity-editor.component';
 import { CohortPickerComponent } from '../cohort-picker/cohort-picker.component';
-import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 import { PfcManagementStore } from '../pfc-management.store';
+
+// Tipo
+type ScheduleStatus = 'past' | 'next' | 'future';
 
 // Componente
 @Component({
   selector: 'app-activity-schedule',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, DeadlinePipe, ActivityEditorComponent, ScrollHintDirective, CohortPickerComponent],
+  imports: [IconComponent, DeadlinePipe, ActivityEditorComponent, CohortPickerComponent],
   templateUrl: './activity-schedule.component.html',
+  styleUrl: './activity-schedule.component.scss',
 })
 export class ActivityScheduleComponent {
   private readonly activityService = inject(ActivityService);
@@ -44,6 +47,36 @@ export class ActivityScheduleComponent {
     const cohort = this.store.cohortId();
     return this.all.value().filter((a) => !a.turmaId || a.turmaId === cohort);
   });
+
+  // ---------------------------------------------------------------------------
+  // Cronograma
+  // ---------------------------------------------------------------------------
+
+  readonly cards = computed(() => {
+    const now = Date.now();
+    const sorted = [...this.activities()].sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime());
+    const nextId = sorted.find((a) => new Date(a.prazo).getTime() >= now)?.id;
+    return sorted.map((activity) => ({
+      activity,
+      status: (new Date(activity.prazo).getTime() < now ? 'past' : activity.id === nextId ? 'next' : 'future') as ScheduleStatus,
+      fields: activity.campos.length,
+    }));
+  });
+
+  readonly summary = computed(() => {
+    const cards = this.cards();
+    const count = (status: ScheduleStatus) => cards.filter((c) => c.status === status).length;
+    return { past: count('past'), next: cards.find((c) => c.status === 'next')?.activity.titulo ?? null, future: count('future') };
+  });
+
+  protected readonly statusLabel: Record<ScheduleStatus, string> = { past: 'Vencida', next: 'Próxima', future: 'Futura' };
+
+  // Seleção
+  select(id: string): void {
+    if (this.manage()) {
+      this.editingId.set(id);
+    }
+  }
 
   // Exclusão
   async remove(id: string, title: string): Promise<void> {

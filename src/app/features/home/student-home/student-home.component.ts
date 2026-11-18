@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -13,8 +14,10 @@ import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
+import { AnnouncementsBoardComponent } from '../../announcements/announcements-board/announcements-board.component';
 import { DeliveryMode, DeliveryPanelComponent } from '../delivery-panel/delivery-panel.component';
 import { StatusGridComponent } from '../status-grid/status-grid.component';
+import { nextActionOf, penaltySummaryOf, progressOf } from './student-home.kpis';
 import { TimelineComponent } from '../../../shared/components/timeline/timeline.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
@@ -30,7 +33,7 @@ interface Home {
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, DeliveryPanelComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, PenaltyCounterComponent, PenaltyListComponent],
+  imports: [AnnouncementsBoardComponent, StatusGridComponent, DeliveryPanelComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, DecimalPipe, PenaltyCounterComponent, PenaltyListComponent],
   templateUrl: './student-home.component.html',
   styleUrl: './student-home.component.scss',
 })
@@ -93,9 +96,35 @@ export class StudentHomeComponent {
 
   readonly selectedActivity = signal<string | null>(null);
 
-  private readonly states = computed(() => cellStates(this.grid().rows[0]?.cells ?? []));
+  private readonly states = computed(() => {
+    const row = this.grid().rows[0];
+    const waived = new Set(
+      this.penalties()
+        ?.penalidades.filter((p) => p.origem === 'PRAZO' && p.perdao && p.atividadeId)
+        .map((p) => p.atividadeId),
+    );
+    return cellStates((row?.cells ?? []).map((c) => ({ ...c, waived: waived.has(c.activityId) })));
+  });
 
-  /** Activities the advisor sent back: the group has to fix and send them again. */
+  // ---------------------------------------------------------------------------
+  // Indicadores
+  // ---------------------------------------------------------------------------
+
+  readonly progress = computed(() => progressOf(this.states().map((s) => s.state)));
+  readonly nextAction = computed(() => nextActionOf(this.grid().activities, this.states().map((s) => s.state), new Date()));
+  readonly penaltySummary = computed(() => {
+    const p = this.penalties();
+    return p ? penaltySummaryOf(p) : null;
+  });
+  readonly historyOpen = signal(false);
+
+  // Seleção
+  focusActivity(activityId: string): void {
+    this.selectedActivity.set(activityId);
+    queueMicrotask(() => document.getElementById('delivery-title')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }));
+  }
+
+  // Devolvidas
   readonly returned = computed(() => this.grid().activities.filter((_, i) => this.states()[i]?.state === 'returned'));
 
   readonly delivery = computed(() => {
@@ -110,7 +139,7 @@ export class StudentHomeComponent {
       waiting: 'open',
       blocked: 'blocked',
       late: 'closed',
-      waived: 'closed',
+      waived: 'waived',
       review: 'submitted',
       returned: 'submitted',
       done: 'submitted',
@@ -134,14 +163,6 @@ export class StudentHomeComponent {
     }
   }
 
-<<<<<<< HEAD
-  // Exibição
-  showPenalties(): void {
-    document.getElementById('penalties-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-=======
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   readonly project = computed(() => this.home.value()?.project ?? null);
   private readonly penaltyLoad = loadable({
     source: (project: Project) => this.penaltyService.ofProject(project.id),
@@ -172,26 +193,7 @@ export class StudentHomeComponent {
     return this.home.value()?.items ?? [];
   });
   readonly error = computed(() => (this.home.error() ? `Não foi possível carregar as atividades. ${this.home.error()}` : ''));
-  readonly next = computed(() =>
-    this.items()
-      .filter((i) => i.status === 'PENDENTE')
-      .reduce<TimelineItem | null>((best, i) => (!best || new Date(i.deadline) < new Date(best.deadline) ? i : best), null),
-  );
-  readonly pendingCount = computed(() => this.items().filter((i) => i.status === 'PENDENTE').length);
   readonly missed = computed(() => this.items().some((i) => i.status === 'ATRASADO'));
-
-  // Prazo
-  timeLeft(deadline: string, now = new Date()): string {
-    const hours = Math.floor((new Date(deadline).getTime() - now.getTime()) / 3_600_000);
-    if (hours < 1) {
-      return 'O prazo encerra em menos de 1 hora';
-    }
-    if (hours < 24) {
-      return hours === 1 ? 'Falta 1 hora' : `Faltam ${hours} horas`;
-    }
-    const days = Math.floor(hours / 24);
-    return days === 1 ? 'Falta 1 dia' : `Faltam ${days} dias`;
-  }
 
   readonly description = computed(() => {
     const project = this.project();

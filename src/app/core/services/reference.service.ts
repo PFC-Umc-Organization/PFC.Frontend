@@ -18,7 +18,7 @@ export abstract class ReferenceService {
   abstract add(projectId: string, doi: string): Observable<Reference>;
   // Exclusão
   abstract remove(projectId: string, referenceId: string): Observable<void>;
-  /** Corrects the reference by its DOI; the backend fetches the work again and rebuilds the ABNT. */
+  // Correção
   abstract replace(projectId: string, referenceId: string, doi: string): Observable<Reference>;
 }
 
@@ -56,16 +56,13 @@ export class ReferenceHttpService extends ReferenceService {
       .pipe(catchError(toApiError));
   }
 
-<<<<<<< HEAD
   // Exclusão
-=======
   override replace(projectId: string, referenceId: string, doi: string): Observable<Reference> {
     return this.http
       .put<Reference>(`${this.base}/projetos/${projectId}/referencias/${referenceId}`, { doi })
       .pipe(catchError(toApiError));
   }
 
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   override remove(projectId: string, referenceId: string): Observable<void> {
     return this.http.delete(`${this.base}/projetos/${projectId}/referencias/${referenceId}`).pipe(
       map(() => undefined),

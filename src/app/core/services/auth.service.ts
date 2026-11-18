@@ -1,10 +1,12 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, map, tap, throwError } from 'rxjs';
 
-import { AuthResult, Credentials, MessageResponse, NewUser, User, isNewPasswordChallenge } from '../models';
+import { AuthResult, Credentials, MessageResponse, MfaKind, NewUser, User, isMfaChallenge, isNewPasswordChallenge } from '../models';
 import { UserService } from './user.service';
 
 const SESSION_KEY = 'athena.sessao';
+const ISSUER = 'Rafa Manager';
+const CHALLENGE_EXPIRED = 'A verificação expirou. Entre novamente.';
 
 // Tipo
 interface Session {
@@ -38,8 +40,8 @@ export class AuthService {
   readonly role = computed(() => this.session()?.usuario.perfil ?? null);
   readonly firstName = computed(() => this.session()?.usuario.nome.split(' ').at(0) ?? '');
 
-  private readonly challenge = signal<{ email: string; session: string } | null>(null);
-  readonly hasPendingChallenge = computed(() => this.challenge() !== null);
+  private readonly challenge = signal<{ email: string; session: string; mfa?: MfaKind } | null>(null);
+  readonly hasPendingChallenge = computed(() => this.challenge() !== null && !this.challenge()?.mfa);
   readonly challengeEmail = computed(() => this.challenge()?.email ?? '');
 
   // ---------------------------------------------------------------------------
@@ -47,7 +49,7 @@ export class AuthService {
   // ---------------------------------------------------------------------------
 
   // Entrada
-  signIn(credentials: Credentials): Observable<'signed-in' | 'new-password'> {
+  signIn(credentials: Credentials): Observable<'signed-in' | 'new-password' | MfaKind> {
     this.challenge.set(null);
     return this.users.login(credentials).pipe(
       map((result) => {
@@ -55,10 +57,53 @@ export class AuthService {
           this.challenge.set({ email: credentials.email.trim(), session: result.sessao });
           return 'new-password' as const;
         }
+        if (isMfaChallenge(result)) {
+          this.challenge.set({ email: credentials.email.trim(), session: result.sessao, mfa: result.desafio });
+          return result.desafio;
+        }
         this.startSession(result);
         return 'signed-in' as const;
       }),
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // MFA
+  // ---------------------------------------------------------------------------
+
+  // Configuração
+  startMfaSetup(): Observable<{ secret: string; uri: string }> {
+    const challenge = this.challenge();
+    if (!challenge) {
+      return throwError(() => new Error(CHALLENGE_EXPIRED));
+    }
+    return this.users.startMfaSetup(challenge.email, challenge.session).pipe(
+      tap(({ sessao }) => this.challenge.set({ ...challenge, session: sessao })),
+      map(({ segredo }) => ({
+        secret: segredo,
+        uri: `otpauth://totp/${encodeURIComponent(`${ISSUER}:${challenge.email}`)}?secret=${segredo}&issuer=${encodeURIComponent(ISSUER)}`,
+      })),
+    );
+  }
+
+  // Verificação
+  verifyMfa(code: string): Observable<void> {
+    const challenge = this.challenge();
+    if (!challenge?.mfa) {
+      return throwError(() => new Error(CHALLENGE_EXPIRED));
+    }
+    return this.users.verifyMfa(challenge.email, challenge.session, challenge.mfa, code).pipe(
+      tap((result) => {
+        this.challenge.set(null);
+        this.startSession(result);
+      }),
+      map(() => undefined),
+    );
+  }
+
+  // Cancelamento
+  cancelChallenge(): void {
+    this.challenge.set(null);
   }
 
   // Troca de senha

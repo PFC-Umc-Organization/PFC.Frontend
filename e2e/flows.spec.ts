@@ -41,6 +41,12 @@ async function confirmDialog(page: Page, button: string) {
   await expect(dialog).toBeHidden();
 }
 
+/** The coordination's click on a grid cell opens a quick menu; this goes on to the full detail. */
+async function openCellDetails(page: Page, name: string | RegExp) {
+  await page.getByRole('button', { name }).click();
+  await page.getByRole('menuitem', { name: 'Abrir detalhes completos' }).click();
+}
+
 async function noSideScroll(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
 }
@@ -70,9 +76,9 @@ test.describe('student with a group', () => {
 
   test('the home highlights the closest open deadline and opens it below the grid', async ({ page }) => {
     await signIn(page, STUDENT_WITH_GROUP);
-    const next = page.locator('.next');
-    await expect(next.getByRole('heading', { name: '1º CRUD' })).toBeVisible();
-    await expect(next).toContainText('outra entrega pendente');
+    const next = page.locator('.kpi--link');
+    await expect(next).toContainText('1º CRUD');
+    await expect(next).toContainText('Faltam');
     await page.screenshot({ path: 'test-results/next.png' });
     await next.getByRole('button', { name: 'Enviar entrega' }).click();
     await expect(page.locator('#delivery-title')).toHaveText('1º CRUD');
@@ -194,7 +200,7 @@ test.describe('coordination', () => {
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
 
     const before = api.calls.length;
-    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    await openCellDetails(page, /^Athena, Monografia:/);
     await expect(page.getByText('monografia.pdf')).toBeVisible();
     expect(api.calls.length).toBe(before);
     expect(api.failed).toEqual([]);
@@ -203,7 +209,7 @@ test.describe('coordination', () => {
   test('downloads a submission file from the cell detail', async ({ page, api }) => {
     api.db.submissions.push({ atividadeId: 'a3', projetoId: 'pr2', entregueEm: '2026-10-20T12:00:00Z', entreguePor: 'Fulano', respostas: { c3: 'entregas/pr2/a3/c3/u9/tcc.pdf' } });
     await signIn(page, ADMIN);
-    await page.getByRole('button', { name: /^Web-Cursos, Monografia final:/ }).click();
+    await openCellDetails(page, /^Web-Cursos, Monografia final:/);
     const [download] = await Promise.all([
       page.waitForRequest((r) => r.url().includes('fake-bucket') && r.method() === 'GET'),
       page.getByRole('button', { name: 'tcc.pdf' }).click(),
@@ -239,7 +245,7 @@ test.describe('coordination', () => {
     await signIn(page, ADMIN);
     await page.goto('/usuarios');
     await page.getByRole('button', { name: 'Pré-autorização de alunos' }).click();
-    const cohort = page.getByLabel('Turma');
+    const cohort = page.locator('#enrollment-cohort');
     await expect(cohort).toHaveValue('t1');
     await expect(page.getByRole('row', { name: /11231103420/ })).toBeVisible();
     await expect(page.getByText('2 RGMs')).toBeVisible();
@@ -347,13 +353,11 @@ test.describe('coordination', () => {
     await expect(page.getByRole('row', { name: /Direito/ }).first()).toContainText('1 turma');
     expect(api.db.cohorts.at(-1)).toMatchObject({ nome: 'Direito', turno: 'NOITE', graduacaoId: 'k12' });
 
-    // The new cohort shows right away, with the button for its program.
-    await page.getByRole('button', { name: 'Criar programa de Direito (Noite, 2026.2)' }).click();
-    await confirmDialog(page, 'Criar');
-    await expect(page.getByRole('button', { name: 'Excluir programa de Direito (Noite, 2026.2)' })).toBeVisible();
+    // The program is created together with the cohort.
     expect(api.db.programs.at(-1)).toMatchObject({ cursoId: api.db.cohorts.at(-1).id });
 
-    await expect(page.getByRole('button', { name: 'Excluir curso Direito' })).toBeDisabled();
+    await page.getByRole('button', { name: 'Ações do curso Direito' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Excluir' })).toBeDisabled();
     expect(api.failed).toEqual([]);
   });
 
@@ -387,15 +391,15 @@ test.describe('management', () => {
     await form.getByLabel('Nome do novo campo').fill('Repositório');
     await form.getByLabel('Tipo do novo campo').selectOption('LINK');
     await form.getByRole('button', { name: 'Adicionar campo' }).click();
-    await expect(form.getByText('Repositório')).toBeVisible();
+    await expect(form.getByText('Repositório', { exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Publicar atividade' }).click();
     await confirmDialog(page, 'Publicar');
     await expect(page.locator('app-new-activity')).toHaveCount(0);
-    await expect(page.getByRole('cell', { name: 'Banca final', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Abrir a atividade Banca final no editor' })).toBeVisible();
     const created = api.db.activities.find((a) => a.titulo === 'Banca final');
     expect(created?.campos.map((c) => c.tipo)).toEqual(['ARQUIVO', 'LINK']);
 
-    await page.getByRole('button', { name: 'Editar atividade Banca final' }).click();
+    await page.getByRole('button', { name: 'Abrir a atividade Banca final no editor' }).click();
     const editor = page.locator('app-activity-editor');
     await editor.getByLabel('Nome do novo campo').fill('Slides');
     await editor.getByRole('button', { name: 'Adicionar campo' }).click();
@@ -407,29 +411,48 @@ test.describe('management', () => {
     await editor.getByLabel('Título da atividade').fill('Banca de defesa');
     await editor.getByRole('button', { name: 'Salvar' }).click();
     await confirmDialog(page, 'Salvar');
-    await expect(page.getByRole('cell', { name: 'Banca de defesa', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Abrir a atividade Banca de defesa no editor' })).toBeVisible();
     expect(created?.campos.map((c) => c.rotulo)).toEqual(['Arquivo da entrega', 'Slides']);
     expect(api.failed).toEqual([]);
   });
 
-  test('sets the advisor and renames a PFC', async ({ page, api }) => {
+  test('sets the advisor and renames a PFC from the home panel', async ({ page, api }) => {
     await signIn(page, ADMIN);
-    await page.goto('/turmas');
-    await page.getByRole('button', { name: 'PFCs dos alunos' }).click();
-    await expect(page.getByRole('button', { name: 'PFCs dos alunos' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Abrir o projeto Web-Cursos' }).click();
 
-    await page.getByRole('button', { name: 'Adicionar orientador de Web-Cursos' }).click();
-    await page.getByRole('row', { name: /Web-Cursos/ }).getByRole('combobox').selectOption({ label: 'Orientadora Ana' });
+    await page.locator('#project-advisor').selectOption({ label: 'Orientadora Ana' });
     await confirmDialog(page, 'Confirmar');
-    await expect(page.getByRole('row', { name: /Web-Cursos/ })).toContainText('Orientadora Ana');
-    expect(api.db.projects.find((x) => x.id === 'pr2')?.orientadorId).toBe('u-ana');
+    await expect.poll(() => api.db.projects.find((x) => x.id === 'pr2')?.orientadorId).toBe('u-ana');
 
-    await page.getByRole('button', { name: 'Editar PFC Web-Cursos' }).click();
+    await page.getByRole('button', { name: 'Editar', exact: true }).click();
     await page.fill('#edit-name', 'Web-Cursos 2');
     await page.getByRole('button', { name: 'Salvar' }).click();
     await confirmDialog(page, 'Salvar');
-    await expect(page.getByRole('cell', { name: 'Web-Cursos 2', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Abrir o projeto Web-Cursos 2' })).toBeVisible();
     expect(api.failed).toEqual([]);
+  });
+});
+
+test.describe('session and quick menu', () => {
+  test('asks before signing out, and stays signed in when cancelled', async ({ page }) => {
+    await signIn(page, STUDENT_WITH_GROUP);
+    await page.getByRole('button', { name: 'Sair da conta' }).click();
+    await expect(page.getByRole('alertdialog')).toContainText('Deseja realmente sair do sistema?');
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await expect(page.getByRole('alertdialog')).toBeHidden();
+    await expect(page).not.toHaveURL(/\/entrar/);
+
+    await page.getByRole('button', { name: 'Sair da conta' }).click();
+    await confirmDialog(page, 'Sair');
+    await expect(page).toHaveURL(/\/entrar/);
+  });
+
+  test('the coordination opens a quick menu on a cell, with the full detail one click away', async ({ page }) => {
+    await signIn(page, ADMIN);
+    await page.getByRole('button', { name: /^Athena, Monografia:/ }).click();
+    await expect(page.getByRole('menuitem', { name: 'Abrir detalhes completos' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
   });
 });
 
@@ -589,7 +612,7 @@ test.describe('validation seen by the group and the coordination', () => {
   test('the coordination sees the verdict in the cell and its detail, without validating', async ({ page, api }) => {
     validated(api, 'VALIDADA');
     await signIn(page, ADMIN);
-    await page.getByRole('button', { name: 'Athena, Monografia: Concluído' }).click();
+    await openCellDetails(page, 'Athena, Monografia: Concluído');
     await expect(page.getByRole('heading', { name: 'Entrega validada pelo orientador' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Validar entrega' })).toHaveCount(0);
   });
@@ -646,6 +669,7 @@ test.describe('penalties', () => {
     seed(api, 3);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Grupo reprovado por penalidades' })).toBeVisible();
+    await page.getByRole('button', { name: 'Ver histórico' }).click();
     await expect(page.getByText('Motivo 3')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Enviar entrega' })).toHaveCount(0);
     // A failed group still opens its activities to read them, but cannot send or edit.

@@ -1,0 +1,17 @@
+@if (recent().length) {
+  <section class="board" aria-labelledby="board-title">
+    <header class="board__head">
+      <h2 id="board-title" class="board__title">Avisos recentes</h2>
+      <a class="board__all" routerLink="/avisos">{{ more() ? 'Ver todos (+' + more() + ')' : 'Ver todos' }}</a>
+    </header>
+    <ul class="board__list">
+      @for (a of recent(); track a.id) {
+        <li class="item">
+          <p class="item__title">{{ a.titulo }}</p>
+          <p class="item__text">{{ a.conteudo }}</p>
+          <p class="item__meta">{{ a.publicadoPor }} · {{ a.publicadoEm | date: 'dd/MM/yyyy' }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+}

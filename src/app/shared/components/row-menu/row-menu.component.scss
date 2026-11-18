@@ -1,0 +1,78 @@
+:host {
+  display: inline-block;
+}
+
+.trigger {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.trigger:hover:not(:disabled),
+.trigger[aria-expanded='true'] {
+  border-color: var(--border);
+  background: color-mix(in oklch, var(--primary) 6%, transparent);
+  color: var(--foreground);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.menu {
+  position: fixed;
+  z-index: 41;
+  display: grid;
+  width: 13rem;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  background: var(--popover);
+  box-shadow: 0 8px 24px color-mix(in oklch, var(--foreground) 14%, transparent);
+}
+
+.menu__item {
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.menu__item:hover:not(:disabled),
+.menu__item:focus-visible {
+  background: color-mix(in oklch, var(--primary) 7%, transparent);
+  outline: none;
+}
+
+.menu__item--danger {
+  color: var(--destructive);
+}
+
+.menu__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

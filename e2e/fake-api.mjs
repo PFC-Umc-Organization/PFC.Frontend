@@ -89,6 +89,7 @@ export function fakeApi() {
       return json(201, c);
     }
     if (p === '/cursos') return json(200, db.courses);
+    if (p === '/avisos' && m === 'GET') return json(200, []);
     if (p === '/materiais' && m === 'GET') {
       const cohortId = db.enrollments[rgm];
       return json(200, db.materials.filter((x) => staff || !x.cursoId || x.cursoId === cohortId).sort((a, b) => b.publicadoEm.localeCompare(a.publicadoEm)));

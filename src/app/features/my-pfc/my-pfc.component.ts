@@ -38,19 +38,20 @@ export class MyPfcComponent {
     return mine.programaId ? 'can-create' : 'no-program';
   });
 
-<<<<<<< HEAD
   // Recarga
-=======
-  /** After creating the group or joining one, above the group card. */
   readonly notice = signal('');
 
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   reload(): void {
     this.mine.reload();
   }
 
   created(): void {
     this.notice.set('PFC criado. Agora convide os colegas da turma pelo RGM.');
+    this.reload();
+  }
+
+  descriptionSaved(): void {
+    this.notice.set('Descrição atualizada.');
     this.reload();
   }
 

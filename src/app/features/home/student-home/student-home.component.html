@@ -7,6 +7,7 @@
 } @else if (home.loading()) {
   <p class="loading" role="status">Carregando as atividades…</p>
 } @else {
+    <app-announcements-board />
     @if (penaltiesError()) {
       <p class="alert" role="alert">
         <app-icon name="alert" />
@@ -46,7 +47,8 @@
       </p>
     } @else if (!penaltiesReady()) {
       <p class="loading" role="status">Carregando a situação do grupo…</p>
-    } @else if (failed()) {
+    } @else {
+      @if (failed()) {
       <section class="failed" role="alert" aria-labelledby="failed-title">
         <app-icon name="alert" class="failed__icon" />
         <div class="failed__body">
@@ -61,49 +63,65 @@
           </p>
         </div>
       </section>
-    } @else if (next(); as n) {
-      <section class="next" aria-labelledby="next-title">
-        <div>
-          <p class="eyebrow">Próxima entrega</p>
-          <h2 id="next-title" class="next__title">{{ n.title }}</h2>
-          <p class="next__when">
-            <app-icon name="calendar" />
-            {{ timeLeft(n.deadline) }} · até {{ n.deadline | deadline: true }}
-            @if (pendingCount() > 1) {
-              <span class="next__more">· {{ pendingCount() === 2 ? 'outra entrega pendente' : 'outras ' + (pendingCount() - 1) + ' entregas pendentes' }}</span>
-            }
-          </p>
-        </div>
-        <button type="button" class="btn btn--primary next__action" (click)="openActivity(n.activityId)">
-          Enviar entrega
-        </button>
-      </section>
-    } @else if (items().length > 0) {
-      <p class="notice" role="status">
-        <app-icon name="check" />
-        <span>{{ missed() ? 'Não há entregas com prazo aberto no momento.' : 'Todas as entregas do grupo estão em dia.' }}</span>
-      </p>
-    }
-    @if (penalties(); as p) {
-      <section class="card penalties" aria-labelledby="penalties-title">
-        <header class="penalties__head">
-          <div>
-            <h2 id="penalties-title" class="section-title">Penalidades</h2>
-            <p class="penalties__rule">
-              Cada atividade não entregue até o prazo gera uma penalidade para o grupo. Ao atingir {{ p.limite }} penalidades ativas, o grupo é reprovado.
-            </p>
+      }
+      <section class="kpis" aria-label="Resumo do PFC">
+        <article class="kpi kpi--success">
+          <h2 class="kpi__title">Progresso do PFC</h2>
+          <p class="kpi__value">{{ progress().pct | number: '1.0-0' }}%</p>
+          <p class="kpi__note">{{ progress().done }} de {{ progress().total }} {{ progress().total === 1 ? 'atividade concluída' : 'atividades concluídas' }}</p>
+          <div class="bar" role="img" [attr.aria-label]="progress().done + ' de ' + progress().total + ' atividades concluídas'">
+            <span class="bar__fill" [style.width.%]="progress().pct"></span>
           </div>
-          <app-penalty-counter [penalties]="p" />
-        </header>
-        @if (p.penalidades.length) {
-          <details class="penalties__body" [open]="p.penalidades.length <= 3">
-            <summary class="penalties__toggle">
-              {{ p.penalidades.length === 1 ? 'Ver a penalidade' : 'Ver as ' + p.penalidades.length + ' penalidades' }}
-            </summary>
-            <app-penalty-list [penalties]="p.penalidades" />
-          </details>
+        </article>
+
+        <article class="kpi kpi--primary kpi--link" aria-labelledby="next-title">
+          <h2 id="next-title" class="kpi__title">Próxima entrega</h2>
+          @if (failed()) {
+            <p class="kpi__note">O envio de entregas está encerrado para o grupo.</p>
+          } @else if (nextAction(); as n) {
+            <p class="kpi__headline">{{ n.title }}</p>
+            <p class="kpi__note">até {{ n.deadline | deadline: true }}</p>
+            <p class="kpi__count" [class.kpi__count--alert]="n.overdue" [attr.role]="n.overdue ? 'alert' : null">
+              <app-icon [name]="n.overdue ? 'alert' : 'calendar'" />
+              {{ n.countdown }}
+            </p>
+            <button type="button" class="kpi__stretch btn btn--primary btn--sm" (click)="focusActivity(n.activityId)">
+              {{ n.state === 'returned' ? 'Corrigir entrega' : 'Enviar entrega' }}
+            </button>
+          } @else {
+            <p class="kpi__note">{{ missed() ? 'Não há entregas com prazo aberto no momento.' : 'Todas as entregas do grupo estão em dia.' }}</p>
+          }
+        </article>
+
+        @if (penaltySummary(); as s) {
+          <article class="kpi kpi--bronze" aria-labelledby="penalties-title">
+            <h2 id="penalties-title" class="kpi__title">Penalidades</h2>
+            <app-penalty-counter [penalties]="penalties()!" />
+            <p class="kpi__note">
+              {{ s.active }} de {{ s.limit }} ativas · {{ s.waived }} {{ s.waived === 1 ? 'perdoada' : 'perdoadas' }}
+            </p>
+            <p class="kpi__note">
+              {{ s.margin === 0 ? 'Limite atingido.' : s.margin === 1 ? 'Resta 1 penalidade antes da reprovação.' : 'Restam ' + s.margin + ' penalidades antes da reprovação.' }}
+            </p>
+            @if (penalties()!.penalidades.length) {
+              <button type="button" class="btn btn--ghost btn--sm kpi__toggle" [attr.aria-expanded]="historyOpen()" (click)="historyOpen.set(!historyOpen())">
+                {{ historyOpen() ? 'Ocultar histórico' : 'Ver histórico' }}
+              </button>
+            }
+          </article>
         }
       </section>
+      @if (historyOpen() && penalties(); as p) {
+        <section class="card history" aria-label="Histórico de penalidades">
+          <app-penalty-list [penalties]="p.penalidades" />
+        </section>
+      }
+      @if (!nextAction() && !failed() && items().length > 0) {
+        <p class="notice" role="status">
+          <app-icon name="check" />
+          <span>{{ missed() ? 'Não há entregas com prazo aberto no momento.' : 'Todas as entregas do grupo estão em dia.' }}</span>
+        </p>
+      }
     }
     @if (project()) {
       <app-status-grid

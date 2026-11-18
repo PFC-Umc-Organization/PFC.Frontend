@@ -1,0 +1,61 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: 0;
+  background: transparent;
+  cursor: default;
+}
+
+.menu {
+  position: fixed;
+  z-index: 41;
+  display: grid;
+  min-width: 15rem;
+  max-width: 20rem;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  background: var(--popover);
+  box-shadow: 0 8px 24px color-mix(in oklch, var(--foreground) 14%, transparent);
+}
+
+.menu__title {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  overflow-wrap: anywhere;
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.menu__item:hover:not(:disabled),
+.menu__item:focus-visible {
+  background: color-mix(in oklch, var(--primary) 7%, transparent);
+  outline: none;
+}
+
+.menu__item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.menu__error {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--destructive);
+}

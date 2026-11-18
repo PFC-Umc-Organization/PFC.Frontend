@@ -15,6 +15,7 @@ import {
 import { filter } from 'rxjs';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { IconComponent, IconName } from '../icon/icon.component';
 
 // Tipo
@@ -36,6 +37,7 @@ interface NavItem {
 export class HeaderComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly menuOpen = signal(false);
 
@@ -52,12 +54,14 @@ export class HeaderComponent {
   private readonly studentNav: NavItem[] = [
     { label: 'Início', route: '/', icon: 'dashboard' },
     { label: 'Meu PFC', route: '/meu-pfc', icon: 'landmark' },
+    { label: 'Avisos', route: '/avisos', icon: 'clipboard' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];
 
   private readonly advisorNav: NavItem[] = [
     { label: 'Início', route: '/', icon: 'dashboard' },
+    { label: 'Avisos', route: '/avisos', icon: 'clipboard' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];
@@ -66,6 +70,7 @@ export class HeaderComponent {
     { label: 'Início', route: '/', icon: 'dashboard' },
     { label: 'Turmas', route: '/turmas', icon: 'calendar' },
     { label: 'Usuários', route: '/usuarios', icon: 'users' },
+    { label: 'Avisos', route: '/avisos', icon: 'clipboard' },
     { label: 'Materiais', route: '/materiais', icon: 'book' },
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];
@@ -82,7 +87,15 @@ export class HeaderComponent {
   });
 
   // Saída
-  signOut(): void {
+  async signOut(): Promise<void> {
+    const confirmed = await this.confirmation.confirm({
+      title: 'Sair do sistema',
+      message: 'Deseja realmente sair do sistema?',
+      confirmText: 'Sair',
+    });
+    if (!confirmed) {
+      return;
+    }
     this.auth.signOut();
     void this.router.navigate(['/entrar']);
   }

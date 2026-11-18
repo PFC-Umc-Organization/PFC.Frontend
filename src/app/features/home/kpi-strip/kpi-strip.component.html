@@ -1,0 +1,98 @@
+<section class="strip" aria-label="Fechamento da turma">
+  <div class="strip__head">
+    <h2 class="strip__title">Fechamento</h2>
+    <button type="button" class="btn btn--ghost btn--sm" [attr.aria-expanded]="open()" aria-controls="kpi-cards" (click)="open.set(!open())">
+      <app-icon [name]="open() ? 'close' : 'eye'" class="btn__icon" />
+      {{ open() ? 'Recolher' : 'Mostrar indicadores' }}
+    </button>
+  </div>
+
+  @if (open()) {
+    <div class="cards" id="kpi-cards">
+      <article class="kpi kpi--primary">
+        <h3 class="kpi__title">Desfecho da turma</h3>
+        @if (kpis().outcome.known) {
+          <dl class="stats">
+            <div>
+              <dt>Aprovação</dt>
+              <dd class="ok">{{ kpis().outcome.approved.pct | number: '1.0-0' }}%</dd>
+            </div>
+            <div>
+              <dt>Em andamento</dt>
+              <dd class="info">{{ kpis().outcome.ongoing.pct | number: '1.0-0' }}%</dd>
+            </div>
+            <div>
+              <dt>Reprovação</dt>
+              <dd class="bad">{{ kpis().outcome.failed.pct | number: '1.0-0' }}%</dd>
+            </div>
+          </dl>
+          <div
+            class="bar"
+            role="img"
+            [attr.aria-label]="kpis().outcome.approved.count + ' aprovados, ' + kpis().outcome.ongoing.count + ' em andamento, ' + kpis().outcome.failed.count + ' reprovados, de ' + kpis().outcome.total + ' grupos'"
+          >
+            <span class="bar__seg bar__seg--ok" [style.width.%]="kpis().outcome.approved.pct"></span>
+            <span class="bar__seg bar__seg--info" [style.width.%]="kpis().outcome.ongoing.pct"></span>
+            <span class="bar__seg bar__seg--bad" [style.width.%]="kpis().outcome.failed.pct"></span>
+          </div>
+          <p class="kpi__note">
+            {{ kpis().outcome.approved.count }} aprovados · {{ kpis().outcome.ongoing.count }} em andamento · {{ kpis().outcome.failed.count }} reprovados
+          </p>
+        } @else {
+          <p class="pending">Carregando as penalidades…</p>
+        }
+      </article>
+
+      <article class="kpi kpi--bronze">
+        <h3 class="kpi__title">Termômetro de penalidades</h3>
+        @if (kpis().bands.known) {
+          <ul class="bands">
+            @for (b of kpis().bands.items; track b.band) {
+              <li>
+                <button
+                  type="button"
+                  class="band"
+                  [class.band--active]="band() === b.band"
+                  [class.band--bad]="b.band === 3"
+                  [attr.aria-pressed]="band() === b.band"
+                  [attr.aria-label]="'Filtrar grupos com ' + bandLabel[b.band].toLowerCase() + ' ativa: ' + b.count"
+                  (click)="toggleBand(b.band)"
+                >
+                  <span class="band__value">{{ b.count }}</span>
+                  <span class="band__label">{{ bandLabel[b.band] }}</span>
+                  <span class="band__pct">{{ b.pct | number: '1.0-0' }}%</span>
+                </button>
+              </li>
+            }
+          </ul>
+          <p class="kpi__note">{{ kpis().bands.waived }} {{ kpis().bands.waived === 1 ? 'penalidade perdoada' : 'penalidades perdoadas' }} no total</p>
+        } @else {
+          <p class="pending">Carregando as penalidades…</p>
+        }
+      </article>
+
+      <article class="kpi kpi--success">
+        <h3 class="kpi__title">Eficiência de entregas</h3>
+        @if (kpis().efficiency.due) {
+          <dl class="stats">
+            <div>
+              <dt>Concluídas sobre vencidas</dt>
+              <dd class="ok">{{ kpis().efficiency.completedRate ?? 0 | number: '1.0-0' }}%</dd>
+            </div>
+            <div>
+              <dt>Atraso ou devolução</dt>
+              <dd class="bad">{{ kpis().efficiency.issueRate ?? 0 | number: '1.0-0' }}%</dd>
+            </div>
+          </dl>
+          @if (kpis().efficiency.bottleneck; as g) {
+            <p class="kpi__note"><strong>Maior gargalo:</strong> {{ g.title }} ({{ g.count }} {{ g.count === 1 ? 'atraso' : 'atrasos' }})</p>
+          } @else {
+            <p class="kpi__note">Nenhum atraso nas atividades vencidas.</p>
+          }
+        } @else {
+          <p class="kpi__note">Nenhuma atividade venceu ainda.</p>
+        }
+      </article>
+    </div>
+  }
+</section>

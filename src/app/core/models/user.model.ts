@@ -20,6 +20,7 @@ export interface User {
   rgm?: string;
   confirmado?: boolean;
   aguardandoPrimeiroAcesso?: boolean;
+  mfaAtivo?: boolean;
 }
 
 // Criação
@@ -51,11 +52,30 @@ export interface NewPasswordChallenge {
   sessao: string;
 }
 
-export type LoginResult = AuthResult | NewPasswordChallenge;
+// Desafio MFA
+export interface MfaChallenge {
+  desafio: 'MFA_SETUP' | 'SOFTWARE_TOKEN_MFA';
+  sessao: string;
+}
+
+export type MfaKind = MfaChallenge['desafio'];
+
+export type LoginResult = AuthResult | NewPasswordChallenge | MfaChallenge;
+
+// Configuração
+export interface MfaSetup {
+  segredo: string;
+  sessao: string;
+}
 
 // Verificação
 export function isNewPasswordChallenge(r: LoginResult): r is NewPasswordChallenge {
   return 'desafio' in r && r.desafio === 'NOVA_SENHA';
+}
+
+// Verificação MFA
+export function isMfaChallenge(r: LoginResult): r is MfaChallenge {
+  return 'desafio' in r && (r.desafio === 'MFA_SETUP' || r.desafio === 'SOFTWARE_TOKEN_MFA');
 }
 
 // Senha

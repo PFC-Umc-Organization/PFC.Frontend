@@ -3,9 +3,6 @@
     <p class="eyebrow">Meu PFC</p>
     @if (group(); as g) {
       <h1 class="page-title mt-2">{{ g.projeto.nome }}</h1>
-      @if (g.projeto.descricao) {
-        <p class="lead mt-2">{{ g.projeto.descricao }}</p>
-      }
     } @else {
       <h1 class="page-title mt-2">Meu PFC</h1>
       <p class="lead mt-2">Crie o projeto do seu grupo ou aceite o convite de um colega.</p>
@@ -17,7 +14,7 @@
   }
 
   @if (group(); as g) {
-    <app-group-card [detail]="g" />
+    <app-group-card [detail]="g" (saved)="descriptionSaved()" />
     <app-sent-invitations [projectId]="g.projeto.id" />
   } @else {
     @if (situation() !== 'loading' && situation() !== 'error') {

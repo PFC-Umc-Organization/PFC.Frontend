@@ -7,11 +7,7 @@ import { PenaltyService } from '../../../core/services/penalty.service';
 import { action } from '../../../core/state/action';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
 
-/**
- * The penalties of one group for one activity, in the activity's own panel:
- * the staff forgives the one a missed deadline cost, or applies one for it.
- * Penalties tied to no activity still on the grid are listed apart.
- */
+// Penalidades da atividade
 @Component({
   selector: 'app-cell-penalties',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -36,7 +32,7 @@ export class CellPenaltiesComponent {
     return this.penalties().penalidades.filter((p) => !p.atividadeId || !known.has(p.atividadeId));
   });
 
-  /** What the staff needs to know about the group, only when it can no longer submit. */
+  // Texto de reprovação
   protected readonly failedText = computed(() => {
     const { ativas, limite, reprovado } = this.penalties();
     if (!reprovado) {

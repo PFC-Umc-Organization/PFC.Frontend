@@ -1,0 +1,136 @@
+<div class="page">
+  <header>
+    <p class="eyebrow">Comunicação</p>
+    <h1 class="page-title mt-2">Avisos</h1>
+    <p class="lead mt-2">
+      @if (staff()) {
+        Comunicados para os alunos. Cada aviso pode ser dirigido a uma turma específica ou a todas.
+      } @else {
+        Comunicados da coordenação e dos orientadores para a sua turma.
+      }
+    </p>
+  </header>
+
+  @if (staff() && formOpen()) {
+    <section class="card" aria-labelledby="announcement-form-title">
+      <div class="card__body">
+        <div class="form-head">
+          <h2 id="announcement-form-title" class="section-title">Publicar aviso</h2>
+          <button type="button" class="btn btn--ghost btn--sm" [disabled]="publishing()" (click)="formOpen.set(false)">Cancelar</button>
+        </div>
+
+        <form class="form-grid form-grid--2 mt-6" [formGroup]="form" (ngSubmit)="publish()">
+          <div class="field">
+            <label class="field__label" for="announcement-title">Título</label>
+            <input
+              id="announcement-title"
+              type="text"
+              class="control"
+              placeholder="Ex.: Entrega da proposta adiada"
+              [maxLength]="limits.titulo"
+              formControlName="titulo"
+              [class.control--invalid]="invalid('titulo')"
+            />
+            @if (invalid('titulo')) {
+              <span class="field__error">Informe um título de 3 a {{ limits.titulo }} caracteres.</span>
+            }
+          </div>
+
+          <div class="field">
+            <label class="field__label" for="announcement-cohort">Turma</label>
+            <select id="announcement-cohort" class="control" formControlName="turmaId">
+              <option value="">Todas as turmas</option>
+              @for (c of cohorts.value(); track c.id) {
+                <option [value]="c.id">{{ cohortLabel(c) }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="field form-grid__full">
+            <label class="field__label" for="announcement-content">Conteúdo</label>
+            <textarea
+              id="announcement-content"
+              class="control control--textarea"
+              [maxLength]="limits.conteudo"
+              formControlName="conteudo"
+              [class.control--invalid]="invalid('conteudo')"
+            ></textarea>
+            <span class="field__hint">{{ form.controls.conteudo.value.length }} de {{ limits.conteudo }} caracteres</span>
+            @if (invalid('conteudo')) {
+              <span class="field__error">Escreva o conteúdo do aviso.</span>
+            }
+          </div>
+
+          <div class="form-grid__full">
+            <button type="submit" class="btn btn--primary" [disabled]="publishing()">
+              <app-icon name="plus" class="btn__icon" />
+              {{ publishing() ? 'Publicando…' : 'Publicar aviso' }}
+            </button>
+            @if (publishError()) {
+              <p class="alert mt-4" role="alert">
+                <app-icon name="alert" />
+                <span>{{ publishError() }}</span>
+              </p>
+            }
+          </div>
+        </form>
+      </div>
+    </section>
+  }
+
+  @if (done()) {
+    <p class="ok" role="status">
+      <app-icon name="check" />
+      <span>{{ done() }}</span>
+    </p>
+  }
+  @if (removeError()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>{{ removeError() }}</span>
+    </p>
+  }
+
+  @if (list.error()) {
+    <p class="alert" role="alert">
+      <app-icon name="alert" />
+      <span>Não foi possível carregar os avisos. {{ list.error() }}</span>
+      <button type="button" class="btn btn--outline btn--sm" (click)="list.reload()">Tentar novamente</button>
+    </p>
+  } @else if (list.loading()) {
+    <p class="muted text-sm">Carregando avisos…</p>
+  } @else {
+    @if (staff()) {
+      <div class="list-head">
+        <h2 class="section-title">Publicados</h2>
+        <span class="card__count">{{ list.value().length }} {{ list.value().length === 1 ? 'aviso' : 'avisos' }}</span>
+        @if (!formOpen()) {
+          <div class="card__actions">
+            <button type="button" class="btn btn--primary btn--sm" (click)="open()">
+              <app-icon name="plus" class="btn__icon" />
+              Publicar aviso
+            </button>
+          </div>
+        }
+      </div>
+    }
+    <ul class="notices">
+      @for (a of list.value(); track a.id) {
+        <li class="notice-card">
+          <div class="notice-card__top">
+            <h3 class="notice-card__title">{{ a.titulo }}</h3>
+            @if (canRemove(a)) {
+              <button type="button" class="text-action text-action--danger" [disabled]="removing()" (click)="remove(a)" [attr.aria-label]="'Excluir o aviso ' + a.titulo">
+                Excluir
+              </button>
+            }
+          </div>
+          <p class="notice-card__meta">{{ audience(a) }} · {{ a.publicadoPor }} · {{ a.publicadoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
+          <p class="notice-card__text">{{ a.conteudo }}</p>
+        </li>
+      } @empty {
+        <li class="empty-state">{{ staff() ? 'Nenhum aviso publicado.' : 'Não há avisos para a sua turma.' }}</li>
+      }
+    </ul>
+  }
+</div>

@@ -6,7 +6,10 @@
   </div>
   <div class="field picker">
     <label class="field__label" for="cohort">Turma</label>
-    <select id="cohort" class="control" [value]="store.cohortId()" (change)="chooseCohort($event)">
+    <select id="cohort" class="control" [value]="store.selectedValue()" (change)="chooseCohort($event)">
+      @if (store.cohorts.value().length > 1) {
+        <option [value]="allCohorts" [selected]="store.allCohorts()">Todas as turmas</option>
+      }
       @for (c of store.cohorts.value(); track c.id) {
         <option [value]="c.id" [selected]="c.id === store.cohortId()">{{ cohortLabel(c) }}</option>
       }
@@ -56,10 +59,11 @@
         }
       </div>
     </div>
+    <app-kpi-strip [kpis]="kpis()" [band]="band()" (bandChange)="band.set($event)" />
     <div class="filters">
       <div class="field">
         <label class="field__label" for="project-search">Buscar projeto</label>
-        <input id="project-search" type="search" class="control" placeholder="Nome do projeto" [value]="search()" (input)="setSearch($event)" />
+        <input id="project-search" type="search" class="control" placeholder="Projeto, integrante ou RGM" [value]="search()" (input)="setSearch($event)" />
       </div>
       @if (store.isAdmin() && store.gridAdvisors().length) {
         <div class="field">
@@ -89,19 +93,66 @@
   </section>
 }
 
+@if (exportError()) {
+  <p class="alert" role="alert">
+    <app-icon name="alert" />
+    <span>Não foi possível gerar o arquivo. {{ exportError() }}</span>
+  </p>
+}
+
+@if (store.allCohorts()) {
+  <app-consolidated-table
+    [rows]="consolidated()"
+    [loading]="store.gridLoad.loading()"
+    [emptyText]="emptyText()"
+    [openable]="store.isAdmin()"
+    [selectedProject]="selectedProject()"
+    (openProject)="openProject($event)"
+  >
+  <div actions class="export">
+    <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('xlsx')">
+      <app-icon name="download" class="btn__icon" />
+      Exportar Excel
+    </button>
+    <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('pdf')">
+      <app-icon name="download" class="btn__icon" />
+      Exportar PDF
+    </button>
+  </div>
+  </app-consolidated-table>
+} @else {
 <app-status-grid
   [grid]="visibleGrid()"
   [loading]="store.gridLoad.loading()"
   [selected]="selected()"
   [emptyText]="emptyText()"
   [penalties]="store.penalties()"
+  [members]="store.membersByProject()"
+  [quickMenu]="store.isAdmin()"
   [selectedActivity]="selectedActivity()"
   [projectsOpenable]="store.isAdmin()"
   [selectedProject]="selectedProject()"
   (openProject)="openProject($event)"
   (open)="openCell($event)"
+  (menu)="openMenu($event)"
   (openActivity)="openActivity($event)"
-/>
+>
+  <div actions class="export">
+    <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('xlsx')">
+      <app-icon name="download" class="btn__icon" />
+      Exportar Excel
+    </button>
+    <button type="button" class="btn btn--ghost btn--sm" [disabled]="exporting() || !consolidated().length" (click)="export('pdf')">
+      <app-icon name="download" class="btn__icon" />
+      Exportar PDF
+    </button>
+  </div>
+</app-status-grid>
+}
+
+@if (menuCell(); as m) {
+  <app-cell-menu [cell]="m" (closed)="menuCell.set(null)" (details)="openMenuDetails()" />
+}
 
 @if (projectDetail(); as p) {
   <app-project-panel

@@ -32,9 +32,9 @@ export class UserListComponent {
 
   readonly search = signal('');
   readonly role = signal<Role | 'TODOS'>('TODOS');
-  /** Empty is every cohort. */
+  // Filtro
   readonly cohortId = signal('');
-  /** The cohorts to filter by; the filter is left out while there are none. */
+  // Turmas
   readonly cohorts = input<Cohort[]>([]);
   protected readonly cohortLabel = cohortLabel;
   readonly canAdd = input(true);
@@ -73,14 +73,11 @@ export class UserListComponent {
     this.search.set((event.target as HTMLInputElement).value);
   }
 
-<<<<<<< HEAD
   // Atribuição
-=======
   setCohort(event: Event): void {
     this.cohortId.set((event.target as HTMLSelectElement).value);
   }
 
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   setRole(event: Event): void {
     this.role.set((event.target as HTMLSelectElement).value as Role | 'TODOS');
   }
@@ -117,12 +114,8 @@ export class UserListComponent {
     this.newName.set((event.target as HTMLInputElement).value);
   }
 
-<<<<<<< HEAD
   // Renomeação
-  rename(u: User): void {
-=======
   async rename(u: User): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     const name = this.newName().trim();
     this.missingName.set('');
     if (!name) {
@@ -170,16 +163,7 @@ export class UserListComponent {
     }
   }
 
-<<<<<<< HEAD
   // Ativação
-  enable(u: User): void {
-    this.run(u, this.userService.enable(u.id));
-  }
-
-  // Reenvio
-  resendInvitation(u: User): void {
-    this.run(u, this.userService.resendInvitation(u.id));
-=======
   async enable(u: User): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Reativar conta',
@@ -200,7 +184,22 @@ export class UserListComponent {
     if (confirmed) {
       this.run(u, this.userService.resendInvitation(u.id));
     }
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
+  }
+
+  // Alternância
+  async toggleMfa(u: User): Promise<void> {
+    const enable = !u.mfaAtivo;
+    const confirmed = await this.confirmation.confirm({
+      title: enable ? 'Ativar MFA' : 'Desativar MFA',
+      message: enable
+        ? `Ativar a verificação em duas etapas da conta de ${u.nome}? A pessoa precisa ter configurado um aplicativo autenticador e passa a informar um código a cada entrada.`
+        : `Desativar a verificação em duas etapas da conta de ${u.nome}? A pessoa volta a entrar apenas com e-mail e senha.`,
+      confirmText: enable ? 'Ativar' : 'Desativar',
+      danger: !enable,
+    });
+    if (confirmed) {
+      this.run(u, this.userService.toggleMfa(u.id, enable));
+    }
   }
 
   // Execução

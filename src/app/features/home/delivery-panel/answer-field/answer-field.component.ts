@@ -1,7 +1,7 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { defer, finalize } from 'rxjs';
 
-import { Field, fileNameOf } from '../../../../core/models';
+import { Field, LINK_FORMATS, LinkFormat, extensionsOf, fileHintOf, fileNameOf, linkProblem } from '../../../../core/models';
 import { ApiError } from '../../../../core/services/http-error';
 import { SubmissionService } from '../../../../core/services/submission.service';
 import { action } from '../../../../core/state/action';
@@ -25,6 +25,17 @@ export class AnswerFieldComponent {
   readonly activityId = input.required<string>();
   readonly changed = output<string>();
   readonly uploading = output<boolean>();
+
+  // ---------------------------------------------------------------------------
+  // Formato
+  // ---------------------------------------------------------------------------
+
+  readonly extensions = computed(() => extensionsOf(this.field().formato));
+  readonly fileHint = computed(() => fileHintOf(this.field().formato));
+  private readonly linkRules = computed(() => LINK_FORMATS[(this.field().formato ?? 'GERAL') as LinkFormat] ?? LINK_FORMATS.GERAL);
+  readonly placeholder = computed(() => this.linkRules().placeholder);
+  readonly linkHint = computed(() => (this.field().formato === 'REPOSITORIO' || this.field().formato === 'VIDEO' ? this.linkRules().hint : ''));
+  readonly linkError = computed(() => linkProblem(this.value() ?? '', this.field().formato));
 
   readonly progress = signal<number | null>(null);
   private alive = true;

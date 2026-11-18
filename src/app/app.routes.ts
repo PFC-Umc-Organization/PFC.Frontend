@@ -54,6 +54,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/materials/materials.component').then((m) => m.MaterialsComponent),
       },
       {
+        path: 'avisos',
+        title: 'Avisos | Rafa Manager',
+        loadComponent: () => import('./features/announcements/announcements.component').then((m) => m.AnnouncementsComponent),
+      },
+      {
         path: 'referencias',
         title: 'Referências | Rafa Manager',
         loadComponent: () => import('./features/references/references.component').then((m) => m.ReferencesComponent),

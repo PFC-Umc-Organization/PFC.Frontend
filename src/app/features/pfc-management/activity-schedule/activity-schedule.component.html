@@ -30,66 +30,57 @@
     </p>
   }
 
-  <div class="table-scroll">
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th scope="col">Atividade</th>
-          <th scope="col">Data e hora limite</th>
+  @if (cards().length) {
+    <dl class="summary">
+      <div class="summary__item">
+        <dt>Vencidas</dt>
+        <dd>{{ summary().past }}</dd>
+      </div>
+      <div class="summary__item summary__item--wide">
+        <dt>Próxima</dt>
+        <dd>{{ summary().next ?? 'Nenhuma' }}</dd>
+      </div>
+      <div class="summary__item">
+        <dt>Futuras</dt>
+        <dd>{{ summary().future }}</dd>
+      </div>
+    </dl>
+  }
+
+  <ul class="cards">
+    @for (c of cards(); track c.activity.id) {
+      @if (manage() && editingId() === c.activity.id) {
+        <li class="cards__editor">
+          <app-activity-editor [activity]="c.activity" (closed)="editingId.set(null)" />
+        </li>
+      } @else {
+        <li class="item item--{{ c.status }}">
+          <div class="item__top">
+            <span class="item__status">{{ statusLabel[c.status] }}</span>
+            <span class="item__fields">{{ c.fields }} {{ c.fields === 1 ? 'campo' : 'campos' }}</span>
+          </div>
           @if (manage()) {
-            <th scope="col"><span class="sr-only">Ações</span></th>
-          }
-        </tr>
-      </thead>
-      <tbody>
-        @for (a of activities(); track a.id) {
-          @if (manage() && editingId() === a.id) {
-            <tr>
-              <td colspan="3">
-                <app-activity-editor [activity]="a" (closed)="editingId.set(null)" />
-              </td>
-            </tr>
+            <button type="button" class="item__open" [attr.aria-label]="'Abrir a atividade ' + c.activity.titulo + ' no editor'" (click)="select(c.activity.id)">
+              {{ c.activity.titulo }}
+            </button>
           } @else {
-            <tr>
-              <td class="cell-strong">
-                {{ a.titulo }}
-                @if (!a.turmaId) {
-                  <span class="muted text-sm"> · vale para todas as turmas</span>
-                }
-              </td>
-              <td>{{ a.prazo | deadline }}</td>
-              @if (manage()) {
-                <td>
-                  <div class="row">
-                    <button
-                      type="button"
-                      class="icon-action"
-                      (click)="editingId.set(a.id)"
-                      [attr.aria-label]="'Editar atividade ' + a.titulo"
-                    >
-                      <app-icon name="edit" />
-                    </button>
-                    <button
-                      type="button"
-                      class="icon-action"
-                      (click)="remove(a.id, a.titulo)"
-                      [attr.aria-label]="'Excluir atividade ' + a.titulo"
-                    >
-                      <app-icon name="trash" />
-                    </button>
-                  </div>
-                </td>
-              }
-            </tr>
+            <p class="item__title">{{ c.activity.titulo }}</p>
           }
-        } @empty {
-          <tr>
-            <td class="table-empty" [attr.colspan]="manage() ? 3 : 2">
-              {{ loading() ? 'Carregando as atividades…' : loadError() ? 'As atividades não foram carregadas.' : 'Nenhuma atividade cadastrada ainda.' }}
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-  </div>
+          <p class="item__due">{{ c.activity.prazo | deadline: true }}</p>
+          @if (!c.activity.turmaId) {
+            <p class="item__scope">Vale para todas as turmas</p>
+          }
+          @if (manage()) {
+            <button type="button" class="text-action text-action--danger item__remove" [attr.aria-label]="'Excluir atividade ' + c.activity.titulo" (click)="remove(c.activity.id, c.activity.titulo)">
+              Excluir
+            </button>
+          }
+        </li>
+      }
+    } @empty {
+      <li class="cards__empty">
+        {{ loading() ? 'Carregando as atividades…' : loadError() ? 'As atividades não foram carregadas.' : 'Nenhuma atividade cadastrada ainda.' }}
+      </li>
+    }
+  </ul>
 </section>

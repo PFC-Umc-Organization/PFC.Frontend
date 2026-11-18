@@ -6,6 +6,14 @@ import { CellRef } from '../status-grid/status-grid.component';
 // Filtros
 export type RowFilter = 'all' | 'failed' | 'late' | 'awaiting' | 'rejected' | 'no-advisor';
 export type PenaltyMap = ReadonlyMap<string, ProjectPenalties> | undefined;
+export type PenaltyBand = 0 | 1 | 2 | 3;
+export type MemberMap = ReadonlyMap<string, { rgm: string; nome: string }[]>;
+
+// Faixa
+export const bandOf = (active: number): PenaltyBand => Math.min(Math.max(active, 0), 3) as PenaltyBand;
+
+// Normalização
+export const folded = (text: string): string => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 // Padrão
 export const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
@@ -35,14 +43,20 @@ export function indicatorsOf(grid: StatusGrid, penalties: PenaltyMap, now = new 
 // Filtro
 export function visibleGridOf(
   grid: StatusGrid,
-  q: { search: string; advisorId: string; filter: RowFilter; penalties: PenaltyMap },
+  q: { search: string; advisorId: string; filter: RowFilter; penalties: PenaltyMap; band?: PenaltyBand | null; members?: MemberMap },
 ): StatusGrid {
-  const term = q.search.trim().toLocaleLowerCase('pt-BR');
+  const term = folded(q.search.trim());
+  const matches = (row: ProjectStatusRow): boolean =>
+    folded(row.project.nome).includes(term) ||
+    (q.members?.get(row.project.id) ?? []).some((m) => folded(m.nome).includes(term) || m.rgm.includes(term));
   const keep = (row: ProjectStatusRow): boolean => {
-    if (term && !row.project.nome.toLocaleLowerCase('pt-BR').includes(term)) {
+    if (term && !matches(row)) {
       return false;
     }
     if (q.advisorId && row.project.orientadorId !== q.advisorId) {
+      return false;
+    }
+    if (q.band !== null && q.band !== undefined && q.penalties && bandOf(q.penalties.get(row.project.id)?.ativas ?? 0) !== q.band) {
       return false;
     }
     switch (q.filter) {

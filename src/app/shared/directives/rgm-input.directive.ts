@@ -3,16 +3,12 @@ import { NgControl } from '@angular/forms';
 
 export const RGM_LENGTH = 11;
 
-/** The digits of one RGM, cut at its length. */
+// Dígitos
 export function rgmDigits(text: string): string {
   return text.replace(/\D/g, '').slice(0, RGM_LENGTH);
 }
 
-/**
- * Several RGMs, one per `separator`: each run of digits is an RGM and a longer
- * one is cut into RGM-sized pieces. `closing` leaves the separator after a
- * complete last RGM, so the next one starts on its own.
- */
+// Lista
 export function rgmList(text: string, separator: string, closing: boolean): string {
   const rgms = text
     .split(/\D+/)
@@ -21,7 +17,7 @@ export function rgmList(text: string, separator: string, closing: boolean): stri
   return closing && rgms.at(-1)?.length === RGM_LENGTH ? list + separator : list;
 }
 
-/** Where the caret goes: right after the `digits`-th digit of `text`, or at the end once past the last one. */
+// Cursor
 function caretAfter(text: string, digits: number): number {
   if (digits === 0) {
     return 0;
@@ -38,12 +34,7 @@ function caretAfter(text: string, digits: number): number {
   return text.length;
 }
 
-/**
- * Keeps an RGM field to digits. Alone, a field takes one RGM of up to 11 digits.
- * With `appRgm="list"` it takes several: a text area gets one per line and a
- * one-line field a comma-separated list, and the next one starts on its own
- * when an RGM is complete.
- */
+// Diretiva
 @Directive({
   selector: 'input[appRgm], textarea[appRgm]',
   host: {

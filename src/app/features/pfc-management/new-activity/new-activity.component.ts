@@ -87,12 +87,8 @@ export class NewActivityComponent {
     this.fields.update((fields) => (fields.length <= 1 ? fields : fields.filter((_, i) => i !== index)));
   }
 
-<<<<<<< HEAD
   // Publicação
-  publish(): void {
-=======
   async publish(): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.missingCohort.set('');
     this.failure.set('');
     if (this.form.invalid) {

@@ -86,3 +86,29 @@
     padding-inline: 1rem;
   }
 }
+
+.about {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.about__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.about__form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.about__text {
+  margin: 0;
+  font-size: 0.9375rem;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}

@@ -12,6 +12,8 @@
       [fileName]="value() ? fileNameOf(value()!) : ''"
       [progress]="progress()"
       [error]="error()"
+      [extensions]="extensions()"
+      [hint]="fileHint()"
       (picked)="upload($event)"
     />
   }
@@ -19,7 +21,21 @@
     <textarea [id]="inputId" class="control control--textarea" [value]="value() ?? ''" (input)="type($event)"></textarea>
   }
   @case ('LINK') {
-    <input [id]="inputId" class="control" type="url" placeholder="https://" [value]="value() ?? ''" (input)="type($event)" />
+    <input
+      [id]="inputId"
+      class="control"
+      type="url"
+      [placeholder]="placeholder()"
+      [class.control--invalid]="linkError()"
+      [attr.aria-invalid]="linkError() ? true : null"
+      [value]="value() ?? ''"
+      (input)="type($event)"
+    />
+    @if (linkError()) {
+      <span class="field__error" role="alert">{{ linkError() }}</span>
+    } @else if (linkHint()) {
+      <span class="field__hint">{{ linkHint() }}</span>
+    }
   }
   @default {
     <input [id]="inputId" class="control" type="text" [value]="value() ?? ''" (input)="type($event)" />

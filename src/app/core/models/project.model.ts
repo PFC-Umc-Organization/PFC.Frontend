@@ -58,7 +58,7 @@ export interface ProjectUpdate {
 // Validação
 // ---------------------------------------------------------------------------
 
-export const PROJECT_LIMITS = { nome: 150, descricao: 2000, integrantes: 10 } as const;
+export const PROJECT_LIMITS = { nome: 150, descricao: 1000, integrantes: 10 } as const;
 
 // Leitura
 export function parseClassmates(

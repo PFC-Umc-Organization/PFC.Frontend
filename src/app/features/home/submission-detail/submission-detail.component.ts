@@ -30,7 +30,7 @@ export class SubmissionDetailComponent {
   readonly projectName = input.required<string>();
   readonly activity = input.required<Activity>();
   readonly submission = input<Submission | null>(null);
-  /** The group's penalties, undefined while they load or when they failed to; every activity of the grid. */
+  // Penalidades
   readonly penalties = input<ProjectPenalties | undefined>(undefined);
   readonly activities = input<Activity[]>([]);
   readonly closed = output();
@@ -76,12 +76,8 @@ export class SubmissionDetailComponent {
     this.comment.set((event.target as HTMLTextAreaElement).value);
   }
 
-<<<<<<< HEAD
   // Validação
-  validate(status: ValidationStatus): void {
-=======
   async validate(status: ValidationStatus): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     const comentario = this.comment().trim();
     if (status === 'NAO_VALIDADA' && !comentario) {
       this.missingComment.set('Para não validar, escreva no comentário o que o grupo precisa corrigir.');

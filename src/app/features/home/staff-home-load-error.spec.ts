@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 
 import { Cohort } from '../../core/models';
@@ -21,6 +22,7 @@ function configure(cohorts: () => Observable<Cohort[]>, programs: () => Observab
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
+      provideRouter([]),
       { provide: AuthService, useValue: { role: signal('ADMIN'), user: signal({ id: 'me', perfil: 'ADMIN' }) } },
       { provide: CohortService, useValue: { list: cohorts } },
       { provide: ProgramService, useValue: { list: programs } },

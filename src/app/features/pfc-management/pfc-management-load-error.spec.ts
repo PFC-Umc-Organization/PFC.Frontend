@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 
 import { Cohort, Program, Project, ProjectPenalties, User } from '../../core/models';
@@ -39,6 +40,7 @@ async function render(answers: Answers = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
+      provideRouter([]),
       { provide: AuthService, useValue: { role: signal(answers.role ?? 'ADMIN') } },
       { provide: CohortService, useValue: { list: answers.cohorts ?? (() => of([cohort])) } },
       { provide: CourseService, useValue: { list: () => of([]) } },
@@ -57,8 +59,7 @@ async function render(answers: Answers = {}) {
     button(label).click();
     await fixture.whenStable();
   };
-  await click('PFCs dos alunos');
-  return { host, button, click };
+  return { host, button, click, fixture };
 }
 
 describe('PFC management load errors (Turmas e PFC)', () => {
@@ -74,7 +75,7 @@ describe('PFC management load errors (Turmas e PFC)', () => {
   it('shows no error when everything loads', async () => {
     const { host } = await render();
     expect(host.querySelector('.alert')).toBeNull();
-    expect(host.textContent).toContain('Athena');
+    expect(host.textContent).toContain('Engenharia de Software');
   });
 
   it('survives failed cohorts, does not claim a missing program, and recovers on retry', async () => {
@@ -84,7 +85,7 @@ describe('PFC management load errors (Turmas e PFC)', () => {
 
     await click('Tentar novamente');
     expect(host.querySelector('.alert')).toBeNull();
-    expect(host.textContent).toContain('Athena');
+    expect(host.textContent).toContain('Engenharia de Software');
   });
 
   it('does not claim a missing program when programs failed to load', async () => {
@@ -100,71 +101,29 @@ describe('PFC management load errors (Turmas e PFC)', () => {
     expect(host.textContent).toContain('Engenharia de Software');
   });
 
-  it('warns when user names failed to load and recovers on retry', async () => {
-    const { host, click } = await render({ users: failingOnce([] as User[]) });
-    expect(host.textContent).toContain('Não foi possível carregar os nomes de integrantes e orientadores');
-
-    await click('Tentar novamente');
-    expect(host.querySelector('.alert')).toBeNull();
-  });
-
-  describe('project status', () => {
-    const penalties = (ativas: number, reprovado: boolean): ProjectPenalties => ({
-      projetoId: 'pr1',
-      ativas,
-      limite: 3,
-      reprovado,
-      penalidades: [],
-    });
-    const statusCell = (host: HTMLElement) => {
-      const headers = Array.from(host.querySelectorAll('thead th')).map((th) => th.textContent?.trim());
-      return host.querySelectorAll('tbody td')[headers.indexOf('Status')].textContent?.replace(/\s+/g, ' ').trim();
-    };
-
-    it('shows a group below the limit as in progress, without counting zero penalties', async () => {
-      const { host } = await render({ penalties: () => of([penalties(0, false)]) });
-      expect(statusCell(host)).toBe('Em andamento');
-    });
-
-    it('shows how many penalties a group in progress has', async () => {
-      const { host } = await render({ penalties: () => of([penalties(2, false)]) });
-      expect(statusCell(host)).toBe('Em andamento · 2 de 3 penalidades');
-    });
-
-    it('shows a group at the limit as failed', async () => {
-      const { host } = await render({ penalties: () => of([penalties(3, true)]) });
-      expect(statusCell(host)).toBe('Reprovado');
-    });
-
-    it('also shows the status to an advisor, whose table has no advisor column', async () => {
-      const { host } = await render({ role: 'ORIENTADOR', penalties: () => of([penalties(3, true)]) });
-      expect(statusCell(host)).toBe('Reprovado');
-    });
-
-    it('does not guess a status when loading failed, and recovers on retry', async () => {
-      const { host, click } = await render({ penalties: failingOnce([penalties(3, true)]) });
-      expect(host.textContent).toContain('Não foi possível carregar o status dos PFCs. serviço fora do ar');
-      expect(statusCell(host)).toBe('—');
-
-      await click('Tentar novamente');
-      expect(host.querySelector('.alert')).toBeNull();
-      expect(statusCell(host)).toBe('Reprovado');
-    });
-  });
-
-  it('keeps move and remove locked when the project count is unknown, until a retry works', async () => {
+  it('keeps cohort removal locked when the project count is unknown, until a retry works', async () => {
     let reads = 0;
-    const allProjects = () => (++reads <= 2 ? failure<Project[]>() : of([] as Project[]));
-    const { host, click } = await render({
+    const allProjects = () => (++reads <= 1 ? failure<Project[]>() : of([] as Project[]));
+    const { host, click, fixture } = await render({
       projects: (programId) => (programId ? of([project]) : allProjects()),
     });
     await click('Cursos e turmas');
     expect(host.textContent).toContain('Não foi possível contar os PFCs');
-    const remove = () => host.querySelector<HTMLButtonElement>('button[aria-label^="Excluir programa"]')!;
-    expect(remove().disabled).toBe(true);
+
+    // Menu da turma
+    const removeLocked = async () => {
+      host.querySelector<HTMLButtonElement>('button[aria-label^="Ações da turma"]')!.click();
+      await fixture.whenStable();
+      const item = Array.from(host.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find((b) => b.textContent?.includes('Excluir'))!;
+      const locked = item.disabled;
+      host.querySelector<HTMLButtonElement>('button[aria-label^="Ações da turma"]')!.click();
+      await fixture.whenStable();
+      return locked;
+    };
+    expect(await removeLocked()).toBe(true);
 
     await click('Tentar novamente');
     expect(host.querySelector('.alert')).toBeNull();
-    expect(remove().disabled).toBe(false);
+    expect(await removeLocked()).toBe(false);
   });
 });

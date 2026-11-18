@@ -1,0 +1,122 @@
+.count {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.empty {
+  margin: 0;
+  padding: 2.5rem 1.25rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.sheet th,
+.sheet td {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 0;
+  border-right-color: color-mix(in oklch, var(--border) 60%, transparent);
+  text-align: left;
+  vertical-align: middle;
+  background: var(--card);
+}
+
+.sheet thead th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  background: color-mix(in oklch, var(--primary) 3%, var(--card));
+  white-space: nowrap;
+}
+
+.sheet tbody tr:hover > *,
+.row--active > * {
+  background: color-mix(in oklch, var(--primary) 4%, var(--card));
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.project-cell {
+  min-width: 14rem;
+}
+
+.project {
+  display: grid;
+  gap: 0.125rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: inherit;
+}
+
+button.project {
+  width: 100%;
+  cursor: pointer;
+}
+
+button.project:hover .project__name {
+  text-decoration: underline;
+}
+
+button.project:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.project__name {
+  font-weight: 600;
+}
+
+.project__members {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted-foreground);
+}
+
+.progress {
+  display: block;
+  height: 0.25rem;
+  margin-top: 0.25rem;
+  background: var(--muted);
+}
+
+.progress > span {
+  display: block;
+  height: 100%;
+  background: var(--primary);
+}
+
+.status {
+  font-weight: 600;
+}
+
+.status--approved {
+  color: var(--success);
+}
+
+.status--failed {
+  color: var(--destructive);
+}
+
+.status--ongoing {
+  color: var(--primary);
+}

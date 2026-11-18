@@ -29,9 +29,6 @@
     @case ('structure') {
       <app-structure-section />
     }
-    @case ('projects') {
-      <app-project-section />
-    }
     @case ('activities') {
       @if (activityFormOpen()) {
         <app-new-activity (closed)="activityFormOpen.set(false)" (created)="activityFormOpen.set(false)" />

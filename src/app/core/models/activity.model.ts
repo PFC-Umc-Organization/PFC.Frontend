@@ -17,6 +17,7 @@ export interface Field {
   rotulo: string;
   tipo: FieldType;
   obrigatorio: boolean;
+  formato?: string;
 }
 
 export type NewField = Omit<Field, 'id'>;

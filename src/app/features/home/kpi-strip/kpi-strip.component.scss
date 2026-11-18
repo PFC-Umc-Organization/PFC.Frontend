@@ -1,0 +1,173 @@
+:host {
+  display: block;
+}
+
+.strip {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.strip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.strip__title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi {
+  display: grid;
+  align-content: start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem 1rem;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  background: var(--card);
+}
+
+.kpi--bronze {
+  border-top-color: var(--bronze);
+}
+
+.kpi--success {
+  border-top-color: var(--success);
+}
+
+.kpi__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.kpi__note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 0;
+}
+
+.stats dt {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.stats dd {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.ok {
+  color: var(--success);
+}
+
+.info {
+  color: var(--primary);
+}
+
+.bad {
+  color: var(--destructive);
+}
+
+.bar {
+  display: flex;
+  height: 0.625rem;
+  background: var(--muted);
+}
+
+.bar__seg {
+  display: block;
+  height: 100%;
+}
+
+.bar__seg--ok {
+  background: var(--success);
+}
+
+.bar__seg--info {
+  background: var(--primary);
+}
+
+.bar__seg--bad {
+  background: var(--destructive);
+}
+
+.bands {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.band {
+  display: grid;
+  gap: 0.125rem;
+  width: 100%;
+  padding: 0.5rem 0.5rem 0.625rem;
+  border: 1px solid var(--border);
+  background: var(--card);
+  text-align: left;
+  font: inherit;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.band:hover,
+.band--active {
+  background: color-mix(in oklch, var(--bronze) 10%, var(--card));
+}
+
+.band--active {
+  box-shadow: inset 0 -2px 0 var(--bronze);
+}
+
+.band:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.band__value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--bronze);
+}
+
+.band--bad .band__value {
+  color: var(--destructive);
+}
+
+.band__label {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.band__pct {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}

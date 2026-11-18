@@ -8,6 +8,7 @@ import { ActivityService } from '../core/services/activity.service';
 import { AuthService } from '../core/services/auth.service';
 import { CohortService } from '../core/services/cohort.service';
 import { MaterialService } from '../core/services/material.service';
+import { AnnouncementService } from '../core/services/announcement.service';
 import { PenaltyService } from '../core/services/penalty.service';
 import { ProjectService } from '../core/services/project.service';
 import { SubmissionService } from '../core/services/submission.service';
@@ -38,6 +39,7 @@ function studentProviders(ofProject: () => Observable<ProjectPenalties>) {
     provideZonelessChangeDetection(),
     provideRouter([]),
     { provide: ProjectService, useValue: { myProject: () => of(project) } },
+    { provide: AnnouncementService, useValue: { list: () => of([]) } },
     { provide: PenaltyService, useValue: { ofProject } },
     { provide: ActivityService, useValue: { list: () => of([]) } },
     { provide: SubmissionService, useValue: { projectTimeline: () => of([]), ofProject: () => of([]), changes: () => of(undefined) } },

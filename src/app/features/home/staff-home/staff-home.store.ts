@@ -1,18 +1,49 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { combineLatest, map } from 'rxjs';
 
-import { Cohort, Program, Project, ProjectPenalties, User, currentTerm, isStaff } from '../../../core/models';
+import { Cohort, Program, Project, ProjectPenalties, User, cohortLabel, currentTerm, isStaff } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CohortService } from '../../../core/services/cohort.service';
 import { PenaltyService } from '../../../core/services/penalty.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { SubmissionService } from '../../../core/services/submission.service';
+import { StatusGrid } from '../../../core/services/submission.service';
 import { UserService } from '../../../core/services/user.service';
 import { loadable } from '../../../core/state/loadable';
-import { EMPTY_GRID } from './staff-home.grid';
+import { EMPTY_GRID, MemberMap } from './staff-home.grid';
 import { pickCohortId } from './staff-home.selection';
 
+export const ALL_COHORTS = '__todas__';
+
+// ---------------------------------------------------------------------------
+// Consolidação
+// ---------------------------------------------------------------------------
+
+interface Scope {
+  grid: StatusGrid;
+  programOf: ReadonlyMap<string, string>;
+}
+
+const EMPTY_SCOPE: Scope = { grid: EMPTY_GRID, programOf: new Map() };
+
+// Junção
+function mergeScope(parts: { programId: string; grid: StatusGrid }[]): Scope {
+  return {
+    grid: {
+      activities: parts.find((p) => p.grid.activities.length)?.grid.activities ?? [],
+      rows: parts.flatMap((p) => p.grid.rows),
+      submissions: parts.flatMap((p) => p.grid.submissions),
+    },
+    programOf: new Map(parts.flatMap((p) => p.grid.rows.map((r): [string, string] => [r.project.id, p.programId]))),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Store
+// ---------------------------------------------------------------------------
+
 @Injectable()
 export class StaffHomeStore {
   private readonly auth = inject(AuthService);
@@ -25,6 +56,7 @@ export class StaffHomeStore {
 
   private readonly isAdvisor = computed(() => this.auth.role() === 'ORIENTADOR');
   readonly isAdmin = computed(() => this.auth.role() === 'ADMIN');
+  readonly advisorId = computed(() => (this.isAdvisor() ? (this.auth.user()?.id ?? null) : null));
 
   readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
   readonly programs = loadable({ source: () => this.programService.list(), initial: [] as Program[] });
@@ -34,12 +66,17 @@ export class StaffHomeStore {
     initial: [] as Project[],
   });
 
-  private readonly chosen = signal<string | null>(null);
+  private readonly chosen = signal<string | null>(inject(ActivatedRoute).snapshot.queryParamMap.get('turma'));
   readonly choosingCohort = computed(() => this.isAdvisor() && this.advised.loading() && !this.chosen());
+
+  readonly allCohorts = computed(() => this.chosen() === ALL_COHORTS);
 
   readonly cohortId = computed(() => {
     const cohorts = this.cohorts.value();
     const chosen = this.chosen();
+    if (this.allCohorts()) {
+      return '';
+    }
     if (chosen && cohorts.some((c) => c.id === chosen)) {
       return chosen;
     }
@@ -52,17 +89,29 @@ export class StaffHomeStore {
 
   private readonly programByCohort = computed(() => new Map(this.programs.value().map((p) => [p.cursoId, p])));
   readonly programId = computed(() => this.programByCohort().get(this.cohortId())?.id);
+  readonly selectedValue = computed(() => (this.allCohorts() ? ALL_COHORTS : this.cohortId()));
+
+  readonly scopeIds = computed(() => {
+    if (!this.allCohorts()) {
+      const id = this.programId();
+      return id ? [id] : [];
+    }
+    const cohortIds = new Set(this.cohorts.value().map((c) => c.id));
+    const advised = this.isAdvisor() ? new Set(this.advised.value().map((p) => p.programaId)) : null;
+    return this.programs.value().filter((p) => cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
+  });
+  private readonly scopeParams = computed(() => (this.scopeIds().length ? this.scopeIds() : null));
 
   readonly gridLoad = loadable({
-    source: (programId: string) => this.submissionService.statusGrid(programId),
-    params: computed(() => this.programId() ?? null),
-    initial: EMPTY_GRID,
+    source: (ids: string[]) =>
+      combineLatest(ids.map((programId) => this.submissionService.statusGrid(programId).pipe(map((grid) => ({ programId, grid }))))).pipe(map(mergeScope)),
+    params: this.scopeParams,
+    initial: EMPTY_SCOPE,
   });
-  readonly grid = this.gridLoad.value;
+  readonly grid = computed(() => this.gridLoad.value().grid);
 
   readonly userList = loadable({
     source: () => this.userService.list(),
-    params: computed(() => (this.isAdmin() ? true : null)),
     initial: [] as User[],
   });
   readonly advisors = computed(() => this.userList.value().filter((u) => isStaff(u.perfil)));
@@ -70,12 +119,41 @@ export class StaffHomeStore {
   readonly nameOf = (rgm: string): string => this.nameByRgm().get(rgm) ?? rgm;
 
   readonly projectList = loadable({
-    source: (programId: string) => this.projectService.list(programId),
-    params: computed(() => (this.isAdmin() ? (this.programId() ?? null) : null)),
+    source: (ids: string[]) => combineLatest(ids.map((id) => this.projectService.list(id))).pipe(map((lists) => lists.flat())),
+    params: computed(() => (this.isAdmin() ? this.scopeParams() : null)),
     initial: [] as Project[],
   });
-  readonly projects = this.projectList.value;
+  readonly projects = computed(() => {
+    if (this.isAdmin()) {
+      return this.projectList.value();
+    }
+    const ids = new Set(this.scopeIds());
+    return this.advised.value().filter((p) => ids.has(p.programaId));
+  });
   readonly projectById = computed(() => new Map(this.projects().map((p) => [p.id, p])));
+
+  readonly membersByProject = computed<MemberMap>(
+    () => new Map(this.projects().map((p) => [p.id, p.integrantes.map((rgm) => ({ rgm, nome: this.nameOf(rgm) }))])),
+  );
+
+  private readonly cohortById = computed(() => new Map(this.cohorts.value().map((c) => [c.id, c])));
+  private readonly cohortByProgram = computed(() => new Map(this.programs.value().map((p) => [p.id, p.cursoId])));
+
+  // Turma
+  readonly cohortLabelOf = (projectId: string): string => {
+    const programId = this.gridLoad.value().programOf.get(projectId);
+    const cohort = this.cohortById().get(this.cohortByProgram().get(programId ?? '') ?? '');
+    return cohort ? cohortLabel(cohort) : '—';
+  };
+
+  // Orientador
+  readonly advisorNameOf = (id: string | undefined): string => {
+    if (!id) {
+      return 'Sem orientador';
+    }
+    const own = this.auth.user();
+    return this.advisors().find((a) => a.id === id)?.nome ?? (own?.id === id ? own.nome : '—');
+  };
 
   readonly gridAdvisors = computed(() => {
     const ids = new Set(this.projects().map((p) => p.orientadorId));
@@ -83,8 +161,8 @@ export class StaffHomeStore {
   });
 
   readonly penaltyList = loadable({
-    source: (programId: string) => this.penaltyService.ofProgram(programId),
-    params: computed(() => this.programId() ?? null),
+    source: (ids: string[]) => combineLatest(ids.map((id) => this.penaltyService.ofProgram(id))).pipe(map((lists) => lists.flat())),
+    params: this.scopeParams,
     initial: [] as ProjectPenalties[],
   });
   readonly penalties = computed(() =>

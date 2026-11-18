@@ -11,14 +11,10 @@ import { ActivityFieldsComponent, activityForm } from '../activity-fields/activi
 import { FieldAdderComponent } from '../field-adder/field-adder.component';
 import { FieldListComponent } from '../field-list/field-list.component';
 
-/** A field of the draft: saved ones keep their id, new ones have none yet. */
+// Rascunho
 type DraftField = NewField & { id?: string };
 
-/**
- * Edits an activity with a single "Salvar": fields added or removed stay in a
- * draft until then, and "Cancelar" drops everything. The draft follows the
- * activity, so after a partial failure it shows what was really saved.
- */
+// Edição
 @Component({
   selector: 'app-activity-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,7 +52,7 @@ export class ActivityEditorComponent implements OnInit {
   readonly error = this.saveAction.error;
   readonly partialSave = this.partial.asReadonly();
 
-  /** Filled once; the fields come from the activity through the draft. */
+  // Inicialização
   ngOnInit(): void {
     const { titulo, prazo, descricao } = this.activity();
     this.form.setValue({ titulo, prazo: prazo.slice(0, 16), descricao });

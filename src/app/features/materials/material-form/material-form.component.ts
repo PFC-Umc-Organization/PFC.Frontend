@@ -108,12 +108,8 @@ export class MaterialFormComponent {
     this.uploadAction.run(file);
   }
 
-<<<<<<< HEAD
   // Publicação
-  publish(): void {
-=======
   async publish(): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
