@@ -93,6 +93,7 @@
           <th scope="col">E-mail</th>
           <th scope="col">RGM</th>
           <th scope="col">Status</th>
+          <th scope="col">MFA</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
@@ -139,49 +140,19 @@
               } @else {
                 <span class="status-text status-text--ok">Ativa</span>
               }
-              @if (u.status === 'ATIVO') {
-                <span class="muted mfa-status">{{ u.mfaAtivo ? 'MFA ativo' : 'MFA inativo' }}</span>
-              }
+            </td>
+            <td>
+              <span class="mfa-badge" [class.mfa-badge--on]="u.mfaAtivo">{{ u.mfaAtivo ? 'Ativo' : 'Inativo' }}</span>
             </td>
             <td class="row-actions">
               @if (renamingId() !== u.id) {
-                <div class="actions">
-                  <button type="button" class="text-action" [disabled]="busy()" (click)="startRename(u)" [attr.aria-label]="'Editar nome de ' + u.email">
-                    Editar nome
-                  </button>
-                  @if (u.perfil !== 'ALUNO' && u.id !== myId()) {
-                    <button type="button" class="text-action" [disabled]="busy()" (click)="changeRole(u)" [attr.aria-label]="'Trocar perfil de ' + u.email">
-                      Trocar perfil
-                    </button>
-                  }
-                  @if (u.perfil !== 'ALUNO' && u.status === 'ATIVO' && u.aguardandoPrimeiroAcesso) {
-                    <button type="button" class="text-action" [disabled]="busy()" (click)="resendInvitation(u)" [attr.aria-label]="'Reenviar convite para ' + u.email">
-                      Reenviar convite
-                    </button>
-                  }
-                  @if (u.status === 'ATIVO') {
-                    <button type="button" class="text-action" [disabled]="busy()" (click)="toggleMfa(u)" [attr.aria-label]="(u.mfaAtivo ? 'Desativar MFA de ' : 'Ativar MFA de ') + u.email">
-                      {{ u.mfaAtivo ? 'Desativar MFA' : 'Ativar MFA' }}
-                    </button>
-                  }
-                  @if (u.id !== myId()) {
-                    @if (u.status === 'ATIVO') {
-                      <button type="button" class="text-action text-action--danger" [disabled]="busy()" (click)="disable(u)" [attr.aria-label]="'Desativar a conta de ' + u.email">
-                        Desativar
-                      </button>
-                    } @else {
-                      <button type="button" class="text-action" [disabled]="busy()" (click)="enable(u)" [attr.aria-label]="'Reativar a conta de ' + u.email">
-                        Reativar
-                      </button>
-                    }
-                  }
-                </div>
+                <app-row-menu [label]="'Ações da conta'" [items]="menuOf(u)" (chosen)="choose(u, $event)" />
               }
             </td>
           </tr>
         } @empty {
           <tr>
-            <td class="table-empty" colspan="6">
+            <td class="table-empty" colspan="7">
               @if (users.loading()) {
                 Carregando as contas…
               } @else if (loadError()) {

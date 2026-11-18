@@ -9,6 +9,7 @@ export interface RowMenuItem {
   danger?: boolean;
   disabled?: boolean;
   hint?: string;
+  separatorBefore?: boolean;
 }
 
 // Componente

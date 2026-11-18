@@ -47,6 +47,12 @@ async function openCellDetails(page: Page, name: string | RegExp) {
   await page.getByRole('menuitem', { name: 'Abrir detalhes completos' }).click();
 }
 
+/** The account actions live in the row's ⋮ menu. */
+async function accountAction(page: Page, email: string, action: string) {
+  await page.getByRole('row', { name: new RegExp(email) }).getByRole('button', { name: 'Ações da conta' }).click();
+  await page.getByRole('menuitem', { name: action, exact: true }).click();
+}
+
 async function noSideScroll(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
 }
@@ -263,31 +269,38 @@ test.describe('coordination', () => {
     await signIn(page, ADMIN);
     await page.goto('/usuarios');
     await expect(page.getByRole('row', { name: /prof@umc.br/ })).toContainText('Aguardando primeiro acesso');
-    await expect(page.getByRole('button', { name: 'Desativar a conta de leonardoalvino@umc.br' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Trocar perfil de leonardoalvino@umc.br' })).toHaveCount(0);
+    await expect(page.getByRole('row', { name: /prof@umc.br/ })).toContainText('Inativo');
 
-    await page.getByRole('button', { name: 'Editar nome de ana@umc.br' }).click();
+    // Your own account offers neither disabling nor changing the profile.
+    await page.getByRole('row', { name: /leonardoalvino@umc.br/ }).getByRole('button', { name: 'Ações da conta' }).click();
+    await expect(page.getByRole('menuitem', { name: 'Desativar', exact: true })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Trocar perfil' })).toHaveCount(0);
+    await expect(page.getByRole('menuitem', { name: 'Ativar MFA' })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
+
+    await accountAction(page, 'ana@umc.br', 'Editar nome');
     await page.getByLabel('Nome de ana@umc.br', { exact: true }).fill('Ana Souza');
     await page.getByRole('button', { name: 'Salvar' }).click();
     await confirmDialog(page, 'Salvar');
     await expect(page.getByRole('row', { name: /Ana Souza/ })).toBeVisible();
     expect(api.db.users['ana@umc.br'].nome).toBe('Ana Souza');
 
-    await page.getByRole('button', { name: 'Desativar a conta de ana@umc.br' }).click();
+    await accountAction(page, 'ana@umc.br', 'Desativar');
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toContainText('pode ser reativada');
     await dialog.getByRole('button', { name: 'Desativar' }).click();
     await expect(page.getByRole('row', { name: /Ana Souza/ })).toContainText('Desativada');
-    await page.getByRole('button', { name: 'Reativar a conta de ana@umc.br' }).click();
+    await accountAction(page, 'ana@umc.br', 'Reativar');
     await confirmDialog(page, 'Reativar');
     await expect(page.getByRole('row', { name: /Ana Souza/ })).toContainText('Ativa');
 
-    await page.getByRole('button', { name: 'Trocar perfil de ana@umc.br' }).click();
+    await accountAction(page, 'ana@umc.br', 'Trocar perfil');
     await expect(dialog).toContainText('de Orientador para Coordenação');
     await dialog.getByRole('button', { name: 'Cancelar' }).click();
     expect(api.db.users['ana@umc.br'].perfil).toBe('ORIENTADOR');
 
-    await page.getByRole('button', { name: 'Reenviar convite para prof@umc.br' }).click();
+    await accountAction(page, 'prof@umc.br', 'Reenviar convite');
     await confirmDialog(page, 'Reenviar');
     await expect(page.locator('.ok', { hasText: 'Convite reenviado' })).toBeVisible();
     expect(api.failed).toEqual([]);

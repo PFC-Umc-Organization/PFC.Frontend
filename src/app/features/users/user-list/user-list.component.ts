@@ -8,13 +8,14 @@ import { UserService } from '../../../core/services/user.service';
 import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RowMenuComponent, RowMenuItem } from '../../../shared/components/row-menu/row-menu.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
 // Componente
 @Component({
   selector: 'app-user-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, ScrollHintDirective],
+  imports: [IconComponent, RowMenuComponent, ScrollHintDirective],
   templateUrl: './user-list.component.html',
   styleUrl: './user-list.component.scss',
 })
@@ -102,6 +103,57 @@ export class UserListComponent {
   readonly error = computed(() => this.missingName() || this.change.error());
   readonly renamingId = signal<string | null>(null);
   readonly newName = signal('');
+
+  // ---------------------------------------------------------------------------
+  // Menu
+  // ---------------------------------------------------------------------------
+
+  // Ações
+  menuOf(u: User): RowMenuItem[] {
+    const busy = this.busy();
+    const own = u.id === this.myId();
+    const active = u.status === 'ATIVO';
+    const items: RowMenuItem[] = [{ id: 'rename', label: 'Editar nome', disabled: busy }];
+    if (u.perfil !== 'ALUNO' && !own) {
+      items.push({ id: 'role', label: 'Trocar perfil', disabled: busy });
+    }
+    if (u.perfil !== 'ALUNO' && active && u.aguardandoPrimeiroAcesso) {
+      items.push({ id: 'invite', label: 'Reenviar convite', disabled: busy });
+    }
+    if (active) {
+      items.push({ id: 'mfa', label: u.mfaAtivo ? 'Desativar MFA' : 'Ativar MFA', disabled: busy });
+    }
+    if (!own && !active) {
+      items.push({ id: 'enable', label: 'Reativar', disabled: busy });
+    }
+    if (!own && active) {
+      items.push({ id: 'disable', label: 'Desativar', danger: true, separatorBefore: true, disabled: busy });
+    }
+    return items;
+  }
+
+  // Escolha
+  choose(u: User, id: string): void {
+    switch (id) {
+      case 'rename':
+        this.startRename(u);
+        break;
+      case 'role':
+        void this.changeRole(u);
+        break;
+      case 'invite':
+        void this.resendInvitation(u);
+        break;
+      case 'mfa':
+        void this.toggleMfa(u);
+        break;
+      case 'enable':
+        void this.enable(u);
+        break;
+      default:
+        void this.disable(u);
+    }
+  }
 
   // Renomeação
   startRename(u: User): void {
