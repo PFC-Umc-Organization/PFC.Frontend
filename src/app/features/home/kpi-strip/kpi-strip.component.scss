@@ -2,30 +2,9 @@
   display: block;
 }
 
-.strip {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.strip__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.strip__title {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
-
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   gap: 0.75rem;
 }
 
@@ -79,76 +58,41 @@
   font-variant-numeric: tabular-nums;
 }
 
-.ok {
+.tone-ok {
   color: var(--success);
 }
 
-.info {
+.tone-info {
   color: var(--primary);
 }
 
-.bad {
+.tone-bad {
   color: var(--destructive);
 }
 
-.bar {
+.split {
   display: flex;
+  width: 100%;
   height: 0.625rem;
+  overflow: hidden;
   background: var(--muted);
 }
 
-.bar__seg {
-  display: block;
-  height: 100%;
+.split__seg {
+  flex-basis: 0;
+  min-width: 0;
 }
 
-.bar__seg--ok {
+.split__seg--ok {
   background: var(--success);
 }
 
-.bar__seg--info {
+.split__seg--info {
   background: var(--primary);
 }
 
-.bar__seg--bad {
+.split__seg--bad {
   background: var(--destructive);
-}
-
-.bar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-height: 2.75rem;
-  padding: 0 0.5rem 0 1rem;
-  border: 1px solid var(--border);
-  background: #fff;
-}
-
-.bar__label {
-  flex: none;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
-}
-
-.bar__summary {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.8125rem;
-  color: var(--muted-foreground);
-}
-
-.bar__toggle {
-  flex: none;
-}
-
-.bar__filter {
-  flex: none;
 }
 
 .chips {
@@ -192,10 +136,6 @@
   color: var(--primary);
 }
 
-.chip__label {
-  color: inherit;
-}
-
 .chip__value {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -208,4 +148,72 @@
 .chip__pct {
   font-size: 0.75rem;
   color: var(--muted-foreground);
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in oklch, black 55%, transparent);
+  cursor: default;
+}
+
+.modal {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 64rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 1.5rem;
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--primary);
+  background: var(--background);
+  box-shadow: 0 16px 48px color-mix(in oklch, black 30%, transparent);
+}
+
+.modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.modal__subtitle {
+  margin: 0.125rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.modal__close {
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.modal__close:hover {
+  color: var(--foreground);
+}
+
+.modal__close:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

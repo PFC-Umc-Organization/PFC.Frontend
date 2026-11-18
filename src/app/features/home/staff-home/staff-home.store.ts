@@ -12,6 +12,7 @@ import { SubmissionService } from '../../../core/services/submission.service';
 import { StatusGrid } from '../../../core/services/submission.service';
 import { UserService } from '../../../core/services/user.service';
 import { loadable } from '../../../core/state/loadable';
+import { retryTransient } from '../../../core/state/retry';
 import { EMPTY_GRID, MemberMap } from './staff-home.grid';
 import { pickCohortId } from './staff-home.selection';
 
@@ -58,10 +59,10 @@ export class StaffHomeStore {
   readonly isAdmin = computed(() => this.auth.role() === 'ADMIN');
   readonly advisorId = computed(() => (this.isAdvisor() ? (this.auth.user()?.id ?? null) : null));
 
-  readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
-  readonly programs = loadable({ source: () => this.programService.list(), initial: [] as Program[] });
+  readonly cohorts = loadable({ source: () => this.cohortService.list().pipe(retryTransient()), initial: [] as Cohort[] });
+  readonly programs = loadable({ source: () => this.programService.list().pipe(retryTransient()), initial: [] as Program[] });
   readonly advised = loadable({
-    source: () => this.projectService.list(),
+    source: () => this.projectService.list().pipe(retryTransient()),
     params: computed(() => (this.isAdvisor() ? true : null)),
     initial: [] as Project[],
   });
@@ -104,14 +105,14 @@ export class StaffHomeStore {
 
   readonly gridLoad = loadable({
     source: (ids: string[]) =>
-      combineLatest(ids.map((programId) => this.submissionService.statusGrid(programId).pipe(map((grid) => ({ programId, grid }))))).pipe(map(mergeScope)),
+      combineLatest(ids.map((programId) => this.submissionService.statusGrid(programId).pipe(retryTransient(), map((grid) => ({ programId, grid }))))).pipe(map(mergeScope)),
     params: this.scopeParams,
     initial: EMPTY_SCOPE,
   });
   readonly grid = computed(() => this.gridLoad.value().grid);
 
   readonly userList = loadable({
-    source: () => this.userService.list(),
+    source: () => this.userService.list().pipe(retryTransient()),
     initial: [] as User[],
   });
   readonly advisors = computed(() => this.userList.value().filter((u) => isStaff(u.perfil)));
@@ -119,7 +120,7 @@ export class StaffHomeStore {
   readonly nameOf = (rgm: string): string => this.nameByRgm().get(rgm) ?? rgm;
 
   readonly projectList = loadable({
-    source: (ids: string[]) => combineLatest(ids.map((id) => this.projectService.list(id))).pipe(map((lists) => lists.flat())),
+    source: (ids: string[]) => combineLatest(ids.map((id) => this.projectService.list(id).pipe(retryTransient()))).pipe(map((lists) => lists.flat())),
     params: computed(() => (this.isAdmin() ? this.scopeParams() : null)),
     initial: [] as Project[],
   });
@@ -161,7 +162,7 @@ export class StaffHomeStore {
   });
 
   readonly penaltyList = loadable({
-    source: (ids: string[]) => combineLatest(ids.map((id) => this.penaltyService.ofProgram(id))).pipe(map((lists) => lists.flat())),
+    source: (ids: string[]) => combineLatest(ids.map((id) => this.penaltyService.ofProgram(id).pipe(retryTransient()))).pipe(map((lists) => lists.flat())),
     params: this.scopeParams,
     initial: [] as ProjectPenalties[],
   });
@@ -171,16 +172,30 @@ export class StaffHomeStore {
       : new Map(this.penaltyList.value().map((p): [string, ProjectPenalties] => [p.projetoId, p])),
   );
 
-  readonly loadFailures = computed(() =>
+  // ---------------------------------------------------------------------------
+  // Falhas
+  // ---------------------------------------------------------------------------
+
+  private readonly failures = computed(() =>
     [
-      { what: 'as turmas', error: this.cohorts.error() },
-      { what: 'os programas de PFC', error: this.programs.error() },
-      { what: 'os seus projetos', error: this.advised.error() },
-      { what: 'os projetos da turma', error: this.gridLoad.error() },
-      { what: 'os nomes e orientadores', error: this.userList.error() || this.projectList.error() },
-      { what: 'as penalidades', error: this.penaltyList.error() },
-    ].filter((f) => f.error),
+      { what: 'as turmas', error: this.cohorts.error(), loaded: this.cohorts.value().length > 0 },
+      { what: 'os programas de PFC', error: this.programs.error(), loaded: this.programs.value().length > 0 },
+      { what: 'os seus projetos', error: this.advised.error(), loaded: this.advised.value().length > 0 },
+      { what: 'os projetos da turma', error: this.gridLoad.error(), loaded: this.grid().rows.length > 0 },
+      { what: 'os nomes e orientadores', error: this.userList.error() || this.projectList.error(), loaded: this.userList.value().length > 0 || this.projectList.value().length > 0 },
+      { what: 'as penalidades', error: this.penaltyList.error(), loaded: this.penaltyList.value().length > 0 },
+    ].filter((f) => f.error && !f.loaded),
   );
+
+  readonly loadFailure = computed(() => {
+    const failures = this.failures();
+    if (!failures.length) {
+      return null;
+    }
+    const names = failures.map((f) => f.what);
+    const what = names.length > 1 ? `${names.slice(0, -1).join(', ')} e ${names.at(-1)}` : names[0];
+    return { what, error: failures[0].error };
+  });
 
   // Seleção
   select(cohortId: string): void {

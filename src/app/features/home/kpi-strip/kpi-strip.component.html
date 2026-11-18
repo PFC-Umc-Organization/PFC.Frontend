@@ -1,50 +1,42 @@
-<section class="strip" aria-label="Fechamento da turma">
-  @if (!open()) {
-    <div class="bar">
-      <span class="bar__label">Fechamento</span>
-      <span class="bar__summary">{{ summary() }}</span>
-      @if (band() !== null) {
-        <button type="button" class="chip chip--active bar__filter" aria-label="Limpar o filtro de faixa de penalidades" (click)="bandChange.emit(null)">
-          Faixa: {{ bandLabel[band()!] }} ×
-        </button>
-      }
-      <button type="button" class="btn btn--ghost btn--sm bar__toggle" [attr.aria-expanded]="false" aria-controls="kpi-cards" (click)="open.set(true)">
-        Expandir detalhes
+<div class="overlay">
+  <button type="button" class="overlay__backdrop" tabindex="-1" aria-label="Fechar o fechamento da turma" (click)="closed.emit()"></button>
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="closing-title">
+    <header class="modal__head">
+      <div>
+        <h2 id="closing-title" class="modal__title">Fechamento</h2>
+        <p class="modal__subtitle">{{ scope() }}</p>
+      </div>
+      <button type="button" class="modal__close" aria-label="Fechar" (click)="closed.emit()">
+        <app-icon name="close" />
       </button>
-    </div>
-  } @else {
-    <div class="strip__head">
-      <h2 class="strip__title">Fechamento</h2>
-      <button type="button" class="btn btn--ghost btn--sm" [attr.aria-expanded]="true" aria-controls="kpi-cards" (click)="open.set(false)">
-        Recolher
-      </button>
-    </div>
-    <div class="cards" id="kpi-cards">
+    </header>
+
+    <div class="cards">
       <article class="kpi kpi--primary">
         <h3 class="kpi__title">Desfecho da turma</h3>
         @if (kpis().outcome.known) {
           <dl class="stats">
             <div>
               <dt>Aprovação</dt>
-              <dd class="ok">{{ kpis().outcome.approved.pct | number: '1.0-0' }}%</dd>
+              <dd class="tone-ok">{{ kpis().outcome.approved.pct | number: '1.0-0' }}%</dd>
             </div>
             <div>
               <dt>Em andamento</dt>
-              <dd class="info">{{ kpis().outcome.ongoing.pct | number: '1.0-0' }}%</dd>
+              <dd class="tone-info">{{ kpis().outcome.ongoing.pct | number: '1.0-0' }}%</dd>
             </div>
             <div>
               <dt>Reprovação</dt>
-              <dd class="bad">{{ kpis().outcome.failed.pct | number: '1.0-0' }}%</dd>
+              <dd class="tone-bad">{{ kpis().outcome.failed.pct | number: '1.0-0' }}%</dd>
             </div>
           </dl>
           <div
-            class="bar"
+            class="split"
             role="img"
             [attr.aria-label]="kpis().outcome.approved.count + ' aprovados, ' + kpis().outcome.ongoing.count + ' em andamento, ' + kpis().outcome.failed.count + ' reprovados, de ' + kpis().outcome.total + ' grupos'"
           >
-            <span class="bar__seg bar__seg--ok" [style.width.%]="kpis().outcome.approved.pct"></span>
-            <span class="bar__seg bar__seg--info" [style.width.%]="kpis().outcome.ongoing.pct"></span>
-            <span class="bar__seg bar__seg--bad" [style.width.%]="kpis().outcome.failed.pct"></span>
+            <span class="split__seg split__seg--ok" [style.flex-grow]="kpis().outcome.approved.count"></span>
+            <span class="split__seg split__seg--info" [style.flex-grow]="kpis().outcome.ongoing.count"></span>
+            <span class="split__seg split__seg--bad" [style.flex-grow]="kpis().outcome.failed.count"></span>
           </div>
           <p class="kpi__note">
             {{ kpis().outcome.approved.count }} aprovados · {{ kpis().outcome.ongoing.count }} em andamento · {{ kpis().outcome.failed.count }} reprovados
@@ -67,7 +59,7 @@
                   [class.chip--bad]="b.band === 3"
                   [attr.aria-pressed]="band() === b.band"
                   [attr.aria-label]="'Filtrar grupos com ' + bandLabel[b.band].toLowerCase() + ' ativa: ' + b.count"
-                  (click)="toggleBand(b.band)"
+                  (click)="pickBand(b.band)"
                 >
                   <span class="chip__label">{{ bandLabel[b.band] }}</span>
                   <span class="chip__value">{{ b.count }}</span>
@@ -88,11 +80,11 @@
           <dl class="stats">
             <div>
               <dt>Concluídas sobre vencidas</dt>
-              <dd class="ok">{{ kpis().efficiency.completedRate ?? 0 | number: '1.0-0' }}%</dd>
+              <dd class="tone-ok">{{ kpis().efficiency.completedRate ?? 0 | number: '1.0-0' }}%</dd>
             </div>
             <div>
               <dt>Atraso ou devolução</dt>
-              <dd class="bad">{{ kpis().efficiency.issueRate ?? 0 | number: '1.0-0' }}%</dd>
+              <dd class="tone-bad">{{ kpis().efficiency.issueRate ?? 0 | number: '1.0-0' }}%</dd>
             </div>
           </dl>
           @if (kpis().efficiency.bottleneck; as g) {
@@ -105,5 +97,5 @@
         }
       </article>
     </div>
-  }
-</section>
+  </section>
+</div>

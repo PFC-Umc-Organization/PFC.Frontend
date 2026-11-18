@@ -61,6 +61,12 @@ export class StaffHomeComponent {
     this.store.gridAdvisors().some((a) => a.id === this.advisorFilter()) ? this.advisorFilter() : '',
   );
   readonly band = linkedSignal<string, PenaltyBand | null>({ source: this.store.selectedValue, computation: () => null });
+  readonly kpisOpen = signal(false);
+  readonly bandText = computed(() => (this.band() === 3 ? '3 ou mais' : String(this.band())));
+  readonly scopeLabel = computed(() => {
+    const cohort = this.store.cohorts.value().find((c) => c.id === this.store.cohortId());
+    return this.store.allCohorts() ? 'Todas as turmas' : cohort ? cohortLabel(cohort) : '—';
+  });
   readonly filtering = computed(
     () => this.search().trim() !== '' || this.filter() !== 'all' || this.activeAdvisor() !== '' || this.band() !== null,
   );
@@ -239,11 +245,10 @@ export class StaffHomeComponent {
 
   // Filtros ativos
   private readonly filterLines = computed(() => {
-    const cohort = this.store.cohorts.value().find((c) => c.id === this.store.cohortId());
     const advisor = this.store.gridAdvisors().find((a) => a.id === this.activeAdvisor());
     const band = this.band();
     return [
-      `Turma: ${this.store.allCohorts() ? 'Todas as turmas' : cohort ? cohortLabel(cohort) : '-'}`,
+      `Turma: ${this.scopeLabel()}`,
       `Orientador: ${advisor?.nome ?? 'Todos'}`,
       `Situação: ${this.filterLabels[this.filter()]}`,
       `Penalidades ativas: ${band === null ? 'Todas as faixas' : band === 3 ? '3 ou mais' : band}`,

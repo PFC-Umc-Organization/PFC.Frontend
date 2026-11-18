@@ -456,6 +456,27 @@ test.describe('session and quick menu', () => {
   });
 });
 
+test.describe('closing modal', () => {
+  test('opens from the header, filters the table by a penalty band and closes', async ({ page }) => {
+    await signIn(page, ADMIN);
+    await page.getByRole('button', { name: 'Fechamento' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Fechamento' });
+    await expect(dialog).toContainText('Engenharia de Software (Noite, 2026.2)');
+    await expect(dialog.getByRole('heading', { name: 'Termômetro de penalidades' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    await page.getByRole('button', { name: 'Fechamento' }).click();
+    await dialog.getByRole('button', { name: /^Filtrar grupos com nenhuma ativa/ }).click();
+    await expect(dialog).toBeHidden();
+    const chip = page.getByRole('button', { name: 'Remover o filtro de penalidades' });
+    await expect(chip).toContainText('Penalidades: 0');
+    await chip.click();
+    await expect(chip).toHaveCount(0);
+  });
+});
+
 test.describe('coordination: group panel on the home', () => {
   test('keeps the advisor out of the grid, filters by advisor and manages the group from the panel', async ({ page, api }) => {
     await signIn(page, ADMIN);

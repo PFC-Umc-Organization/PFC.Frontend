@@ -34,6 +34,7 @@ export function loadable<T, P = void>(opts: {
         loading.set(true);
         return opts.source(params as P).pipe(
           tap((v) => {
+            error.set('');
             value.set(v);
             loading.set(false);
           }),

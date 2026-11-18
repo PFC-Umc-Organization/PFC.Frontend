@@ -4,20 +4,31 @@
     <h1 class="page-title mt-2">Painel do PFC</h1>
     <p class="lead mt-2">Situação das entregas de cada grupo da turma, por atividade.</p>
   </div>
-  <div class="field picker">
-    <label class="field__label" for="cohort">Turma</label>
-    <select id="cohort" class="control" [value]="store.selectedValue()" (change)="chooseCohort($event)">
-      @if (store.cohorts.value().length > 1) {
-        <option [value]="allCohorts" [selected]="store.allCohorts()">Todas as turmas</option>
-      }
-      @for (c of store.cohorts.value(); track c.id) {
-        <option [value]="c.id" [selected]="c.id === store.cohortId()">{{ cohortLabel(c) }}</option>
-      }
-    </select>
+  <div class="header-tools">
+    <div class="field picker">
+      <label class="field__label" for="cohort">Turma</label>
+      <select id="cohort" class="control" [value]="store.selectedValue()" (change)="chooseCohort($event)">
+        @if (store.cohorts.value().length > 1) {
+          <option [value]="allCohorts" [selected]="store.allCohorts()">Todas as turmas</option>
+        }
+        @for (c of store.cohorts.value(); track c.id) {
+          <option [value]="c.id" [selected]="c.id === store.cohortId()">{{ cohortLabel(c) }}</option>
+        }
+      </select>
+    </div>
+    @if (store.grid().rows.length) {
+      <button type="button" class="btn btn--outline closing-button" aria-haspopup="dialog" (click)="kpisOpen.set(true)">
+        <app-icon name="clipboard" class="btn__icon" />
+        Fechamento
+        @if (band() !== null) {
+          <span class="closing-button__badge" aria-label="Filtro de penalidades ativo"></span>
+        }
+      </button>
+    }
   </div>
 </header>
 
-@for (f of store.loadFailures(); track f.what) {
+@if (store.loadFailure(); as f) {
   <p class="alert" role="alert">
     <app-icon name="alert" />
     <span>Não foi possível carregar {{ f.what }}. {{ f.error }}</span>
@@ -59,7 +70,6 @@
         }
       </div>
     </div>
-    <app-kpi-strip [kpis]="kpis()" [band]="band()" (bandChange)="band.set($event)" />
   </section>
 }
 
@@ -94,9 +104,18 @@
         }
       </select>
     </div>
+    @if (band() !== null) {
+      <button type="button" class="filter-chip" aria-label="Remover o filtro de penalidades" (click)="band.set(null)">
+        Penalidades: {{ bandText() }} ×
+      </button>
+    }
   </div>
 }
 </ng-template>
+
+@if (kpisOpen()) {
+  <app-kpi-strip [kpis]="kpis()" [band]="band()" [scope]="scopeLabel()" (bandChange)="band.set($event)" (closed)="kpisOpen.set(false)" />
+}
 
 @if (exportError()) {
   <p class="alert" role="alert">
