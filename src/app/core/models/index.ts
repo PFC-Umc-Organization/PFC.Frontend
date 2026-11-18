@@ -11,3 +11,4 @@ export * from './reference.model';
 export * from './penalty.model';
 export * from './announcement.model';
 export * from './field-format';
+export * from './panel.model';

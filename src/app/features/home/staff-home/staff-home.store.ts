@@ -2,14 +2,13 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Observable, combineLatest, map, of } from 'rxjs';
 
-import { Activity, Cohort, Program, Project, ProjectPenalties, Submission, User, cohortLabel, currentTerm, isStaff } from '../../../core/models';
-import { ActivityService } from '../../../core/services/activity.service';
+import { Cohort, Panel, Program, Project, ProjectPenalties, User, cohortLabel, currentTerm, isStaff } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { CohortService } from '../../../core/services/cohort.service';
-import { PenaltyService } from '../../../core/services/penalty.service';
+import { PanelService } from '../../../core/services/panel.service';
 import { ProgramService } from '../../../core/services/program.service';
 import { ProjectService } from '../../../core/services/project.service';
-import { StatusGrid, SubmissionService } from '../../../core/services/submission.service';
+import { StatusGrid } from '../../../core/services/submission.service';
 import { buildStatusGrid } from '../../../core/services/submission-status';
 import { UserService } from '../../../core/services/user.service';
 import { Gate } from '../../../core/state/gate';
@@ -19,7 +18,7 @@ import { EMPTY_GRID, MemberMap } from './staff-home.grid';
 import { pickCohortId } from './staff-home.selection';
 
 export const ALL_COHORTS = '__todas__';
-const BATCH_LIMIT = 4;
+const BATCH_LIMIT = 3;
 const SAME_IDS = { equal: (a: string[], b: string[]) => a.length === b.length && a.every((id, i) => id === b[i]) };
 
 // ---------------------------------------------------------------------------
@@ -33,28 +32,18 @@ interface Scope {
 
 const EMPTY_SCOPE: Scope = { grid: EMPTY_GRID, programOf: new Map() };
 
-interface ProgramData {
+interface ProgramData extends Panel {
   programId: string;
-  projects: Project[];
-  submissions: Submission[];
 }
 
 // Montagem
-function gridOf(data: ProgramData[], activities: Activity[], cohortOf: (programId: string) => string | undefined): Scope {
-  return mergeScope(
-    data.map((d) => {
-      const cohortId = cohortOf(d.programId);
-      const own = activities.filter((a) => !a.turmaId || a.turmaId === cohortId);
-      return { programId: d.programId, grid: buildStatusGrid(own, d.projects, d.submissions) };
-    }),
-  );
+function gridOf(data: ProgramData[]): Scope {
+  return mergeScope(data.map((d) => ({ programId: d.programId, grid: buildStatusGrid(d.atividades, d.projetos, d.entregas) })));
 }
 
 // Leitura
-function dataOf(programId: string, projects: ProjectService, submissions: SubmissionService): Observable<ProgramData> {
-  return combineLatest([projects.list(programId), submissions.ofProgram(programId)]).pipe(
-    map(([list, sent]) => ({ programId, projects: list, submissions: sent })),
-  );
+function dataOf(programId: string, panels: PanelService): Observable<ProgramData> {
+  return panels.ofProgram(programId).pipe(map((panel) => ({ programId, ...panel })));
 }
 
 // Lote
@@ -84,10 +73,8 @@ export class StaffHomeStore {
   private readonly cohortService = inject(CohortService);
   private readonly programService = inject(ProgramService);
   private readonly projectService = inject(ProjectService);
-  private readonly activityService = inject(ActivityService);
   private readonly userService = inject(UserService);
-  private readonly penaltyService = inject(PenaltyService);
-  private readonly submissionService = inject(SubmissionService);
+  private readonly panelService = inject(PanelService);
 
   private readonly gate = new Gate(BATCH_LIMIT);
 
@@ -131,7 +118,8 @@ export class StaffHomeStore {
   private readonly allProgramIds = computed<string[]>(() => {
     const cohortIds = new Set(this.cohorts.value().map((c) => c.id));
     const advised = this.isAdvisor() ? new Set(this.advised.value().map((p) => p.programaId)) : null;
-    return this.programs.value().filter((p) => !!p.id && cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
+    const ids = this.programs.value().filter((p) => !!p.id && cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
+    return [...new Set(ids)];
   }, SAME_IDS);
 
   // Escopo
@@ -144,30 +132,18 @@ export class StaffHomeStore {
   }, SAME_IDS);
   private readonly scopeParams = computed(() => (this.scopeIds().length ? this.scopeIds() : null));
 
-  readonly activities = loadable({ source: () => this.activityService.list().pipe(retryTransient()), initial: [] as Activity[] });
-  private readonly dataLoad = loadable({
-    source: (ids: string[]) => inBatch(ids, this.gate, (id) => dataOf(id, this.projectService, this.submissionService)),
+  readonly gridLoad = loadable({
+    source: (ids: string[]) => inBatch(ids, this.gate, (id) => dataOf(id, this.panelService)),
     params: this.scopeParams,
     initial: [] as ProgramData[],
   });
-
-  // Grade
-  readonly gridLoad = {
-    loading: computed(() => this.dataLoad.loading() || this.activities.loading()),
-    error: computed(() => this.dataLoad.error() || this.activities.error()),
-    reload: () => {
-      this.dataLoad.reload();
-      this.activities.reload();
-    },
-  };
 
   // Carregamento
   readonly loading = computed(
     () => this.gridLoad.loading() || this.cohorts.loading() || this.programs.loading() || (this.isAdvisor() && this.advised.loading()),
   );
 
-  private readonly cohortOfProgram = (programId: string): string | undefined => this.cohortByProgram().get(programId);
-  private readonly scope = computed(() => gridOf(this.dataLoad.value(), this.activities.value(), this.cohortOfProgram));
+  private readonly scope = computed(() => gridOf(this.gridLoad.value()));
   readonly grid = computed(() => this.scope().grid);
 
   // ---------------------------------------------------------------------------
@@ -188,20 +164,15 @@ export class StaffHomeStore {
   private readonly extraParams = computed(() => (this.extraIds().length ? this.extraIds() : null));
 
   private readonly extraData = loadable({
-    source: (ids: string[]) => inBatch(ids, this.gate, (id) => dataOf(id, this.projectService, this.submissionService)),
+    source: (ids: string[]) => inBatch(ids, this.gate, (id) => dataOf(id, this.panelService)),
     params: this.extraParams,
     initial: [] as ProgramData[],
   });
-  private readonly extraPenalties = loadable({
-    source: (ids: string[]) => inBatch(ids, this.gate, (id) => this.penaltyService.ofProgram(id)).pipe(map((lists) => lists.flat())),
-    params: this.extraParams,
-    initial: [] as ProjectPenalties[],
-  });
 
-  readonly closingLoading = computed(() => this.extraData.loading() || this.extraPenalties.loading());
-  readonly closingError = computed(() => this.extraData.error() || this.extraPenalties.error());
+  readonly closingLoading = computed(() => this.extraData.loading());
+  readonly closingError = computed(() => this.extraData.error());
 
-  private readonly fullScope = computed(() => gridOf([...this.dataLoad.value(), ...this.extraData.value()], this.activities.value(), this.cohortOfProgram));
+  private readonly fullScope = computed(() => gridOf([...this.gridLoad.value(), ...this.extraData.value()]));
   private readonly programOf = computed(() => this.fullScope().programOf);
 
   // Junção
@@ -215,7 +186,7 @@ export class StaffHomeStore {
   readonly nameByRgm = computed(() => new Map(this.userList.value().map((u) => [u.rgm, u.nome])));
   readonly nameOf = (rgm: string): string => this.nameByRgm().get(rgm) ?? rgm;
 
-  readonly projects = computed(() => this.dataLoad.value().flatMap((d) => d.projects));
+  readonly projects = computed(() => this.gridLoad.value().flatMap((d) => d.projetos));
   readonly projectById = computed(() => new Map(this.projects().map((p) => [p.id, p])));
 
   readonly membersByProject = computed<MemberMap>(
@@ -256,15 +227,10 @@ export class StaffHomeStore {
     return this.advisors().filter((a) => ids.has(a.id));
   });
 
-  readonly penaltyList = loadable({
-    source: (ids: string[]) => inBatch(ids, this.gate, (id) => this.penaltyService.ofProgram(id)).pipe(map((lists) => lists.flat())),
-    params: this.scopeParams,
-    initial: [] as ProjectPenalties[],
-  });
   readonly penalties = computed(() =>
-    this.penaltyList.loading() || this.penaltyList.error()
+    this.gridLoad.loading() || this.gridLoad.error()
       ? undefined
-      : new Map(this.penaltyList.value().map((p): [string, ProjectPenalties] => [p.projetoId, p])),
+      : new Map(this.gridLoad.value().flatMap((d) => d.penalidades).map((p): [string, ProjectPenalties] => [p.projetoId, p])),
   );
 
   // Completo
@@ -273,7 +239,7 @@ export class StaffHomeStore {
     if (!page || this.closingLoading() || this.closingError()) {
       return undefined;
     }
-    return new Map([...page, ...this.extraPenalties.value().map((p): [string, ProjectPenalties] => [p.projetoId, p])]);
+    return new Map([...page, ...this.extraData.value().flatMap((d) => d.penalidades).map((p): [string, ProjectPenalties] => [p.projetoId, p])]);
   });
 
   // ---------------------------------------------------------------------------
@@ -287,7 +253,6 @@ export class StaffHomeStore {
       { what: 'os seus projetos', error: this.advised.error(), loaded: this.advised.value().length > 0 },
       { what: 'os projetos da turma', error: this.gridLoad.error(), loaded: this.grid().rows.length > 0 },
       { what: 'os nomes e orientadores', error: this.userList.error(), loaded: this.userList.value().length > 0 },
-      { what: 'as penalidades', error: this.penaltyList.error(), loaded: this.penaltyList.value().length > 0 },
     ].filter((f) => f.error && !f.loaded),
   );
 
@@ -308,7 +273,7 @@ export class StaffHomeStore {
 
   // Nova tentativa
   retryLoad(): void {
-    [this.cohorts, this.programs, this.advised, this.gridLoad, this.userList, this.penaltyList].forEach((l) => l.reload());
+    [this.cohorts, this.programs, this.advised, this.gridLoad, this.userList].forEach((l) => l.reload());
   }
 
   // Recarga

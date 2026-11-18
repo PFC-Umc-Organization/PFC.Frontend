@@ -23,6 +23,8 @@ export interface UserFilter {
   role?: Role | 'TODOS';
   // Turma
   cohortId?: string;
+  // MFA
+  includeMfa?: boolean;
 }
 
 // Serviço
@@ -102,19 +104,25 @@ export class UserHttpService extends UserService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiBaseUrl;
 
-  private cache$: Observable<User[]> | null = null;
+  private cache = new Map<boolean, Observable<User[]>>();
 
   // ---------------------------------------------------------------------------
   // Listagem
   // ---------------------------------------------------------------------------
 
   override list(filter: UserFilter = {}): Observable<User[]> {
-    this.cache$ ??= this.http.get<User[]>(`${this.base}/usuarios`).pipe(
-      map((users) => users.map((u) => ({ ...u, email: u.email ?? '' }))),
-      catchError(toApiError),
-      shareReplay(1),
-    );
-    return this.cache$.pipe(map((users) => applyFilter(users, filter)));
+    const withMfa = filter.includeMfa === true;
+    if (!this.cache.has(withMfa)) {
+      this.cache.set(
+        withMfa,
+        this.http.get<User[]>(`${this.base}/usuarios`, { params: withMfa ? { incluirMfa: 'true' } : {} }).pipe(
+          map((users) => users.map((u) => ({ ...u, email: u.email ?? '' }))),
+          catchError(toApiError),
+          shareReplay(1),
+        ),
+      );
+    }
+    return this.cache.get(withMfa)!.pipe(map((users) => applyFilter(users, filter)));
   }
 
   // ---------------------------------------------------------------------------
@@ -122,7 +130,7 @@ export class UserHttpService extends UserService {
   // ---------------------------------------------------------------------------
 
   override login(credentials: Credentials): Observable<LoginResult> {
-    this.cache$ = null;
+    this.cache.clear();
     return this.http.post<LoginResult>(`${this.base}/auth/login`, credentials).pipe(catchError(toApiError));
   }
 
@@ -175,7 +183,7 @@ export class UserHttpService extends UserService {
   // Criação
   override createAccount(account: NewAccount): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`${this.base}/admin/usuarios`, account).pipe(
-      tap(() => (this.cache$ = null)),
+      tap(() => this.cache.clear()),
       catchError(toApiError),
     );
   }
@@ -222,7 +230,7 @@ export class UserHttpService extends UserService {
   // Alteração
   private change(request: Observable<MessageResponse>): Observable<MessageResponse> {
     return request.pipe(
-      tap(() => (this.cache$ = null)),
+      tap(() => this.cache.clear()),
       catchError(toApiError),
     );
   }

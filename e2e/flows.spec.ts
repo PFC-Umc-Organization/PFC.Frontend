@@ -192,11 +192,13 @@ test.describe('references', () => {
 });
 
 test.describe('coordination', () => {
-  test('the panel starts at this term\'s cohort and builds the grid with one submissions call', async ({ page, api }) => {
+  test('the panel starts at this term\'s cohort and builds the grid with one aggregated call', async ({ page, api }) => {
     await signIn(page, ADMIN);
     await expect(page.locator('#cohort option:checked')).toHaveText('Engenharia de Software (Noite, 2026.2)');
     await expect(page.getByText('2 projetos')).toBeVisible();
-    expect(api.calls).toContain('GET /programas/p1/entregas');
+    expect(api.calls).toContain('GET /programas/p1/painel');
+    expect(api.calls.filter((c) => /^GET \/programas\/p1\/(projetos|entregas|penalidades)$/.test(c)) ).toEqual([]);
+    expect(api.calls).not.toContain('GET /atividades');
     expect(api.calls.some((c) => /\/atividades\/[^/]+\/entregas/.test(c))).toBe(false);
 
     const before = api.calls.length;

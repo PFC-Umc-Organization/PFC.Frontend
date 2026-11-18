@@ -4,13 +4,11 @@ import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 
 import { Cohort } from '../../core/models';
-import { ActivityService } from '../../core/services/activity.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CohortService } from '../../core/services/cohort.service';
-import { PenaltyService } from '../../core/services/penalty.service';
+import { PanelService } from '../../core/services/panel.service';
 import { ProgramService } from '../../core/services/program.service';
 import { ProjectService } from '../../core/services/project.service';
-import { SubmissionService } from '../../core/services/submission.service';
 import { UserService } from '../../core/services/user.service';
 import { StaffHomeComponent } from './staff-home/staff-home.component';
 
@@ -29,9 +27,7 @@ function configure(cohorts: () => Observable<Cohort[]>, programs: () => Observab
       { provide: ProgramService, useValue: { list: programs } },
       { provide: ProjectService, useValue: { list: () => of([]) } },
       { provide: UserService, useValue: { list: () => of([]) } },
-      { provide: PenaltyService, useValue: { ofProgram: () => of([]) } },
-      { provide: SubmissionService, useValue: { ofProgram: () => of([]) } },
-      { provide: ActivityService, useValue: { list: () => of([]) } },
+      { provide: PanelService, useValue: { ofProgram: () => of({ projetos: [], atividades: [], entregas: [], penalidades: [] }) } },
     ],
   });
 }

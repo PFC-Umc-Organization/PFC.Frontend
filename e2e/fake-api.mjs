@@ -252,6 +252,18 @@ export function fakeApi() {
       const ativas = items.filter((i) => !i.perdao).length;
       return { projetoId: pid, ativas, limite: 3, reprovado: ativas >= 3, penalidades: items };
     };
+    if ((mm = p.match(/^\/programas\/([^/]+)\/painel$/))) {
+      if (!staff) return forbidden();
+      const projetos = visible(mm[1]);
+      const ids = projetos.map((x) => x.id);
+      const cohort = cohortOf(mm[1])?.id;
+      return json(200, {
+        projetos,
+        atividades: projetos.length ? db.activities.filter((a) => !a.turmaId || a.turmaId === cohort) : [],
+        entregas: db.submissions.filter((e) => ids.includes(e.projetoId)),
+        penalidades: projetos.map((x) => penaltiesOf(x.id)),
+      });
+    }
     if ((mm = p.match(/^\/programas\/([^/]+)\/penalidades$/))) return staff ? json(200, visible(mm[1]).map((x) => penaltiesOf(x.id))) : forbidden();
     if ((mm = p.match(/^\/projetos\/([^/]+)\/penalidades$/))) {
       const pr = project(mm[1]);

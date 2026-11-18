@@ -41,12 +41,12 @@ export class UserListComponent {
   readonly add = output();
 
   readonly users = loadable({
-    source: (filter: { search: string; role: Role | 'TODOS'; cohortId: string }) => this.userService.list(filter),
+    source: (filter: { search: string; role: Role | 'TODOS'; cohortId: string }) => this.userService.list({ ...filter, includeMfa: true }),
     params: computed(() => ({ search: this.search(), role: this.role(), cohortId: this.cohortId() })),
     initial: [] as User[],
   });
 
-  private readonly everyone = loadable({ source: () => this.userService.list(), initial: [] as User[] });
+  private readonly everyone = loadable({ source: () => this.userService.list({ includeMfa: true }), initial: [] as User[] });
 
   readonly loadError = computed(() => this.users.error() || this.everyone.error());
   readonly stats = computed(() => {

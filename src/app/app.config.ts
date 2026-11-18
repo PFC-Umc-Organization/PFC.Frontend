@@ -21,6 +21,7 @@ import {
   InvitationService,
 } from './core/services/invitation.service';
 import { CohortHttpService, CohortService } from './core/services/cohort.service';
+import { PanelHttpService, PanelService } from './core/services/panel.service';
 import { PenaltyHttpService, PenaltyService } from './core/services/penalty.service';
 import {
   SubmissionHttpService,
@@ -73,6 +74,7 @@ export const appConfig: ApplicationConfig = {
     { provide: ActivityService, useClass: ActivityHttpService },
     { provide: SubmissionService, useClass: SubmissionHttpService },
     { provide: PenaltyService, useClass: PenaltyHttpService },
+    { provide: PanelService, useClass: PanelHttpService },
     { provide: MaterialService, useClass: MaterialHttpService },
     { provide: AnnouncementService, useClass: AnnouncementHttpService },
     { provide: EnrollmentService, useClass: EnrollmentHttpService },

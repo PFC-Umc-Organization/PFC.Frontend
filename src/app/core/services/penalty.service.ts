@@ -9,6 +9,8 @@ import { SubmissionService } from './submission.service';
 
 // Serviço
 export abstract class PenaltyService {
+  // Alterações
+  abstract changes(): Observable<void>;
   // Consulta por projeto
   abstract ofProject(projectId: string): Observable<ProjectPenalties>;
   // Consulta por programa
@@ -26,6 +28,11 @@ export class PenaltyHttpService extends PenaltyService {
   private readonly submissions = inject(SubmissionService);
   private readonly reload$ = new BehaviorSubject<void>(undefined);
   private readonly api = environment.apiBaseUrl;
+
+  // Alterações
+  override changes(): Observable<void> {
+    return this.reload$.asObservable();
+  }
 
   // Atualização
   private refreshing<T>(fetch: () => Observable<T>): Observable<T> {
