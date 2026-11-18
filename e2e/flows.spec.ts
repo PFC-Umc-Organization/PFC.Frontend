@@ -462,8 +462,9 @@ test.describe('closing modal', () => {
     await page.getByRole('button', { name: 'Expandir' }).click();
     const dialog = page.getByRole('dialog', { name: 'Fechamento e Métricas' });
     await expect(dialog.locator('#closing-cohort option:checked')).toHaveText('Engenharia de Software (Noite, 2026.2)');
-    await expect(dialog.getByRole('heading', { name: 'Taxas por Turma / Sala' })).toBeVisible();
-    await expect(dialog.getByRole('heading', { name: 'Taxas por Orientador' })).toBeVisible();
+    await expect(dialog.getByRole('columnheader', { name: 'Turma / Sala' })).toBeVisible();
+    await dialog.getByRole('button', { name: 'Por Orientador' }).click();
+    await expect(dialog.getByRole('columnheader', { name: 'Orientador' })).toBeVisible();
 
     // Filtering inside the modal is in memory.
     const before = api.calls.length;

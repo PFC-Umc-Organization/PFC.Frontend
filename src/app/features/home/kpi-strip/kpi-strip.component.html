@@ -1,57 +1,50 @@
 <div class="overlay">
   <button type="button" class="overlay__backdrop" tabindex="-1" aria-label="Fechar o fechamento da turma" (click)="closed.emit()"></button>
   <section class="modal" role="dialog" aria-modal="true" aria-labelledby="closing-title">
-    <header class="modal__head">
-      <div>
-        <h2 id="closing-title" class="modal__title">Fechamento e Métricas</h2>
-      </div>
-      <button type="button" class="modal__close" aria-label="Fechar" (click)="closed.emit()">
-        <app-icon name="close" />
-      </button>
-    </header>
-
-    <div class="filters">
-      <div class="field">
-        <label class="field__label" for="closing-cohort">Turma / Sala</label>
-        <select id="closing-cohort" class="control" [value]="cohort()" (change)="setCohort($event)">
+    <header class="head">
+      <h2 id="closing-title" class="head__title">Fechamento e Métricas</h2>
+      <div class="head__filters">
+        <label class="sr-only" for="closing-cohort">Turma / Sala</label>
+        <select id="closing-cohort" class="select" [value]="cohort()" (change)="setCohort($event)">
           <option value="" [selected]="cohort() === ''">Todas as turmas</option>
           @for (c of cohorts(); track c.id) {
             <option [value]="c.id" [selected]="c.id === cohort()">{{ c.label }}</option>
           }
         </select>
-      </div>
-      @if (showAdvisor() && advisors().length) {
-        <div class="field">
-          <label class="field__label" for="closing-advisor">Orientador</label>
-          <select id="closing-advisor" class="control" [value]="advisor()" (change)="setAdvisor($event)">
+        @if (showAdvisor() && advisors().length) {
+          <label class="sr-only" for="closing-advisor">Orientador</label>
+          <select id="closing-advisor" class="select" [value]="advisor()" (change)="setAdvisor($event)">
             <option value="" [selected]="advisor() === ''">Todos os orientadores</option>
             @for (a of advisors(); track a.id) {
               <option [value]="a.id" [selected]="a.id === advisor()">{{ a.label }}</option>
             }
           </select>
-        </div>
-      }
-      @if (filtering()) {
-        <button type="button" class="btn btn--ghost btn--sm filters__clear" (click)="clear()">Limpar filtros</button>
-      }
-    </div>
+        }
+        @if (filtering()) {
+          <button type="button" class="clear" aria-label="Limpar filtros" (click)="clear()">Limpar</button>
+        }
+      </div>
+      <button type="button" class="head__close" aria-label="Fechar" (click)="closed.emit()">
+        <app-icon name="close" />
+      </button>
+    </header>
 
-    <div class="cards">
-      <article class="kpi kpi--primary">
-        <h3 class="kpi__title">Desfecho da turma</h3>
+    <div class="summary">
+      <section class="col" aria-labelledby="outcome-title">
+        <h3 id="outcome-title" class="col__title">Desfecho da turma</h3>
         @if (kpis().outcome.known) {
           <dl class="stats">
             <div>
               <dt>Aprovação</dt>
-              <dd class="tone-ok">{{ kpis().outcome.approved.pct | number: '1.0-0' }}%</dd>
+              <dd [class]="kpis().outcome.approved.pct > 0 ? 'tone-ok' : 'tone-zero'">{{ kpis().outcome.approved.pct | number: '1.0-0' }}%</dd>
             </div>
             <div>
               <dt>Em andamento</dt>
-              <dd class="tone-info">{{ kpis().outcome.ongoing.pct | number: '1.0-0' }}%</dd>
+              <dd [class]="kpis().outcome.ongoing.pct > 0 ? 'tone-info' : 'tone-zero'">{{ kpis().outcome.ongoing.pct | number: '1.0-0' }}%</dd>
             </div>
             <div>
               <dt>Reprovação</dt>
-              <dd class="tone-bad">{{ kpis().outcome.failed.pct | number: '1.0-0' }}%</dd>
+              <dd [class]="kpis().outcome.failed.pct > 0 ? 'tone-bad' : 'tone-zero'">{{ kpis().outcome.failed.pct | number: '1.0-0' }}%</dd>
             </div>
           </dl>
           <div
@@ -63,16 +56,16 @@
             <span class="split__seg split__seg--info" [style.flex-grow]="kpis().outcome.ongoing.count"></span>
             <span class="split__seg split__seg--bad" [style.flex-grow]="kpis().outcome.failed.count"></span>
           </div>
-          <p class="kpi__note">
+          <p class="col__note">
             {{ kpis().outcome.approved.count }} aprovados · {{ kpis().outcome.ongoing.count }} em andamento · {{ kpis().outcome.failed.count }} reprovados
           </p>
         } @else {
-          <p class="pending">Carregando as penalidades…</p>
+          <p class="col__note">Carregando as penalidades…</p>
         }
-      </article>
+      </section>
 
-      <article class="kpi kpi--bronze">
-        <h3 class="kpi__title">Termômetro de penalidades</h3>
+      <section class="col" aria-labelledby="bands-title">
+        <h3 id="bands-title" class="col__title">Termômetro de penalidades</h3>
         @if (kpis().bands.known) {
           <ul class="chips">
             @for (b of kpis().bands.items; track b.band) {
@@ -81,7 +74,7 @@
                   type="button"
                   class="chip"
                   [class.chip--active]="band() === b.band"
-                  [class.chip--bad]="b.band === 3"
+                  [class.chip--bad]="b.band === 3 && b.count > 0"
                   [attr.aria-pressed]="band() === b.band"
                   [attr.aria-label]="'Filtrar grupos com ' + bandLabel[b.band].toLowerCase() + ' ativa: ' + b.count"
                   (click)="pickBand(b.band)"
@@ -93,92 +86,78 @@
               </li>
             }
           </ul>
-          <p class="kpi__note">{{ kpis().bands.waived }} {{ kpis().bands.waived === 1 ? 'penalidade perdoada' : 'penalidades perdoadas' }} no total</p>
+          <p class="col__note">{{ kpis().bands.waived }} {{ kpis().bands.waived === 1 ? 'penalidade perdoada' : 'penalidades perdoadas' }} no total</p>
         } @else {
-          <p class="pending">Carregando as penalidades…</p>
+          <p class="col__note">Carregando as penalidades…</p>
         }
-      </article>
+      </section>
 
-      <article class="kpi kpi--success">
-        <h3 class="kpi__title">Eficiência de entregas</h3>
+      <section class="col" aria-labelledby="efficiency-title">
+        <h3 id="efficiency-title" class="col__title">Eficiência de entregas</h3>
         @if (kpis().efficiency.due) {
           <dl class="stats">
             <div>
               <dt>Concluídas sobre vencidas</dt>
-              <dd class="tone-ok">{{ kpis().efficiency.completedRate ?? 0 | number: '1.0-0' }}%</dd>
+              <dd [class]="(kpis().efficiency.completedRate ?? 0) > 0 ? 'tone-ok' : 'tone-zero'">{{ kpis().efficiency.completedRate ?? 0 | number: '1.0-0' }}%</dd>
             </div>
             <div>
               <dt>Atraso ou devolução</dt>
-              <dd class="tone-bad">{{ kpis().efficiency.issueRate ?? 0 | number: '1.0-0' }}%</dd>
+              <dd [class]="(kpis().efficiency.issueRate ?? 0) > 0 ? 'tone-bad' : 'tone-zero'">{{ kpis().efficiency.issueRate ?? 0 | number: '1.0-0' }}%</dd>
             </div>
           </dl>
           @if (kpis().efficiency.bottleneck; as g) {
-            <p class="kpi__note"><strong>Maior gargalo:</strong> {{ g.title }} ({{ g.count }} {{ g.count === 1 ? 'atraso' : 'atrasos' }})</p>
+            <p class="col__note"><strong>Maior gargalo:</strong> {{ g.title }} ({{ g.count }} {{ g.count === 1 ? 'atraso' : 'atrasos' }})</p>
           } @else {
-            <p class="kpi__note">Nenhum atraso nas atividades vencidas.</p>
+            <p class="col__note">Nenhum atraso nas atividades vencidas.</p>
           }
         } @else {
-          <p class="kpi__note">Nenhuma atividade venceu ainda.</p>
+          <p class="col__note">Nenhuma atividade venceu ainda.</p>
         }
-      </article>
-    </div>
-
-    <div class="compare">
-      <section class="compare__block" aria-labelledby="by-cohort">
-        <h3 id="by-cohort" class="kpi__title">Taxas por Turma / Sala</h3>
-        <table class="mini">
-          <thead>
-            <tr>
-              <th scope="col">Turma / Sala</th>
-              <th scope="col" class="num">Projetos</th>
-              <th scope="col" class="num">Eficiência</th>
-              <th scope="col" class="num">Penalidades</th>
-              <th scope="col" class="num">Aprov. / Reprov.</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of byCohort(); track r.key) {
-              <tr>
-                <th scope="row">{{ r.label }}</th>
-                <td class="num">{{ r.projects }}</td>
-                <td class="num">{{ r.efficiency === null ? '—' : (r.efficiency | number: '1.0-0') + '%' }}</td>
-                <td class="num">{{ r.penalties ?? '—' }}</td>
-                <td class="num">{{ r.approved }} / {{ r.failed }}</td>
-              </tr>
-            } @empty {
-              <tr><td colspan="5" class="mini__empty">Nenhuma turma com projetos neste filtro.</td></tr>
-            }
-          </tbody>
-        </table>
-      </section>
-
-      <section class="compare__block" aria-labelledby="by-advisor">
-        <h3 id="by-advisor" class="kpi__title">Taxas por Orientador</h3>
-        <table class="mini">
-          <thead>
-            <tr>
-              <th scope="col">Orientador</th>
-              <th scope="col" class="num">Projetos</th>
-              <th scope="col" class="num">Eficiência</th>
-              <th scope="col" class="num">Penalidades</th>
-              <th scope="col" class="num">Aprov. / Reprov.</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of byAdvisor(); track r.key) {
-              <tr>
-                <th scope="row">{{ r.label }}</th>
-                <td class="num">{{ r.projects }}</td>
-                <td class="num">{{ r.efficiency === null ? '—' : (r.efficiency | number: '1.0-0') + '%' }}</td>
-                <td class="num">{{ r.penalties ?? '—' }}</td>
-                <td class="num">{{ r.approved }} / {{ r.failed }}</td>
-              </tr>
-            } @empty {
-              <tr><td colspan="5" class="mini__empty">Nenhum orientador com projetos neste filtro.</td></tr>
-            }
-          </tbody>
-        </table>
       </section>
     </div>
+
+    <section class="compare" aria-label="Comparativo">
+      <div class="tabs" role="group" aria-label="Agrupar por">
+        <button type="button" class="tabs__item" [attr.aria-pressed]="tab() === 'cohort'" (click)="setTab('cohort')">Por Turma / Sala</button>
+        @if (showAdvisor()) {
+          <button type="button" class="tabs__item" [attr.aria-pressed]="tab() === 'advisor'" (click)="setTab('advisor')">Por Orientador</button>
+        }
+      </div>
+      <table class="grid">
+        <thead>
+          <tr>
+            <th scope="col">{{ tab() === 'advisor' ? 'Orientador' : 'Turma / Sala' }}</th>
+            <th scope="col" class="num">Projetos</th>
+            <th scope="col">Eficiência</th>
+            <th scope="col" class="num">Penalidades</th>
+            <th scope="col" class="num">Aprov. / Reprov.</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.key) {
+            <tr>
+              <th scope="row" class="name">{{ r.label }}</th>
+              <td class="num">{{ r.projects }}</td>
+              <td>
+                @if (r.efficiency === null) {
+                  <span class="muted">—</span>
+                } @else {
+                  <span class="meter-cell">
+                    <span class="meter" aria-hidden="true"><span [style.width.%]="r.efficiency"></span></span>
+                    <span class="num">{{ r.efficiency | number: '1.0-0' }}%</span>
+                  </span>
+                }
+              </td>
+              <td class="num">{{ r.penalties ?? '—' }}</td>
+              <td class="num">{{ r.approved }} / {{ r.failed }}</td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="empty">{{ tab() === 'advisor' ? 'Nenhum orientador com projetos neste filtro.' : 'Nenhuma turma com projetos neste filtro.' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
   </section>
 </div>

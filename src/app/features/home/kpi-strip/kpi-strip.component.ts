@@ -78,6 +78,19 @@ export class KpiStripComponent {
     breakdownOf(this.filtered(), this.facts(), (f) => f.advisorId ?? '', (f) => this.advisorNameOf()(f.advisorId)),
   );
 
+  // ---------------------------------------------------------------------------
+  // Comparativo
+  // ---------------------------------------------------------------------------
+
+  private readonly chosenTab = signal<'cohort' | 'advisor'>('cohort');
+  readonly tab = computed(() => (this.chosenTab() === 'advisor' && this.showAdvisor() ? 'advisor' : 'cohort'));
+  readonly rows = computed(() => (this.tab() === 'advisor' ? this.byAdvisor() : this.byCohort()));
+
+  // Aba
+  setTab(tab: 'cohort' | 'advisor'): void {
+    this.chosenTab.set(tab);
+  }
+
   // Seleção
   setCohort(event: Event): void {
     this.cohort.set((event.target as HTMLSelectElement).value);
