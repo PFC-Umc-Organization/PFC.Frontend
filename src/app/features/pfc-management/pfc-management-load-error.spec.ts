@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { Observable, of, throwError } from 'rxjs';
 
 import { Cohort, Program, Project, ProjectPenalties, User } from '../../core/models';
@@ -39,6 +40,7 @@ async function render(answers: Answers = {}) {
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
+      provideRouter([]),
       { provide: AuthService, useValue: { role: signal(answers.role ?? 'ADMIN') } },
       { provide: CohortService, useValue: { list: answers.cohorts ?? (() => of([cohort])) } },
       { provide: CourseService, useValue: { list: () => of([]) } },
@@ -57,7 +59,7 @@ async function render(answers: Answers = {}) {
     button(label).click();
     await fixture.whenStable();
   };
-  return { host, button, click };
+  return { host, button, click, fixture };
 }
 
 describe('PFC management load errors (Turmas e PFC)', () => {
@@ -99,19 +101,29 @@ describe('PFC management load errors (Turmas e PFC)', () => {
     expect(host.textContent).toContain('Engenharia de Software');
   });
 
-  it('keeps move and remove locked when the project count is unknown, until a retry works', async () => {
+  it('keeps cohort removal locked when the project count is unknown, until a retry works', async () => {
     let reads = 0;
-    const allProjects = () => (++reads <= 2 ? failure<Project[]>() : of([] as Project[]));
-    const { host, click } = await render({
+    const allProjects = () => (++reads <= 1 ? failure<Project[]>() : of([] as Project[]));
+    const { host, click, fixture } = await render({
       projects: (programId) => (programId ? of([project]) : allProjects()),
     });
     await click('Cursos e turmas');
     expect(host.textContent).toContain('Não foi possível contar os PFCs');
-    const remove = () => host.querySelector<HTMLButtonElement>('button[aria-label^="Excluir programa"]')!;
-    expect(remove().disabled).toBe(true);
+
+    // Menu da turma
+    const removeLocked = async () => {
+      host.querySelector<HTMLButtonElement>('button[aria-label^="Ações da turma"]')!.click();
+      await fixture.whenStable();
+      const item = Array.from(host.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find((b) => b.textContent?.includes('Excluir'))!;
+      const locked = item.disabled;
+      host.querySelector<HTMLButtonElement>('button[aria-label^="Ações da turma"]')!.click();
+      await fixture.whenStable();
+      return locked;
+    };
+    expect(await removeLocked()).toBe(true);
 
     await click('Tentar novamente');
     expect(host.querySelector('.alert')).toBeNull();
-    expect(remove().disabled).toBe(false);
+    expect(await removeLocked()).toBe(false);
   });
 });

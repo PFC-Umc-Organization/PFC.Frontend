@@ -76,7 +76,9 @@
 
         <article class="kpi kpi--primary kpi--link" aria-labelledby="next-title">
           <h2 id="next-title" class="kpi__title">Próxima entrega</h2>
-          @if (nextAction(); as n) {
+          @if (failed()) {
+            <p class="kpi__note">O envio de entregas está encerrado para o grupo.</p>
+          } @else if (nextAction(); as n) {
             <p class="kpi__headline">{{ n.title }}</p>
             <p class="kpi__note">até {{ n.deadline | deadline: true }}</p>
             <p class="kpi__count" [class.kpi__count--alert]="n.overdue" [attr.role]="n.overdue ? 'alert' : null">
