@@ -52,7 +52,7 @@ export const CELL_LABEL: Record<CellState, string> = {
   done: 'Concluído',
 };
 
-const CELL_ICON: Record<CellState, IconName> = {
+export const CELL_ICON: Record<CellState, IconName> = {
   waiting: 'calendar',
   blocked: 'lock',
   late: 'alert',

@@ -1,14 +1,18 @@
-<section class="card" aria-live="polite">
-  <div class="card__body">
+<section [class.card]="!embedded()" aria-live="polite">
+  <div [class.card__body]="!embedded()">
     <div class="top">
       <div>
         <h2 class="section-title">{{ activity().titulo }}</h2>
-        <p class="meta">Projeto {{ projectName() }}</p>
+        @if (!embedded()) {
+          <p class="meta">Projeto {{ projectName() }}</p>
+        }
       </div>
-      <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
-        <app-icon name="close" class="btn__icon" />
-        Fechar
-      </button>
+      @if (!embedded()) {
+        <button type="button" class="btn btn--ghost btn--sm" (click)="closed.emit()">
+          <app-icon name="close" class="btn__icon" />
+          Fechar
+        </button>
+      }
     </div>
 
     @if (submission(); as s) {

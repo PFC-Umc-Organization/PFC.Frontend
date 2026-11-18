@@ -22,6 +22,9 @@ export class ProjectPanelComponent {
   readonly project = input.required<Project>();
   readonly advisors = input.required<User[]>();
   readonly nameByRgm = input.required<(rgm: string) => string>();
+  readonly embedded = input(false);
+  readonly manage = input(true);
+  readonly advisorName = input('');
   readonly closed = output();
   readonly changed = output();
 

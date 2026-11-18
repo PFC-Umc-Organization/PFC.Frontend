@@ -5,15 +5,11 @@ import { from } from 'rxjs';
 import { cohortLabel } from '../../../core/models';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
-import { RevealDirective } from '../../../shared/directives/reveal.directive';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ConsolidatedTableComponent } from '../consolidated-table/consolidated-table.component';
 import { KpiStripComponent } from '../kpi-strip/kpi-strip.component';
-import { ProjectOverviewComponent } from '../project-overview/project-overview.component';
-import { ProjectPanelComponent } from '../project-panel/project-panel.component';
+import { ProjectModalComponent } from '../project-modal/project-modal.component';
 import { ActivityTimelineComponent } from '../activity-timeline/activity-timeline.component';
-import { CellRef } from '../status-grid/status-grid.component';
-import { SubmissionDetailComponent } from '../submission-detail/submission-detail.component';
 import { ExportData, exportExcel, exportPdf } from './staff-home.export';
 import { PenaltyBand, RowFilter, cellDetailOf, indicatorsOf, overviewOf, timelineOf, visibleGridOf } from './staff-home.grid';
 import { consolidatedRowsOf, factsOf, kpisOf } from './staff-home.kpis';
@@ -32,10 +28,7 @@ export type { RowFilter } from './staff-home.grid';
     ConsolidatedTableComponent,
     ActivityTimelineComponent,
     KpiStripComponent,
-    SubmissionDetailComponent,
-    ProjectOverviewComponent,
-    ProjectPanelComponent,
-    RevealDirective,
+    ProjectModalComponent,
     DeadlinePipe,
   ],
   providers: [StaffHomeStore],
@@ -174,53 +167,51 @@ export class StaffHomeComponent {
   // Seleção
   // ---------------------------------------------------------------------------
 
-  readonly selected = signal<CellRef | null>(null);
   readonly selectedProject = signal<string | null>(null);
-  readonly projectReveal = signal(0);
-  readonly cellReveal = signal(0);
-  readonly penaltyFocus = signal<number | null>(null);
+  readonly section = signal<'penalties' | null>(null);
+  private readonly chosenDelivery = signal<string | null>(null);
 
   readonly projectDetail = computed(() => this.store.projectById().get(this.selectedProject() ?? '') ?? null);
-  readonly detail = computed(() => cellDetailOf(this.store.grid(), this.selected()));
 
-  readonly overview = computed(() => {
+  readonly modal = computed(() => {
     const project = this.projectDetail();
     if (!project) {
       return null;
     }
+    const deliveries = overviewOf(this.store.grid(), project.id, this.store.penalties());
+    const chosen = this.chosenDelivery();
+    const activityId =
+      deliveries.find((d) => d.activityId === chosen)?.activityId ??
+      (deliveries.find((d) => d.state === 'review') ?? deliveries.find((d) => d.state === 'waiting') ?? deliveries[0])?.activityId ??
+      null;
     return {
-      name: project.nome,
+      project,
       cohort: this.store.cohortLabelOf(project.id),
       advisor: this.store.advisorNameOf(project.orientadorId),
-      members: this.store.membersByProject().get(project.id) ?? [],
-      deliveries: overviewOf(this.store.grid(), project.id, this.store.penalties()),
+      deliveries,
+      activityId,
+      detail: activityId ? cellDetailOf(this.store.grid(), { projectId: project.id, projectName: project.nome, activityId }) : null,
       penalties: this.store.penalties()?.get(project.id),
     };
   });
 
-  // Abertura de projeto
-  openProject({ projectId, projectName, section, activityId }: { projectId: string; projectName?: string; section?: 'penalties'; activityId?: string }): void {
-    this.selected.set(activityId ? { projectId, projectName: projectName ?? this.store.projectById().get(projectId)?.nome ?? '', activityId } : null);
-    this.cellReveal.update((n) => n + 1);
+  // Abertura
+  openProject({ projectId, section, activityId }: { projectId: string; projectName?: string; section?: 'penalties'; activityId?: string }): void {
+    this.chosenDelivery.set(activityId ?? null);
+    this.section.set(section ?? null);
     this.selectedProject.set(projectId);
-    this.penaltyFocus.set(section === 'penalties' ? this.projectReveal() + 1 : null);
-    this.projectReveal.update((n) => n + 1);
   }
 
-  // Abertura de entrega
-  openDelivery(activityId: string): void {
-    const project = this.projectDetail();
-    if (project) {
-      this.selected.set({ projectId: project.id, projectName: project.nome, activityId });
-      this.cellReveal.update((n) => n + 1);
-    }
+  // Entrega
+  chooseDelivery(activityId: string): void {
+    this.chosenDelivery.set(activityId);
   }
 
   // Fechamento
   closeProject(): void {
-    this.selected.set(null);
     this.selectedProject.set(null);
-    this.penaltyFocus.set(null);
+    this.section.set(null);
+    this.chosenDelivery.set(null);
   }
 
   // ---------------------------------------------------------------------------

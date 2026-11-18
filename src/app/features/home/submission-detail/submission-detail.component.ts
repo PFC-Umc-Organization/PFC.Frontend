@@ -33,6 +33,7 @@ export class SubmissionDetailComponent {
   // Penalidades
   readonly penalties = input<ProjectPenalties | undefined>(undefined);
   readonly activities = input<Activity[]>([]);
+  readonly embedded = input(false);
   readonly closed = output();
 
   private readonly downloadAction = action(

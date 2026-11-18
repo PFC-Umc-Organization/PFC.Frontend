@@ -1,0 +1,74 @@
+<div class="overlay">
+  <button type="button" class="overlay__backdrop" tabindex="-1" aria-label="Fechar o projeto" (click)="closed.emit()"></button>
+  <section class="modal" role="dialog" aria-modal="true" aria-labelledby="project-modal-title">
+    <header class="head">
+      <h2 id="project-modal-title" class="head__title">{{ project().nome }}</h2>
+      @if (cohort()) {
+        <span class="head__badge">{{ cohort() }}</span>
+      }
+      <button type="button" class="head__close" aria-label="Fechar" (click)="closed.emit()">
+        <app-icon name="close" />
+      </button>
+    </header>
+
+    <app-project-panel
+      [project]="project()"
+      [advisors]="advisors()"
+      [advisorName]="advisorName()"
+      [nameByRgm]="nameByRgm()"
+      [manage]="manage()"
+      [embedded]="true"
+      (closed)="closed.emit()"
+      (changed)="changed.emit()"
+    />
+
+    <section class="deliveries" aria-labelledby="project-deliveries">
+      <h3 id="project-deliveries" class="deliveries__title">Entregas do projeto</h3>
+      <div class="strip" role="group" aria-label="Entregas do projeto">
+        @for (d of deliveries(); track d.activityId) {
+          <button
+            type="button"
+            class="pill"
+            [class.pill--active]="activityId() === d.activityId"
+            [attr.aria-pressed]="activityId() === d.activityId"
+            [attr.aria-label]="'Abrir a entrega ' + d.title"
+            [attr.title]="label[d.state]"
+            (click)="choose.emit(d.activityId)"
+          >
+            <span class="pill__date">{{ d.deadline | date: 'dd/MM' }}</span>
+            <span class="pill__title">{{ d.title }}</span>
+            <app-icon class="pill__state pill__state--{{ d.state }}" [name]="icon[d.state]" [strokeWidth]="2.5" />
+          </button>
+        } @empty {
+          <p class="muted">Nenhuma atividade cadastrada.</p>
+        }
+      </div>
+
+      @if (activity(); as a) {
+        <app-submission-detail
+          [embedded]="true"
+          [projectId]="project().id"
+          [projectName]="project().nome"
+          [activity]="a"
+          [submission]="submission()"
+          [penalties]="penalties()"
+          [activities]="activities()"
+        />
+      }
+    </section>
+
+    <section id="project-penalties" class="penalties" aria-labelledby="project-penalties-title">
+      <h3 id="project-penalties-title" class="deliveries__title">Penalidades do projeto</h3>
+      @if (penalties(); as p) {
+        <app-penalty-counter [penalties]="p" />
+        @if (withPenalties()) {
+          <app-penalty-list [penalties]="p.penalidades" [projectId]="p.projetoId" [manageable]="true" />
+        } @else {
+          <p class="muted">O grupo não tem penalidades.</p>
+        }
+      } @else {
+        <p class="muted">Carregando…</p>
+      }
+    </section>
+  </section>
+</div>

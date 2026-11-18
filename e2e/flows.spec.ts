@@ -48,7 +48,7 @@ async function openCellDetails(page: Page, project: string, activity: string) {
 }
 
 /** The overview's row for one delivery. */
-const deliveryRow = (page: Page, activity: string) => page.locator('app-project-overview').getByRole('row', { name: new RegExp(`Abrir a entrega ${activity} \\d`) });
+const deliveryPill = (page: Page, activity: string) => page.getByRole('dialog').getByRole('button', { name: `Abrir a entrega ${activity}`, exact: true });
 
 /** The account actions live in the row's ⋮ menu. */
 async function accountAction(page: Page, email: string, action: string) {
@@ -477,13 +477,23 @@ test.describe('session and quick menu', () => {
     await pill.click();
     await expect(page.getByRole('rowheader', { name: 'Athena' })).toContainText('RGM');
 
+    const scrollBefore = await page.evaluate(() => scrollY);
     await page.getByRole('row', { name: /Athena/ }).getByRole('cell').first().click();
-    const overview = page.locator('app-project-overview');
-    await expect(overview).toContainText('Visão geral do projeto');
-    await expect(overview.getByRole('heading', { name: 'Penalidades' })).toBeVisible();
-    await expect(deliveryRow(page, 'Monografia')).toBeVisible();
-    // The overview scrolls into view and flashes its border.
-    await expect(overview.locator('.reveal--flash, .reveal').first()).toBeInViewport();
+    const dialog = page.getByRole('dialog', { name: 'Athena' });
+    await expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await expect(dialog).toContainText('Engenharia de Software (Noite, 2026.2)');
+    // Members show their full names, with the RGM beside them.
+    await expect(dialog.locator('.member__name').first()).toBeVisible();
+    await expect(dialog.getByRole('heading', { name: 'Penalidades do projeto' })).toBeVisible();
+    await expect(deliveryPill(page, 'Monografia')).toBeVisible();
+    // It starts on the delivery waiting for validation, and the page keeps its scroll.
+    await expect(deliveryPill(page, 'Monografia')).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await page.getByRole('row', { name: /Athena/ }).getByRole('cell').first().click();
+    await dialog.getByRole('button', { name: 'Fechar', exact: true }).click();
+    await expect(dialog).toBeHidden();
   });
 
   test('the schedule strip shows each date and filters the table by one activity', async ({ page }) => {
@@ -506,8 +516,9 @@ test.describe('session and quick menu', () => {
 
     // Opening a project lands on that activity's detail.
     await page.getByRole('row', { name: /Athena/ }).getByRole('cell').first().click();
-    await expect(page.locator('app-submission-detail')).toBeVisible();
-    await expect(page.locator('app-submission-detail')).toBeInViewport();
+    await expect(page.getByRole('dialog').locator('app-submission-detail')).toBeVisible();
+    await expect(deliveryPill(page, 'Monografia')).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Escape');
 
     await strip.getByRole('button', { name: 'Todas as atividades' }).click();
     await expect(page.getByRole('columnheader', { name: 'Entregas' })).toBeVisible();
@@ -516,7 +527,7 @@ test.describe('session and quick menu', () => {
   test('the penalty meter opens the overview straight at the penalties section', async ({ page }) => {
     await signIn(page, ADMIN);
     await page.getByRole('button', { name: /^Athena, penalidades:/ }).click();
-    await expect(page.locator('app-project-overview #project-penalties')).toBeInViewport();
+    await expect(page.getByRole('dialog').locator('#project-penalties')).toBeInViewport();
   });
 });
 
@@ -582,11 +593,12 @@ test.describe('coordination: group panel on the home', () => {
     await page.locator('#project-filter').selectOption('all');
 
     await page.getByRole('button', { name: 'Abrir o projeto Athena' }).click();
-    await expect(page.locator('app-project-panel').getByRole('heading', { name: 'Athena', exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Athena', exact: true })).toBeVisible();
     await expect(page.locator('#project-advisor')).toHaveValue('u-ana');
     await page.locator('#project-advisor').selectOption('');
     await confirmDialog(page, 'Remover');
     await expect.poll(() => api.db.projects.find((x) => x.id === 'pr1')?.orientadorId).toBeUndefined();
+    await page.keyboard.press('Escape');
     await expect(athena).not.toContainText('Orientador');
     // Without an advisor, the group is the only one under "Sem orientador" and the advisor filter is gone.
     await expect(page.locator('#advisor-filter')).toHaveCount(0);
@@ -594,6 +606,7 @@ test.describe('coordination: group panel on the home', () => {
     await expect(athena).toBeVisible();
     await page.locator('#project-filter').selectOption('all');
 
+    await page.getByRole('button', { name: 'Abrir o projeto Athena' }).click();
     await page.getByRole('button', { name: 'Editar', exact: true }).click();
     await page.fill('#edit-name', 'Athena 2');
     await page.getByRole('button', { name: 'Salvar' }).click();
@@ -667,13 +680,13 @@ test.describe('advisor', () => {
     await page.getByRole('button', { name: 'Solicitar correção' }).click();
     await confirmDialog(page, 'Solicitar correção');
     await expect(page.getByRole('heading', { name: 'Você solicitou correção desta entrega' })).toBeVisible();
-    await expect(deliveryRow(page, 'Monografia')).toContainText('Correção solicitada');
+    await expect(deliveryPill(page, 'Monografia')).toHaveAttribute('title', 'Devolvida');
     expect(api.db.submissions[0].validacao).toMatchObject({ status: 'NAO_VALIDADA', comentario: 'Falta a seção de resultados.', por: 'u-ana' });
 
     await page.getByRole('button', { name: 'Validar entrega' }).click();
     await confirmDialog(page, 'Validar');
     await expect(page.getByRole('heading', { name: 'Você validou esta entrega' })).toBeVisible();
-    await expect(deliveryRow(page, 'Monografia')).toContainText('Validada');
+    await expect(deliveryPill(page, 'Monografia')).toHaveAttribute('title', 'Concluído');
     // Once validated, only the secondary action remains; no open comment field.
     await expect(page.getByRole('button', { name: 'Validar entrega' })).toHaveCount(0);
     await expect(page.getByLabel('Comentário para o grupo')).toHaveCount(0);
@@ -824,7 +837,7 @@ test.describe('penalties', () => {
     await page.getByRole('button', { name: 'Confirmar perdão' }).click();
     await expect(detail.getByText('Perdoada em')).toContainText('Orientadora Ana: Justificativa aceita pela coordenação');
     await expect(page.getByRole('button', { name: 'Athena, penalidades: 0 de 3' })).toBeVisible();
-    await expect(deliveryRow(page, 'Banca')).toContainText('Perdoada');
+    await expect(deliveryPill(page, 'Banca')).toHaveAttribute('title', 'Perdoada');
     expect(api.failed).toEqual([]);
   });
 

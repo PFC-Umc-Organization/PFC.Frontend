@@ -166,41 +166,23 @@
   </div>
 </app-consolidated-table>
 
-@if (overview(); as o) {
-  <app-project-overview
-    [appReveal]="penaltyFocus() || selected() ? null : projectReveal()"
-    [name]="o.name"
-    [cohort]="o.cohort"
-    [advisor]="o.advisor"
-    [members]="o.members"
-    [deliveries]="o.deliveries"
-    [penalties]="o.penalties"
-    [penaltyFocus]="penaltyFocus()"
-    [selectedActivity]="selected()?.activityId ?? null"
-    (closed)="closeProject()"
-    (openDelivery)="openDelivery($event)"
-  />
-}
-
-@if (store.isAdmin() && projectDetail(); as p) {
-  <app-project-panel
-    [project]="p"
+@if (modal(); as m) {
+  <app-project-modal
+    [project]="m.project"
+    [cohort]="m.cohort"
+    [advisorName]="m.advisor"
     [advisors]="store.advisors()"
     [nameByRgm]="store.nameOf"
-    (closed)="closeProject()"
-    (changed)="store.projectChanged()"
-  />
-}
-
-@if (detail(); as d) {
-  <app-submission-detail
-    [appReveal]="cellReveal()"
-    [projectId]="d.projectId"
-    [projectName]="d.projectName"
-    [activity]="d.activity"
-    [submission]="d.submission"
-    [penalties]="store.penalties()?.get(d.projectId)"
+    [manage]="store.isAdmin()"
+    [deliveries]="m.deliveries"
+    [activityId]="m.activityId"
+    [activity]="m.detail?.activity ?? null"
+    [submission]="m.detail?.submission ?? null"
     [activities]="store.grid().activities"
-    (closed)="selected.set(null)"
+    [penalties]="m.penalties"
+    [section]="section()"
+    (choose)="chooseDelivery($event)"
+    (changed)="store.projectChanged()"
+    (closed)="closeProject()"
   />
 }
