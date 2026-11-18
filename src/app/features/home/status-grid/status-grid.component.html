@@ -4,6 +4,7 @@
     @if (showCount() && !loading() && grid().rows.length) {
       <span class="count">{{ grid().rows.length }} {{ grid().rows.length === 1 ? 'projeto' : 'projetos' }}</span>
     }
+    <div class="actions"><ng-content select="[actions]" /></div>
   </div>
 
   @if (error()) {
@@ -57,9 +58,15 @@
                     (click)="openProject.emit({ projectId: row.project.id, projectName: row.project.nome })"
                   >
                     <span class="project__name">{{ row.project.nome }}</span>
+                    @if (memberNames(row.project.id); as names) {
+                      <span class="project__members">{{ names }}</span>
+                    }
                   </button>
                 } @else {
                   <span class="project__name">{{ row.project.nome }}</span>
+                  @if (memberNames(row.project.id); as names) {
+                    <span class="project__members">{{ names }}</span>
+                  }
                 }
               </th>
               <td class="matrix__penalties">
@@ -82,7 +89,7 @@
                     class="cell"
                     [disabled]="!interactive()"
                     [class.cell--active]="isSelected(row.project.id, c.activityId)"
-                    (click)="open.emit({ projectId: row.project.id, projectName: row.project.nome, activityId: c.activityId })"
+                    (click)="activate($event, row, c)"
                     [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + text(c.state) + (c.lateSubmission ? ', entregue com atraso' : '')"
                   >
                     <span class="pill" [class]="'pill pill--' + c.state" [attr.title]="hint(c)">

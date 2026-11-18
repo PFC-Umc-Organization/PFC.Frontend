@@ -1,0 +1,23 @@
+<button type="button" class="backdrop" aria-label="Fechar o menu da célula" tabindex="-1" (click)="closed.emit()"></button>
+<div class="menu" role="menu" [attr.aria-label]="'Ações de ' + cell().activityTitle + ' em ' + cell().projectName" [style.top.px]="cell().top" [style.left.px]="cell().left">
+  <p class="menu__title">{{ cell().projectName }} · {{ cell().activityTitle }}</p>
+  @if (showHandBack()) {
+    <button type="button" class="menu__item" role="menuitem" [disabled]="pending()" (click)="handBack()">
+      <app-icon name="edit" />
+      Devolver para correção
+    </button>
+  }
+  @if (showWaive()) {
+    <button type="button" class="menu__item" role="menuitem" [disabled]="pending()" (click)="waive()">
+      <app-icon name="check" />
+      Perdoar penalidade
+    </button>
+  }
+  <button type="button" class="menu__item" role="menuitem" [disabled]="pending()" (click)="details.emit()">
+    <app-icon name="eye" />
+    Abrir detalhes completos
+  </button>
+  @if (error()) {
+    <p class="menu__error" role="alert">{{ error() }}</p>
+  }
+</div>

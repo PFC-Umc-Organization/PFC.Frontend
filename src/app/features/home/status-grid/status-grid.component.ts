@@ -20,6 +20,12 @@ export interface CellRef {
   activityId: string;
 }
 
+export interface CellMenuRequest {
+  cell: CellRef;
+  state: CellState;
+  rect: DOMRect;
+}
+
 interface CellView {
   activityId: string;
   status: SubmissionStatus;
@@ -98,6 +104,11 @@ export class StatusGridComponent {
   readonly openProject = output<{ projectId: string; projectName: string }>();
   // Penalidades
   readonly penalties = input<Map<string, ProjectPenalties> | undefined>(new Map());
+  // Integrantes
+  readonly members = input<ReadonlyMap<string, { rgm: string; nome: string }[]>>(new Map());
+  // Menu rápido
+  readonly quickMenu = input(false);
+  readonly menu = output<CellMenuRequest>();
 
   protected readonly legend = LEGEND;
 
@@ -164,6 +175,21 @@ export class StatusGridComponent {
       case 'done':
         return c.lateSubmission ? 'Concluído: validada pelo orientador (entregue com atraso)' : 'Concluído: validada pelo orientador';
     }
+  }
+
+  // Integrantes
+  memberNames(projectId: string): string {
+    return (this.members().get(projectId) ?? []).map((m) => m.nome).join(', ');
+  }
+
+  // Ativação
+  activate(event: Event, row: RowView, cell: CellView): void {
+    const ref: CellRef = { projectId: row.project.id, projectName: row.project.nome, activityId: cell.activityId };
+    if (this.quickMenu()) {
+      this.menu.emit({ cell: ref, state: cell.state, rect: (event.currentTarget as HTMLElement).getBoundingClientRect() });
+      return;
+    }
+    this.open.emit(ref);
   }
 
   isSelected(projectId: string, activityId: string): boolean {

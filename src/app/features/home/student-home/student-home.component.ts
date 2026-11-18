@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
@@ -15,6 +16,7 @@ import { PenaltyCounterComponent } from '../../../shared/components/penalty-coun
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
 import { DeliveryMode, DeliveryPanelComponent } from '../delivery-panel/delivery-panel.component';
 import { StatusGridComponent } from '../status-grid/status-grid.component';
+import { nextActionOf, penaltySummaryOf, progressOf } from './student-home.kpis';
 import { TimelineComponent } from '../../../shared/components/timeline/timeline.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 
@@ -30,7 +32,7 @@ interface Home {
 @Component({
   selector: 'app-student-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [StatusGridComponent, DeliveryPanelComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, PenaltyCounterComponent, PenaltyListComponent],
+  imports: [StatusGridComponent, DeliveryPanelComponent, TimelineComponent, IconComponent, RouterLink, DeadlinePipe, DecimalPipe, PenaltyCounterComponent, PenaltyListComponent],
   templateUrl: './student-home.component.html',
   styleUrl: './student-home.component.scss',
 })
@@ -93,7 +95,33 @@ export class StudentHomeComponent {
 
   readonly selectedActivity = signal<string | null>(null);
 
-  private readonly states = computed(() => cellStates(this.grid().rows[0]?.cells ?? []));
+  private readonly states = computed(() => {
+    const row = this.grid().rows[0];
+    const waived = new Set(
+      this.penalties()
+        ?.penalidades.filter((p) => p.origem === 'PRAZO' && p.perdao && p.atividadeId)
+        .map((p) => p.atividadeId),
+    );
+    return cellStates((row?.cells ?? []).map((c) => ({ ...c, waived: waived.has(c.activityId) })));
+  });
+
+  // ---------------------------------------------------------------------------
+  // Indicadores
+  // ---------------------------------------------------------------------------
+
+  readonly progress = computed(() => progressOf(this.states().map((s) => s.state)));
+  readonly nextAction = computed(() => nextActionOf(this.grid().activities, this.states().map((s) => s.state), new Date()));
+  readonly penaltySummary = computed(() => {
+    const p = this.penalties();
+    return p ? penaltySummaryOf(p) : null;
+  });
+  readonly historyOpen = signal(false);
+
+  // Seleção
+  focusActivity(activityId: string): void {
+    this.selectedActivity.set(activityId);
+    queueMicrotask(() => document.getElementById('delivery-title')?.scrollIntoView?.({ behavior: 'smooth', block: 'center' }));
+  }
 
   // Devolvidas
   readonly returned = computed(() => this.grid().activities.filter((_, i) => this.states()[i]?.state === 'returned'));
@@ -164,26 +192,7 @@ export class StudentHomeComponent {
     return this.home.value()?.items ?? [];
   });
   readonly error = computed(() => (this.home.error() ? `Não foi possível carregar as atividades. ${this.home.error()}` : ''));
-  readonly next = computed(() =>
-    this.items()
-      .filter((i) => i.status === 'PENDENTE')
-      .reduce<TimelineItem | null>((best, i) => (!best || new Date(i.deadline) < new Date(best.deadline) ? i : best), null),
-  );
-  readonly pendingCount = computed(() => this.items().filter((i) => i.status === 'PENDENTE').length);
   readonly missed = computed(() => this.items().some((i) => i.status === 'ATRASADO'));
-
-  // Prazo
-  timeLeft(deadline: string, now = new Date()): string {
-    const hours = Math.floor((new Date(deadline).getTime() - now.getTime()) / 3_600_000);
-    if (hours < 1) {
-      return 'O prazo encerra em menos de 1 hora';
-    }
-    if (hours < 24) {
-      return hours === 1 ? 'Falta 1 hora' : `Faltam ${hours} horas`;
-    }
-    const days = Math.floor(hours / 24);
-    return days === 1 ? 'Falta 1 dia' : `Faltam ${days} dias`;
-  }
 
   readonly description = computed(() => {
     const project = this.project();

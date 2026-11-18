@@ -1,0 +1,80 @@
+<section class="card card--flush">
+  <div class="card__head">
+    <h2 class="section-title">{{ heading() }}</h2>
+    @if (!loading() && rows().length) {
+      <span class="count">{{ rows().length }} {{ rows().length === 1 ? 'projeto' : 'projetos' }}</span>
+    }
+    <div class="actions"><ng-content select="[actions]" /></div>
+  </div>
+
+  @if (loading()) {
+    <p class="empty" role="status">Carregando projetos…</p>
+  } @else if (!rows().length) {
+    <p class="empty">{{ emptyText() }}</p>
+  } @else {
+    <div class="table-scroll" appScrollHint>
+      <table class="sheet">
+        <thead>
+          <tr>
+            <th scope="col">Projeto e integrantes</th>
+            <th scope="col">Turma</th>
+            <th scope="col">Orientador</th>
+            <th scope="col" class="num">Progresso</th>
+            <th scope="col">Penalidades</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of rows(); track r.projectId) {
+            <tr [class.row--active]="selectedProject() === r.projectId">
+              <th scope="row" class="project-cell">
+                @if (openable()) {
+                  <button
+                    type="button"
+                    class="project"
+                    [attr.aria-label]="'Abrir o projeto ' + r.name"
+                    (click)="openProject.emit({ projectId: r.projectId, projectName: r.name })"
+                  >
+                    <span class="project__name">{{ r.name }}</span>
+                    <span class="project__members">{{ r.members.join(', ') || 'Sem integrantes' }}</span>
+                  </button>
+                } @else {
+                  <span class="project">
+                    <span class="project__name">{{ r.name }}</span>
+                    <span class="project__members">{{ r.members.join(', ') || 'Sem integrantes' }}</span>
+                  </span>
+                }
+              </th>
+              <td>{{ r.cohort }}</td>
+              <td>
+                @if (r.advisor === 'Sem orientador') {
+                  <span class="muted">Sem orientador</span>
+                } @else {
+                  {{ r.advisor }}
+                }
+              </td>
+              <td class="num">
+                {{ r.delivered }}/{{ r.total }}
+                <span class="progress" aria-hidden="true"><span [style.width.%]="r.total ? (r.delivered / r.total) * 100 : 0"></span></span>
+              </td>
+              <td>
+                @if (r.active === undefined) {
+                  <span class="pending">Carregando…</span>
+                } @else {
+                  {{ r.active }}@if (r.limit) { de {{ r.limit }} }
+                }
+              </td>
+              <td>
+                @if (r.outcome; as o) {
+                  <span class="status status--{{ o }}">{{ outcomeLabel[o] }}</span>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

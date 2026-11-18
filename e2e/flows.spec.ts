@@ -412,23 +412,19 @@ test.describe('management', () => {
     expect(api.failed).toEqual([]);
   });
 
-  test('sets the advisor and renames a PFC', async ({ page, api }) => {
+  test('sets the advisor and renames a PFC from the home panel', async ({ page, api }) => {
     await signIn(page, ADMIN);
-    await page.goto('/turmas');
-    await page.getByRole('button', { name: 'PFCs dos alunos' }).click();
-    await expect(page.getByRole('button', { name: 'PFCs dos alunos' })).toHaveAttribute('aria-pressed', 'true');
+    await page.getByRole('button', { name: 'Abrir o projeto Web-Cursos' }).click();
 
-    await page.getByRole('button', { name: 'Adicionar orientador de Web-Cursos' }).click();
-    await page.getByRole('row', { name: /Web-Cursos/ }).getByRole('combobox').selectOption({ label: 'Orientadora Ana' });
+    await page.locator('#project-advisor').selectOption({ label: 'Orientadora Ana' });
     await confirmDialog(page, 'Confirmar');
-    await expect(page.getByRole('row', { name: /Web-Cursos/ })).toContainText('Orientadora Ana');
-    expect(api.db.projects.find((x) => x.id === 'pr2')?.orientadorId).toBe('u-ana');
+    await expect.poll(() => api.db.projects.find((x) => x.id === 'pr2')?.orientadorId).toBe('u-ana');
 
-    await page.getByRole('button', { name: 'Editar PFC Web-Cursos' }).click();
+    await page.getByRole('button', { name: 'Editar' }).click();
     await page.fill('#edit-name', 'Web-Cursos 2');
     await page.getByRole('button', { name: 'Salvar' }).click();
     await confirmDialog(page, 'Salvar');
-    await expect(page.getByRole('cell', { name: 'Web-Cursos 2', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Abrir o projeto Web-Cursos 2' })).toBeVisible();
     expect(api.failed).toEqual([]);
   });
 });
