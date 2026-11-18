@@ -122,16 +122,6 @@ export class StaffHomeComponent {
     this.selected.set(cell);
   }
 
-<<<<<<< HEAD
-  // Abertura de penalidades
-  openPenalties(project: GroupRef): void {
-    this.closeAll();
-    this.penaltiesOf.set(project);
-  }
-
-  // Abertura de grupo
-=======
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   openGroupOf(project: GroupRef): void {
     const activityId = this.selectedActivity();
     if (activityId) {

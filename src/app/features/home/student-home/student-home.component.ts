@@ -95,7 +95,7 @@ export class StudentHomeComponent {
 
   private readonly states = computed(() => cellStates(this.grid().rows[0]?.cells ?? []));
 
-  /** Activities the advisor sent back: the group has to fix and send them again. */
+  // Devolvidas
   readonly returned = computed(() => this.grid().activities.filter((_, i) => this.states()[i]?.state === 'returned'));
 
   readonly delivery = computed(() => {
@@ -110,7 +110,7 @@ export class StudentHomeComponent {
       waiting: 'open',
       blocked: 'blocked',
       late: 'closed',
-      waived: 'closed',
+      waived: 'waived',
       review: 'submitted',
       returned: 'submitted',
       done: 'submitted',
@@ -134,14 +134,6 @@ export class StudentHomeComponent {
     }
   }
 
-<<<<<<< HEAD
-  // Exibição
-  showPenalties(): void {
-    document.getElementById('penalties-title')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-
-=======
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   readonly project = computed(() => this.home.value()?.project ?? null);
   private readonly penaltyLoad = loadable({
     source: (project: Project) => this.penaltyService.ofProject(project.id),

@@ -70,12 +70,8 @@ export class EnrollFormComponent {
     return c.invalid && c.touched;
   }
 
-<<<<<<< HEAD
   // Pré-autorização
-  enroll(): void {
-=======
   async enroll(): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.result.set(null);
     this.invalidInput.set('');
     if (this.form.invalid) {

@@ -22,7 +22,7 @@ import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { AnswerFieldComponent } from './answer-field/answer-field.component';
 
 // Tipo
-export type DeliveryMode = 'open' | 'submitted' | 'blocked' | 'closed' | 'failed';
+export type DeliveryMode = 'open' | 'waived' | 'submitted' | 'blocked' | 'closed' | 'failed';
 
 // Componente
 @Component({
@@ -81,7 +81,7 @@ export class DeliveryPanelComponent {
   readonly downloadError = this.downloadAction.error;
   readonly sending = this.sendAction.pending;
 
-  readonly showForm = computed(() => this.mode() === 'open' || (this.mode() === 'submitted' && this.editing()));
+  readonly showForm = computed(() => this.mode() === 'open' || this.mode() === 'waived' || (this.mode() === 'submitted' && this.editing()));
   readonly fields = computed(() => this.activity().campos);
 
   readonly answers = linkedSignal<Record<string, string | undefined>>(() => ({ ...this.submission()?.respostas }));

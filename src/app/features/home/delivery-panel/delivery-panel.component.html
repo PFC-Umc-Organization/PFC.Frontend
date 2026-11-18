@@ -24,6 +24,12 @@
           <span>O prazo desta atividade encerrou sem entrega, e ela não aceita mais envio.</span>
         </p>
       }
+      @case ('waived') {
+        <p class="notice" role="status">
+          <app-icon name="check" />
+          <span>Penalidade perdoada — envio liberado fora do prazo</span>
+        </p>
+      }
       @case ('failed') {
         <p class="notice" role="status">
           <app-icon name="alert" />

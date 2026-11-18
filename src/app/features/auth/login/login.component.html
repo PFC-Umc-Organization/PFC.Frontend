@@ -1,58 +1,110 @@
-<app-auth-card heading="Entrar">
-  <form class="form" [formGroup]="form" (ngSubmit)="signIn()">
-    @if (expired && !error()) {
-      <p class="notice" role="status">
-        Sua sessão expirou por segurança. Entre novamente para voltar à página em que você estava. Os dados que ainda não tinham sido enviados precisam ser preenchidos novamente.
-      </p>
-    }
-    @if (error()) {
-      <p class="alert" role="alert">
-        <app-icon name="alert" />
-        <span>
-          {{ error() }}
-          @if (unconfirmed()) {
-            <a routerLink="/confirmar-conta" [queryParams]="{ email: form.controls.email.value }">Confirmar agora</a>
-          }
-        </span>
-      </p>
-    }
-
-    <div class="field">
-      <label class="field__label" for="email">E-mail</label>
-      <input
-        id="email"
-        type="email"
-        class="control"
-        placeholder="Seu e-mail da UMC"
-        autocomplete="username"
-        formControlName="email"
-        [class.control--invalid]="invalid('email')"
-      />
-      @if (invalid('email')) {
-        <span class="field__error">Informe um e-mail válido.</span>
+<app-auth-card [heading]="step() === 'credentials' ? 'Entrar' : 'Verificação em duas etapas'">
+  @if (step() === 'credentials') {
+    <form class="form" [formGroup]="form" (ngSubmit)="signIn()">
+      @if (expired && !error()) {
+        <p class="notice" role="status">
+          Sua sessão expirou por segurança. Entre novamente para voltar à página em que você estava. Os dados que ainda não tinham sido enviados precisam ser preenchidos novamente.
+        </p>
       }
-    </div>
+      @if (error()) {
+        <p class="alert" role="alert">
+          <app-icon name="alert" />
+          <span>
+            {{ error() }}
+            @if (unconfirmed()) {
+              <a routerLink="/confirmar-conta" [queryParams]="{ email: form.controls.email.value }">Confirmar agora</a>
+            }
+          </span>
+        </p>
+      }
 
-    <div class="field">
-      <div class="password-head">
-        <label class="field__label" for="password">Senha</label>
-        <a class="link-button forgot" routerLink="/esqueci-senha" [queryParams]="{ email: form.controls.email.value || null }">
-          Esqueci minha senha
-        </a>
+      <div class="field">
+        <label class="field__label" for="email">E-mail</label>
+        <input
+          id="email"
+          type="email"
+          class="control"
+          placeholder="Seu e-mail da UMC"
+          autocomplete="username"
+          formControlName="email"
+          [class.control--invalid]="invalid('email')"
+        />
+        @if (invalid('email')) {
+          <span class="field__error">Informe um e-mail válido.</span>
+        }
       </div>
-      <app-password-field fieldId="password" [control]="form.controls.senha" [invalid]="invalid('senha')" />
-      @if (invalid('senha')) {
-        <span class="field__error">Informe sua senha.</span>
+
+      <div class="field">
+        <div class="password-head">
+          <label class="field__label" for="password">Senha</label>
+          <a class="link-button forgot" routerLink="/esqueci-senha" [queryParams]="{ email: form.controls.email.value || null }">
+            Esqueci minha senha
+          </a>
+        </div>
+        <app-password-field fieldId="password" [control]="form.controls.senha" [invalid]="invalid('senha')" />
+        @if (invalid('senha')) {
+          <span class="field__error">Informe sua senha.</span>
+        }
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" [disabled]="loading()">
+        {{ loading() ? 'Entrando…' : 'Entrar' }}
+      </button>
+
+      <p class="auth-switch">
+        Não tem uma conta?
+        <a routerLink="/criar-conta">Criar conta</a>
+      </p>
+    </form>
+  } @else {
+    <form class="form" [formGroup]="mfaForm" (ngSubmit)="verify()">
+      @if (error()) {
+        <p class="alert" role="alert">
+          <app-icon name="alert" />
+          <span>{{ error() }}</span>
+        </p>
       }
-    </div>
 
-    <button type="submit" class="btn btn--primary btn--block" [disabled]="loading()">
-      {{ loading() ? 'Entrando…' : 'Entrar' }}
-    </button>
+      @if (step() === 'mfa-setup') {
+        <p class="notice" role="status">
+          Sua conta exige verificação em duas etapas. Leia o QR Code com um aplicativo autenticador (Google Authenticator, Microsoft Authenticator, Authy) e informe o primeiro código de 6 dígitos.
+        </p>
+        @if (settingUp()) {
+          <p class="pending">Gerando a chave de verificação…</p>
+        } @else if (qrCode()) {
+          <img class="qr" [src]="qrCode()" width="192" height="192" alt="QR Code para configurar o aplicativo autenticador" />
+          <p class="field__hint">
+            Se não puder ler o QR Code, digite esta chave no aplicativo:
+            <code class="secret">{{ secret() }}</code>
+          </p>
+        } @else {
+          <button type="button" class="btn btn--outline btn--sm" (click)="retrySetup()">Tentar novamente</button>
+        }
+      } @else {
+        <p class="notice" role="status">Informe o código de 6 dígitos exibido no seu aplicativo autenticador.</p>
+      }
 
-    <p class="auth-switch">
-      Não tem uma conta?
-      <a routerLink="/criar-conta">Criar conta</a>
-    </p>
-  </form>
+      <div class="field">
+        <label class="field__label" for="mfa-code">Código de 6 dígitos</label>
+        <input
+          id="mfa-code"
+          class="control"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+          placeholder="000000"
+          formControlName="codigo"
+          [class.control--invalid]="codeInvalid()"
+        />
+        @if (codeInvalid()) {
+          <span class="field__error">Informe os 6 dígitos do código.</span>
+        }
+      </div>
+
+      <button type="submit" class="btn btn--primary btn--block" [disabled]="verifying() || settingUp()">
+        {{ verifying() ? 'Verificando…' : step() === 'mfa-setup' ? 'Ativar e entrar' : 'Verificar e entrar' }}
+      </button>
+      <p class="auth-switch"><button type="button" class="link-button" (click)="backToCredentials()">Voltar ao login</button></p>
+    </form>
+  }
 </app-auth-card>

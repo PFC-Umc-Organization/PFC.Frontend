@@ -38,13 +38,9 @@ export class MyPfcComponent {
     return mine.programaId ? 'can-create' : 'no-program';
   });
 
-<<<<<<< HEAD
   // Recarga
-=======
-  /** After creating the group or joining one, above the group card. */
   readonly notice = signal('');
 
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   reload(): void {
     this.mine.reload();
   }

@@ -6,7 +6,6 @@ const inFlight = new Map<string, Observable<HttpEvent<unknown>>>();
 // Contexto
 export const SKIP_DEDUPE = new HttpContextToken<boolean>(() => false);
 
-/** @internal for tests */
 // Reset
 export function resetDedupe(): void {
   inFlight.clear();

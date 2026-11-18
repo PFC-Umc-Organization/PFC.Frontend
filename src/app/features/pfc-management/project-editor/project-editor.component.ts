@@ -62,12 +62,8 @@ export class ProjectEditorComponent implements OnInit {
     return c.invalid && c.touched;
   }
 
-<<<<<<< HEAD
   // Gravação
-  save(): void {
-=======
   async save(): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
@@ -90,12 +86,8 @@ export class ProjectEditorComponent implements OnInit {
     this.rgm.set(field.value);
   }
 
-<<<<<<< HEAD
   // Inclusão
-  addMember(): void {
-=======
   async addMember(): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     const rgm = this.rgm().trim();
     this.rgmFormatError.set('');
     if (!/^\d{11}$/.test(rgm)) {
@@ -113,12 +105,8 @@ export class ProjectEditorComponent implements OnInit {
     this.addMemberAction.run(this.project().id, rgm);
   }
 
-<<<<<<< HEAD
   // Remoção
-  removeMember(rgm: string): void {
-=======
   async removeMember(rgm: string): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.rgmFormatError.set('');
     const name = this.nameByRgm()(rgm);
     const confirmed = await this.confirmation.confirm({

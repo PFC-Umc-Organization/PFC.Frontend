@@ -34,8 +34,20 @@ export class EnrollmentListComponent {
     concurrency: 'merge',
   });
   readonly removing = this.removeAction.pending;
+  private readonly moveAction = action((rgm: string, cohortId: string) => this.enrollmentService.enroll([rgm], cohortId), {
+    onSuccess: (result, rgm) => {
+      const failure = result.falhas?.[0];
+      this.moveFailure.set(failure ? `Não foi possível mudar a turma do RGM ${rgm}. ${failure.erro}` : '');
+      this.moved.set(failure ? '' : `Turma do RGM ${rgm} alterada.`);
+      this.enrollments.reload();
+    },
+    onError: () => this.enrollments.reload(),
+  });
+  readonly moving = this.moveAction.pending;
+  private readonly moveFailure = signal('');
+  readonly moved = signal('');
   private readonly removeFailure = signal('');
-  readonly error = computed(() => this.removeFailure() || this.removeAction.error());
+  readonly error = computed(() => this.removeFailure() || this.removeAction.error() || this.moveFailure() || this.moveAction.error());
   readonly canAdd = input(true);
   readonly add = output();
   protected readonly cohortLabel = cohortLabel;
@@ -55,6 +67,8 @@ export class EnrollmentListComponent {
   // Seleção
   choose(event: Event): void {
     this.removeFailure.set('');
+    this.moveFailure.set('');
+    this.moved.set('');
     this.cohortId.set((event.target as HTMLSelectElement).value);
   }
 
@@ -72,7 +86,38 @@ export class EnrollmentListComponent {
     return this.users.value().find((u) => u.rgm === rgm);
   }
 
+  // ---------------------------------------------------------------------------
+  // Turma
+  // ---------------------------------------------------------------------------
+
+  // Mudança
+  async move(rgm: string, event: Event): Promise<void> {
+    const select = event.target as HTMLSelectElement;
+    const target = this.cohorts().find((c) => c.id === select.value);
+    const current = this.cohorts().find((c) => c.id === this.shownCohortId());
+    if (!target || target.id === current?.id) {
+      return;
+    }
+    const confirmed = await this.confirmation.confirm({
+      title: 'Mudar de turma',
+      message: `Mudar o RGM ${rgm} de ${current ? cohortLabel(current) : 'turma atual'} para ${cohortLabel(target)}? O aluno passa a seguir o programa de PFC da nova turma.`,
+      confirmText: 'Mudar turma',
+    });
+    if (!confirmed) {
+      select.value = this.shownCohortId();
+      return;
+    }
+    this.removeFailure.set('');
+    this.moveFailure.set('');
+    this.moved.set('');
+    this.moveAction.run(rgm, target.id);
+  }
+
+  // ---------------------------------------------------------------------------
   // Exclusão
+  // ---------------------------------------------------------------------------
+
+  // Remoção
   async remove(rgm: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Remover pré-autorização',

@@ -42,13 +42,7 @@ export class ProjectPanelComponent {
 
   readonly members = computed(() => this.project().integrantes.map((rgm) => ({ rgm, nome: this.nameByRgm()(rgm) })));
 
-<<<<<<< HEAD
   // Atribuição
-  setAdvisor(event: Event): void {
-    const advisorId = (event.target as HTMLSelectElement).value;
-    this.advisorAction.run(this.project().id, advisorId);
-=======
-  /** A cancelled confirmation puts the select back on the current advisor. */
   async setAdvisor(event: Event): Promise<void> {
     const select = event.target as HTMLSelectElement;
     const advisorId = select.value;
@@ -64,7 +58,6 @@ export class ProjectPanelComponent {
       return;
     }
     this.advisorAction.run(project.id, advisorId);
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   }
 
   // Gravação

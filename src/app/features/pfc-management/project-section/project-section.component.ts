@@ -189,18 +189,7 @@ export class ProjectSectionComponent {
     this.reload();
   }
 
-<<<<<<< HEAD
   // Atribuição
-  setAdvisor(projectId: string, event: Event): void {
-    const advisorId = (event.target as HTMLSelectElement).value;
-    this.advisorAction.run(projectId, advisorId);
-  }
-
-  // Remoção
-  removeAdvisor(projectId: string): void {
-    this.removeAdvisorAction.run(projectId);
-=======
-  /** A cancelled confirmation puts the select back on the current advisor. */
   async setAdvisor(project: { id: string; nome: string; orientadorId?: string }, event: Event): Promise<void> {
     const select = event.target as HTMLSelectElement;
     const advisorId = select.value;
@@ -235,7 +224,6 @@ export class ProjectSectionComponent {
     if (confirmed) {
       this.removeAdvisorAction.run(project.id);
     }
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   }
 
   // Exclusão

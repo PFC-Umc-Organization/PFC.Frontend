@@ -74,15 +74,10 @@ export class StructureSectionComponent implements OnInit {
     return this.confirmation.confirm({ title, message, confirmText: 'Excluir', danger: true });
   }
 
-<<<<<<< HEAD
   // ---------------------------------------------------------------------------
   // Cursos
   // ---------------------------------------------------------------------------
-
   // Criação
-  createCourse(): void {
-=======
-  /** Every change of the coordination is confirmed before it is saved. */
   private confirmSave(title: string, message: string, confirmText = 'Salvar'): Promise<boolean> {
     return this.confirmation.confirm({ title, message, confirmText });
   }
@@ -94,7 +89,6 @@ export class StructureSectionComponent implements OnInit {
   // --- Courses
 
   async createCourse(): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (!this.courseName.value.trim()) {
       this.store.clearErrors();
       this.courseName.markAsTouched();
@@ -116,12 +110,8 @@ export class StructureSectionComponent implements OnInit {
     this.courseEditName.setValue(course.nome);
   }
 
-<<<<<<< HEAD
   // Gravação
-  saveCourse(courseId: string): void {
-=======
   async saveCourse(courseId: string): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (!this.courseEditName.value.trim()) {
       this.courseEditName.markAsTouched();
       return;
@@ -155,12 +145,8 @@ export class StructureSectionComponent implements OnInit {
     this.newCohortFor.set(course.id);
   }
 
-<<<<<<< HEAD
   // Criação
-  createCohort(): void {
-=======
   async createCohort(): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.store.clearErrors();
     if (this.newCohortForm.invalid) {
       this.newCohortForm.markAllAsTouched();
@@ -184,12 +170,8 @@ export class StructureSectionComponent implements OnInit {
     this.editingCohortId.set(cohort.id);
   }
 
-<<<<<<< HEAD
   // Gravação
-  saveCohort(cohortId: string): void {
-=======
   async saveCohort(cohortId: string): Promise<void> {
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     if (this.cohortEditForm.invalid) {
       this.cohortEditForm.markAllAsTouched();
       return;
@@ -222,10 +204,7 @@ export class StructureSectionComponent implements OnInit {
     this.movingProgramId.set(programId);
   }
 
-<<<<<<< HEAD
   // Gravação
-  saveMoveProgram(programId: string): void {
-=======
   async createProgram(cohort: Cohort): Promise<void> {
     const message = `Criar o programa de PFC da turma ${cohortLabel(cohort)}? Depois disso, os alunos da turma já podem cadastrar o PFC do grupo.`;
     if (await this.confirmSave('Criar programa de PFC', message, 'Criar')) {
@@ -239,7 +218,6 @@ export class StructureSectionComponent implements OnInit {
     if (!(await this.confirmSave('Mover programa de PFC', message, 'Mover'))) {
       return;
     }
->>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.store.moveProgram(programId, this.moveToCohortId(), () => this.movingProgramId.set(null));
   }
 

@@ -38,7 +38,7 @@ export class SentInvitationsComponent {
   }
 
   readonly form = new FormGroup({ rgm: new FormControl('', { nonNullable: true }) });
-  /** The last successful change, until the next one starts. */
+  // Aviso
   readonly notice = signal('');
   private readonly inviteAction = action((id: string, rgm: string) => this.invitationService.invite(id, rgm), {
     onSuccess: (_r, _id, rgm) => {

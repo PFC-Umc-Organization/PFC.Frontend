@@ -32,10 +32,10 @@ export class ReferenceListComponent {
   });
   readonly warning = computed(() => this.copyWarning() || this.removeAction.error());
 
-  /** The reference being corrected by its DOI; one at a time. */
+  // Edição
   readonly editingId = signal<string | null>(null);
   readonly draftDoi = signal('');
-  /** Shown after a successful edit, until the next action. */
+  // Aviso
   readonly notice = signal('');
   private readonly replaceAction = action(
     (projectId: string, id: string, doi: string) => this.referenceService.replace(projectId, id, doi),

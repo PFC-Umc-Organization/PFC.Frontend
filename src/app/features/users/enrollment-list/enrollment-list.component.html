@@ -39,6 +39,13 @@
     </p>
   }
 
+  @if (moved()) {
+    <p class="ok card__alert" role="status">
+      <app-icon name="check" />
+      <span>{{ moved() }}</span>
+    </p>
+  }
+
   @if (users.error()) {
     <p class="alert card__alert" role="alert">
       <app-icon name="alert" />
@@ -54,6 +61,7 @@
           <th scope="col">RGM</th>
           <th scope="col">Nome</th>
           <th scope="col">Status</th>
+          <th scope="col">Turma</th>
           <th scope="col"><span class="sr-only">Ações</span></th>
         </tr>
       </thead>
@@ -90,6 +98,14 @@
               }
             </td>
             <td>
+              <label class="sr-only" [for]="'move-' + m.rgm">Turma do RGM {{ m.rgm }}</label>
+              <select [id]="'move-' + m.rgm" class="control" [disabled]="moving() || removing()" (change)="move(m.rgm, $event)">
+                @for (c of cohorts(); track c.id) {
+                  <option [value]="c.id" [selected]="c.id === shownCohortId()">{{ cohortLabel(c) }}</option>
+                }
+              </select>
+            </td>
+            <td>
               <button
                 type="button"
                 class="icon-action"
@@ -104,11 +120,11 @@
         } @empty {
           <tr>
             @if (enrollments.loading() || !shownCohortId()) {
-              <td class="table-empty pending" colspan="4">{{ cohorts().length ? 'Carregando os RGMs da turma…' : 'Cadastre uma turma para pré-autorizar RGMs.' }}</td>
+              <td class="table-empty pending" colspan="5">{{ cohorts().length ? 'Carregando os RGMs da turma…' : 'Cadastre uma turma para pré-autorizar RGMs.' }}</td>
             } @else if (enrollments.error()) {
-              <td class="table-empty" colspan="4">Os RGMs desta turma não foram carregados.</td>
+              <td class="table-empty" colspan="5">Os RGMs desta turma não foram carregados.</td>
             } @else {
-              <td class="table-empty" colspan="4">Nenhum RGM pré-autorizado nesta turma.</td>
+              <td class="table-empty" colspan="5">Nenhum RGM pré-autorizado nesta turma.</td>
             }
           </tr>
         }
