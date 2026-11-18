@@ -11,12 +11,14 @@ import { ProjectService } from '../../../core/services/project.service';
 import { SubmissionService } from '../../../core/services/submission.service';
 import { StatusGrid } from '../../../core/services/submission.service';
 import { UserService } from '../../../core/services/user.service';
+import { Gate } from '../../../core/state/gate';
 import { loadable } from '../../../core/state/loadable';
 import { retryTransient } from '../../../core/state/retry';
 import { EMPTY_GRID, MemberMap } from './staff-home.grid';
 import { pickCohortId } from './staff-home.selection';
 
 export const ALL_COHORTS = '__todas__';
+const BATCH_LIMIT = 3;
 
 // ---------------------------------------------------------------------------
 // Consolidação
@@ -54,6 +56,8 @@ export class StaffHomeStore {
   private readonly userService = inject(UserService);
   private readonly penaltyService = inject(PenaltyService);
   private readonly submissionService = inject(SubmissionService);
+
+  private readonly gate = new Gate(BATCH_LIMIT);
 
   private readonly isAdvisor = computed(() => this.auth.role() === 'ORIENTADOR');
   readonly isAdmin = computed(() => this.auth.role() === 'ADMIN');
@@ -99,13 +103,15 @@ export class StaffHomeStore {
     }
     const cohortIds = new Set(this.cohorts.value().map((c) => c.id));
     const advised = this.isAdvisor() ? new Set(this.advised.value().map((p) => p.programaId)) : null;
-    return this.programs.value().filter((p) => cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
+    return this.programs.value().filter((p) => !!p.id && cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
   });
   private readonly scopeParams = computed(() => (this.scopeIds().length ? this.scopeIds() : null));
 
   readonly gridLoad = loadable({
     source: (ids: string[]) =>
-      combineLatest(ids.map((programId) => this.submissionService.statusGrid(programId).pipe(retryTransient(), map((grid) => ({ programId, grid }))))).pipe(map(mergeScope)),
+      combineLatest(
+        ids.map((programId) => this.gate.run(this.submissionService.statusGrid(programId).pipe(retryTransient(), map((grid) => ({ programId, grid }))))),
+      ).pipe(map(mergeScope)),
     params: this.scopeParams,
     initial: EMPTY_SCOPE,
   });
@@ -120,7 +126,7 @@ export class StaffHomeStore {
   readonly nameOf = (rgm: string): string => this.nameByRgm().get(rgm) ?? rgm;
 
   readonly projectList = loadable({
-    source: (ids: string[]) => combineLatest(ids.map((id) => this.projectService.list(id).pipe(retryTransient()))).pipe(map((lists) => lists.flat())),
+    source: (ids: string[]) => combineLatest(ids.map((id) => this.gate.run(this.projectService.list(id).pipe(retryTransient())))).pipe(map((lists) => lists.flat())),
     params: computed(() => (this.isAdmin() ? this.scopeParams() : null)),
     initial: [] as Project[],
   });
@@ -162,7 +168,7 @@ export class StaffHomeStore {
   });
 
   readonly penaltyList = loadable({
-    source: (ids: string[]) => combineLatest(ids.map((id) => this.penaltyService.ofProgram(id).pipe(retryTransient()))).pipe(map((lists) => lists.flat())),
+    source: (ids: string[]) => combineLatest(ids.map((id) => this.gate.run(this.penaltyService.ofProgram(id).pipe(retryTransient())))).pipe(map((lists) => lists.flat())),
     params: this.scopeParams,
     initial: [] as ProjectPenalties[],
   });
