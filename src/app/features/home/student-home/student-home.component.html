@@ -21,6 +21,22 @@
         <button type="button" class="btn btn--outline btn--sm" (click)="retryGrid()">Tentar novamente</button>
       </p>
     }
+    @if (returned().length && !failed()) {
+      <section class="returned" role="alert" aria-labelledby="returned-title">
+        <app-icon name="edit" class="returned__icon" />
+        <div class="returned__body">
+          <h2 id="returned-title" class="returned__title">
+            {{ returned().length === 1 ? 'Uma entrega foi devolvida pelo orientador' : returned().length + ' entregas foram devolvidas pelo orientador' }}
+          </h2>
+          <p class="returned__text">Abra a entrega para ler o comentário, corrigir e enviar de novo.</p>
+          <div class="returned__actions">
+            @for (a of returned(); track a.id) {
+              <button type="button" class="btn btn--outline btn--sm" (click)="openActivity(a.id)">{{ a.titulo }}</button>
+            }
+          </div>
+        </div>
+      </section>
+    }
     @if (!project()) {
       <p class="notice" role="status">
         <app-icon name="alert" />
@@ -100,7 +116,6 @@
         (open)="openActivity($event.activityId)"
         (openActivity)="openActivity($event)"
         [selectedActivity]="selectedActivity()"
-        (openPenalties)="showPenalties()"
       />
       @if (delivery(); as d) {
         <app-delivery-panel

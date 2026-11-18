@@ -52,7 +52,9 @@
             }
           </p>
           @if (mode() === 'submitted') {
-            <button type="button" class="btn btn--outline btn--sm" [disabled]="sending()" (click)="edit()">Editar</button>
+            <button type="button" class="btn btn--outline btn--sm" [disabled]="sending()" (click)="edit()">
+              {{ s.validacao?.status === 'NAO_VALIDADA' ? 'Corrigir e reenviar' : 'Editar' }}
+            </button>
           }
         </div>
         <div class="validation" [class]="'validation validation--' + (s.validacao?.status ?? 'pending')">

@@ -143,7 +143,7 @@
                           class="control advisor"
                           [attr.aria-label]="'Orientador de ' + p.nome"
                           [value]="p.orientadorId ?? ''"
-                          (change)="setAdvisor(p.id, $event)"
+                          (change)="setAdvisor(p, $event)"
                         >
                           <option value="">Sem orientador</option>
                           @for (a of advisors(); track a.id) {
@@ -173,7 +173,7 @@
                           <button
                             type="button"
                             class="text-action text-action--danger"
-                            (click)="removeAdvisor(p.id)"
+                            (click)="removeAdvisor(p)"
                             [attr.aria-label]="'Remover orientador de ' + p.nome"
                           >
                             Remover

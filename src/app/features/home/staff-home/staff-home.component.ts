@@ -4,7 +4,6 @@ import { cohortLabel } from '../../../core/models';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ActivitySubmissionsComponent } from '../activity-submissions/activity-submissions.component';
-import { PenaltyPanelComponent } from '../penalty-panel/penalty-panel.component';
 import { ProjectPanelComponent } from '../project-panel/project-panel.component';
 import { CellRef, StatusGridComponent } from '../status-grid/status-grid.component';
 import { SubmissionDetailComponent } from '../submission-detail/submission-detail.component';
@@ -20,7 +19,7 @@ type GroupRef = { projectId: string; projectName: string };
 @Component({
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IconComponent, StatusGridComponent, SubmissionDetailComponent, PenaltyPanelComponent, ActivitySubmissionsComponent, ProjectPanelComponent, DeadlinePipe],
+  imports: [IconComponent, StatusGridComponent, SubmissionDetailComponent, ActivitySubmissionsComponent, ProjectPanelComponent, DeadlinePipe],
   providers: [StaffHomeStore],
   templateUrl: './staff-home.component.html',
   styleUrl: './staff-home.component.scss',
@@ -91,23 +90,16 @@ export class StaffHomeComponent {
   readonly selected = signal<CellRef | null>(null);
   readonly selectedActivity = signal<string | null>(null);
   readonly selectedProject = signal<string | null>(null);
-  readonly penaltiesOf = signal<GroupRef | null>(null);
 
   readonly projectDetail = computed(() => this.store.projectById().get(this.selectedProject() ?? '') ?? null);
   readonly activityDetail = computed(() => activityDetailOf(this.visibleGrid(), this.selectedActivity()));
   readonly detail = computed(() => cellDetailOf(this.store.grid(), this.selected()));
-  readonly penaltyDetail = computed(() => {
-    const chosen = this.penaltiesOf();
-    const penalties = chosen && this.store.penalties()?.get(chosen.projectId);
-    return chosen && penalties ? { ...chosen, penalties } : null;
-  });
 
   // Fechamento
   private closeAll(): void {
     this.selected.set(null);
     this.selectedActivity.set(null);
     this.selectedProject.set(null);
-    this.penaltiesOf.set(null);
   }
 
   // Abertura de projeto
@@ -130,6 +122,7 @@ export class StaffHomeComponent {
     this.selected.set(cell);
   }
 
+<<<<<<< HEAD
   // Abertura de penalidades
   openPenalties(project: GroupRef): void {
     this.closeAll();
@@ -137,6 +130,8 @@ export class StaffHomeComponent {
   }
 
   // Abertura de grupo
+=======
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   openGroupOf(project: GroupRef): void {
     const activityId = this.selectedActivity();
     if (activityId) {

@@ -19,6 +19,8 @@ import { toApiError } from './http-error';
 export interface UserFilter {
   search?: string;
   role?: Role | 'TODOS';
+  /** Students of this cohort; staff accounts belong to none. */
+  cohortId?: string;
 }
 
 // Serviço
@@ -71,8 +73,12 @@ export abstract class UserService {
   abstract resendInvitation(userId: string): Observable<MessageResponse>;
 }
 
+<<<<<<< HEAD
 // Filtro
 function applyFilter(users: User[], { search, role }: UserFilter): User[] {
+=======
+function applyFilter(users: User[], { search, role, cohortId }: UserFilter): User[] {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   const term = (search ?? '').trim().toLowerCase();
   return users.filter((u) => {
     const roleMatches = !role || role === 'TODOS' || u.perfil === role;
@@ -81,7 +87,8 @@ function applyFilter(users: User[], { search, role }: UserFilter): User[] {
       u.nome.toLowerCase().includes(term) ||
       u.email.toLowerCase().includes(term) ||
       (u.rgm ?? '').includes(term);
-    return roleMatches && searchMatches;
+    const cohortMatches = !cohortId || u.cursoIds.includes(cohortId);
+    return roleMatches && searchMatches && cohortMatches;
   });
 }
 

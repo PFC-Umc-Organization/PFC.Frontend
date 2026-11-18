@@ -63,16 +63,17 @@
           <label class="field__label" for="rgms">RGMs</label>
           <textarea
             id="rgms"
+            appRgm="list"
             class="control control--textarea"
             placeholder="Um RGM por linha. Ex.: 12345678901"
             formControlName="rgms"
             [class.control--invalid]="invalid('rgms')"
           ></textarea>
           <span class="field__hint">
-            Informe um ou mais RGMs, separados por linha ou vírgula. Todos serão pré-autorizados na turma selecionada.
+            Só números, 11 dígitos por RGM; a linha seguinte abre sozinha. Todos serão pré-autorizados na turma selecionada.
           </span>
           @if (invalid('rgms')) {
-            <span class="field__error">Informe ao menos um RGM válido (só números).</span>
+            <span class="field__error">Informe ao menos um RGM válido (11 números).</span>
           }
         </div>
 

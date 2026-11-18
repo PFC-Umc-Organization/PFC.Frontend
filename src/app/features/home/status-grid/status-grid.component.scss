@@ -161,7 +161,8 @@
   background: color-mix(in oklch, var(--primary) 3%, var(--card));
 }
 
-.matrix__penalties .cell {
+.matrix__penalties .counter {
+  display: flex;
   align-items: flex-start;
   padding-inline: 0.75rem;
 }
@@ -230,16 +231,28 @@
   --ink: oklch(36% 0.1 154);
 }
 
-.pill--done-late,
-.swatch--done-late {
+.pill--review,
+.swatch--review {
   --tone: oklch(70% 0.15 70);
   --ink: var(--warning);
+}
+
+.pill--returned,
+.swatch--returned {
+  --tone: oklch(58% 0.17 330);
+  --ink: oklch(42% 0.16 330);
 }
 
 .pill--late,
 .swatch--late {
   --tone: var(--destructive);
   --ink: oklch(46% 0.19 25);
+}
+
+.pill--waived,
+.swatch--waived {
+  --tone: oklch(68% 0.06 154);
+  --ink: oklch(40% 0.08 154);
 }
 
 .pill--waiting,
@@ -296,15 +309,11 @@
   background: color-mix(in oklch, var(--tone) 13%, var(--card));
 }
 
-.validation {
+.late-note {
   font-size: 0.6875rem;
   text-align: center;
-  color: var(--success);
+  color: var(--warning);
   white-space: nowrap;
-}
-
-.validation--rejected {
-  color: var(--destructive);
 }
 
 .cell:disabled,

@@ -3,20 +3,23 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
 import { Cohort, EnrollmentResult, cohortLabel, currentTerm, isInTerm } from '../../../core/models';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RgmInputDirective } from '../../../shared/directives/rgm-input.directive';
 
 // Componente
 @Component({
   selector: 'app-enroll-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, IconComponent],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent, RgmInputDirective],
   templateUrl: './enroll-form.component.html',
   styles: '.failures { margin: 0.25rem 0 0; padding-left: 1.25rem; }',
 })
 export class EnrollFormComponent {
   private readonly enrollmentService = inject(EnrollmentService);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly cohorts = input.required<Cohort[]>();
   readonly cohortId = input('');
@@ -67,8 +70,12 @@ export class EnrollFormComponent {
     return c.invalid && c.touched;
   }
 
+<<<<<<< HEAD
   // Pré-autorização
   enroll(): void {
+=======
+  async enroll(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.result.set(null);
     this.invalidInput.set('');
     if (this.form.invalid) {
@@ -76,9 +83,18 @@ export class EnrollFormComponent {
       return;
     }
     const { turmaId, rgms: text } = this.form.getRawValue();
-    const rgms = [...new Set(text.split(/[\s,;]+/).filter((r) => /^\d{4,12}$/.test(r)))];
+    const rgms = [...new Set(text.split(/[\s,;]+/).filter((r) => /^\d{11}$/.test(r)))];
     if (rgms.length === 0) {
-      this.invalidInput.set('Informe ao menos um RGM válido (só números).');
+      this.invalidInput.set('Informe ao menos um RGM válido (11 números).');
+      return;
+    }
+    const cohort = this.termCohorts().find((c) => c.id === turmaId);
+    const confirmed = await this.confirmation.confirm({
+      title: 'Pré-autorizar RGMs',
+      message: `Pré-autorizar ${rgms.length === 1 ? '1 RGM' : rgms.length + ' RGMs'} ${cohort ? 'na turma ' + cohortLabel(cohort) : 'na turma escolhida'}? Os alunos poderão criar a conta com esses RGMs.`,
+      confirmText: 'Pré-autorizar',
+    });
+    if (!confirmed) {
       return;
     }
     this.enrollAction.run(rgms, turmaId);

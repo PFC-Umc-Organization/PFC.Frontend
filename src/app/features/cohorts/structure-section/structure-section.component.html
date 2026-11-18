@@ -273,7 +273,7 @@
             class="btn btn--outline btn--sm"
             [disabled]="store.programCreating() === r.cohort.id"
             [attr.aria-label]="'Criar programa de ' + cohortLabel(r.cohort)"
-            (click)="store.createProgram(r.cohort.id)"
+            (click)="createProgram(r.cohort)"
           >
             {{ store.programCreating() === r.cohort.id ? 'Criando…' : 'Criar programa' }}
           </button>

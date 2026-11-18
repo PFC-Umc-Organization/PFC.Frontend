@@ -4,6 +4,7 @@ import { catchError, forkJoin, map, of } from 'rxjs';
 
 import { Cohort, DEFAULT_FIELD, NewField, cohortLabel } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ActivityFieldsComponent, activityForm } from '../activity-fields/activity-fields.component';
@@ -25,6 +26,7 @@ export class NewActivityComponent {
   private readonly activityService = inject(ActivityService);
   private readonly adder = viewChild.required(FieldAdderComponent);
   private readonly store = inject(PfcManagementStore);
+  private readonly confirmation = inject(ConfirmationService);
 
   protected readonly cohortLabel = cohortLabel;
   protected readonly allCohorts = ALL_COHORTS;
@@ -85,8 +87,12 @@ export class NewActivityComponent {
     this.fields.update((fields) => (fields.length <= 1 ? fields : fields.filter((_, i) => i !== index)));
   }
 
+<<<<<<< HEAD
   // Publicação
   publish(): void {
+=======
+  async publish(): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     this.missingCohort.set('');
     this.failure.set('');
     if (this.form.invalid) {
@@ -96,6 +102,15 @@ export class NewActivityComponent {
     const targets = this.target() === ALL_COHORTS ? this.cohorts() : this.cohorts().filter((c) => c.id === this.target());
     if (!targets.length) {
       this.missingCohort.set('Cadastre uma turma antes de criar atividades.');
+      return;
+    }
+    const where = this.target() === ALL_COHORTS ? 'em todas as turmas' : `na turma ${cohortLabel(targets[0])}`;
+    const confirmed = await this.confirmation.confirm({
+      title: 'Publicar atividade',
+      message: `Publicar a atividade "${this.form.controls.titulo.value.trim()}" ${where}? Ela passa a aparecer no cronograma dos grupos.`,
+      confirmText: 'Publicar',
+    });
+    if (!confirmed) {
       return;
     }
     this.publishAction.run(targets, { ...this.form.getRawValue(), campos: this.fields() });

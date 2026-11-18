@@ -1,4 +1,4 @@
-import { Activity } from '../models';
+import { Activity, SubmissionStatus } from '../models';
 import { cellStates, editedLater, submissionStatus, submittedFileName } from './submission-status';
 
 describe('submissionStatus', () => {
@@ -49,17 +49,20 @@ describe('editedLater', () => {
 });
 
 describe('cellStates', () => {
+  const cells = (...statuses: SubmissionStatus[]) => statuses.map((status) => ({ status }));
+
   it('marks the nearest open activity as waiting and the next ones as blocked by it', () => {
-    expect(cellStates(['ENTREGUE', 'PENDENTE', 'PENDENTE', 'PENDENTE'])).toEqual([
-      { state: 'done' },
-      { state: 'waiting' },
-      { state: 'blocked', blockedBy: 1 },
-      { state: 'blocked', blockedBy: 1 },
+    expect(cellStates(cells('ENTREGUE', 'PENDENTE', 'PENDENTE', 'PENDENTE')).map((c) => c.state)).toEqual([
+      'review',
+      'waiting',
+      'blocked',
+      'blocked',
     ]);
+    expect(cellStates(cells('ENTREGUE', 'PENDENTE', 'PENDENTE'))[2].blockedBy).toBe(1);
   });
 
   it('does not let an overdue activity block the ones still on time', () => {
-    expect(cellStates(['ATRASADO', 'PENDENTE', 'PENDENTE'])).toEqual([
+    expect(cellStates(cells('ATRASADO', 'PENDENTE', 'PENDENTE'))).toEqual([
       { state: 'late' },
       { state: 'waiting' },
       { state: 'blocked', blockedBy: 1 },
@@ -67,10 +70,20 @@ describe('cellStates', () => {
   });
 
   it('does not block anything when every earlier activity was submitted, late or not', () => {
-    expect(cellStates(['ENTREGUE_COM_ATRASO', 'PENDENTE'])).toEqual([{ state: 'done-late' }, { state: 'waiting' }]);
+    expect(cellStates(cells('ENTREGUE_COM_ATRASO', 'PENDENTE')).map((c) => c.state)).toEqual(['review', 'waiting']);
   });
 
-  it('keeps a submission as done after an open activity', () => {
-    expect(cellStates(['PENDENTE', 'ENTREGUE'])).toEqual([{ state: 'waiting' }, { state: 'done' }]);
+  it('follows a delivery from review to done, or back to the group when it is returned', () => {
+    expect(cellStates([{ status: 'ENTREGUE' }])[0].state).toBe('review');
+    expect(cellStates([{ status: 'ENTREGUE', validation: 'VALIDADA' }])[0].state).toBe('done');
+    expect(cellStates([{ status: 'ENTREGUE_COM_ATRASO', validation: 'VALIDADA' }])[0].state).toBe('done');
+    expect(cellStates([{ status: 'ENTREGUE', validation: 'NAO_VALIDADA' }])[0].state).toBe('returned');
+  });
+
+  it('shows an overdue activity as waived once its penalty was forgiven', () => {
+    expect(cellStates([{ status: 'ATRASADO', waived: true }, { status: 'PENDENTE' }]).map((c) => c.state)).toEqual([
+      'waived',
+      'waiting',
+    ]);
   });
 });

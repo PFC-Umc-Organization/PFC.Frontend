@@ -3,6 +3,9 @@
     <h2 class="section-title">Convites pendentes</h2>
   </div>
   <div class="card__body invitations">
+    @if (notice()) {
+      <p class="ok" role="status">{{ notice() }}</p>
+    }
     @if (loadError()) {
       <p class="alert" role="alert">
         <app-icon name="alert" />
@@ -40,8 +43,8 @@
         <label class="field__label" for="invite-rgm">Convidar colega (RGM)</label>
         <input
           id="invite-rgm"
+          appRgm
           type="text"
-          inputmode="numeric"
           class="control"
           placeholder="Ex.: 12345678901"
           formControlName="rgm"

@@ -31,7 +31,7 @@
                   class="activity"
                   [disabled]="!interactive()"
                   [class.activity--active]="selectedActivity() === a.id"
-                  [attr.aria-label]="a.titulo + ', prazo ' + (a.prazo | date: 'dd/MM') + '. Ver o que cada grupo entregou'"
+                  [attr.aria-label]="a.titulo + ', prazo ' + (a.prazo | date: 'dd/MM')"
                   (click)="openActivity.emit(a.id)"
                   (mouseenter)="hovered.set(a.id)"
                   (mouseleave)="hovered.set(null)"
@@ -66,15 +66,13 @@
                 @if (penalties() === undefined) {
                   <span class="pending cell-pending">Carregando…</span>
                 } @else if (penalties()!.get(row.project.id); as p) {
-                  <button
-                    type="button"
-                    class="cell"
-                    [class.cell--active]="selectedPenalties() === row.project.id"
-                    (click)="openPenalties.emit({ projectId: row.project.id, projectName: row.project.nome })"
+                  <span
+                    class="counter"
+                    role="img"
                     [attr.aria-label]="row.project.nome + ', penalidades: ' + (p.reprovado ? 'reprovado' : p.ativas + ' de ' + p.limite)"
                   >
                     <app-penalty-counter [penalties]="p" [compact]="true" />
-                  </button>
+                  </span>
                 }
               </td>
               @for (c of row.cells; track c.activityId) {
@@ -85,16 +83,14 @@
                     [disabled]="!interactive()"
                     [class.cell--active]="isSelected(row.project.id, c.activityId)"
                     (click)="open.emit({ projectId: row.project.id, projectName: row.project.nome, activityId: c.activityId })"
-                    [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + label(c.status) + (c.state === 'blocked' ? ', bloqueada' : '') + validationText(c.validation)"
+                    [attr.aria-label]="row.project.nome + ', ' + titleOf(c.activityId) + ': ' + text(c.state) + (c.lateSubmission ? ', entregue com atraso' : '')"
                   >
                     <span class="pill" [class]="'pill pill--' + c.state" [attr.title]="hint(c)">
                       <app-icon [name]="icon(c.state)" [strokeWidth]="2.5" />
                       <span class="pill__text">{{ text(c.state) }}</span>
                     </span>
-                    @if (c.validation) {
-                      <span class="validation" [class.validation--rejected]="c.validation === 'NAO_VALIDADA'">
-                        {{ c.validation === 'VALIDADA' ? 'Validada' : 'Não validada' }}
-                      </span>
+                    @if (c.lateSubmission) {
+                      <span class="late-note">com atraso</span>
                     }
                   </button>
                 </td>

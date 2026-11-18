@@ -84,10 +84,14 @@
       </button>
     } @else if (deadlinePassed()) {
       <p class="meta">
-        O prazo encerrou em {{ activity().prazo | deadline: true }} sem entrega do grupo, o que gerou uma penalidade. Para perdoá-la, abra a coluna Penalidades.
+        O prazo encerrou em {{ activity().prazo | deadline: true }} sem entrega do grupo, o que gerou uma penalidade.
       </p>
     } @else {
       <p class="meta">O grupo ainda não enviou esta entrega. O prazo encerra em {{ activity().prazo | deadline: true }}.</p>
+    }
+
+    @if (penalties(); as p) {
+      <app-cell-penalties [projectName]="projectName()" [activity]="activity()" [activities]="activities()" [penalties]="p" />
     }
   </div>
 </section>

@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, linkedSignal, output } from '@angular/core';
 
-import { Activity, Submission, ValidationStatus, validationLabel } from '../../../core/models';
+import { Activity, ProjectPenalties, Submission, ValidationStatus, validationLabel } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { editedLater } from '../../../core/services/submission-status';
@@ -10,12 +10,13 @@ import { action } from '../../../core/state/action';
 import { AnswerListComponent } from '../../../shared/components/answer-list/answer-list.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
+import { CellPenaltiesComponent } from '../cell-penalties/cell-penalties.component';
 
 // Componente
 @Component({
   selector: 'app-submission-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, IconComponent, AnswerListComponent, DeadlinePipe],
+  imports: [DatePipe, IconComponent, AnswerListComponent, DeadlinePipe, CellPenaltiesComponent],
   templateUrl: './submission-detail.component.html',
   styleUrl: './submission-detail.component.scss',
 })
@@ -29,6 +30,9 @@ export class SubmissionDetailComponent {
   readonly projectName = input.required<string>();
   readonly activity = input.required<Activity>();
   readonly submission = input<Submission | null>(null);
+  /** The group's penalties, undefined while they load or when they failed to; every activity of the grid. */
+  readonly penalties = input<ProjectPenalties | undefined>(undefined);
+  readonly activities = input<Activity[]>([]);
   readonly closed = output();
 
   private readonly downloadAction = action(
@@ -72,11 +76,33 @@ export class SubmissionDetailComponent {
     this.comment.set((event.target as HTMLTextAreaElement).value);
   }
 
+<<<<<<< HEAD
   // Validação
   validate(status: ValidationStatus): void {
+=======
+  async validate(status: ValidationStatus): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     const comentario = this.comment().trim();
     if (status === 'NAO_VALIDADA' && !comentario) {
       this.missingComment.set('Para não validar, escreva no comentário o que o grupo precisa corrigir.');
+      return;
+    }
+    this.missingComment.set('');
+    const confirmed = await this.confirmation.confirm(
+      status === 'VALIDADA'
+        ? {
+            title: 'Validar entrega',
+            message: 'Validar esta entrega? O grupo verá a validação e o comentário, se houver.',
+            confirmText: 'Validar',
+          }
+        : {
+            title: 'Não validar entrega',
+            message: 'Marcar esta entrega como não validada? O grupo verá o comentário com o que precisa corrigir.',
+            confirmText: 'Não validar',
+            danger: true,
+          },
+    );
+    if (!confirmed) {
       return;
     }
     this.missingComment.set('');

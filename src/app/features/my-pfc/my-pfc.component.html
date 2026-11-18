@@ -12,12 +12,16 @@
     }
   </header>
 
+  @if (notice()) {
+    <p class="ok" role="status">{{ notice() }}</p>
+  }
+
   @if (group(); as g) {
     <app-group-card [detail]="g" />
     <app-sent-invitations [projectId]="g.projeto.id" />
   } @else {
     @if (situation() !== 'loading' && situation() !== 'error') {
-      <app-received-invitations (joined)="reload()" />
+      <app-received-invitations (joined)="joined()" />
     }
 
     @switch (situation()) {
@@ -48,7 +52,7 @@
         </p>
       }
       @default {
-        <app-create-project (created)="reload()" />
+        <app-create-project (created)="created()" />
       }
     }
   }

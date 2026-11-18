@@ -6,12 +6,13 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ProjectService } from '../../../core/services/project.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RgmInputDirective } from '../../../shared/directives/rgm-input.directive';
 
 // Componente
 @Component({
   selector: 'app-create-project',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, IconComponent],
+  imports: [ReactiveFormsModule, IconComponent, RgmInputDirective],
   templateUrl: './create-project.component.html',
   styles: '.error { margin-top: 0.75rem; font-size: 0.875rem; font-weight: 600; color: var(--destructive); }',
 })

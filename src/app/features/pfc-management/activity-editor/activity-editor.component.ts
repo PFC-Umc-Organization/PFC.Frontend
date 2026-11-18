@@ -1,65 +1,97 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, input, output, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, input, linkedSignal, output, signal, viewChild } from '@angular/core';
 import { ReactiveFormsModule } from '@angular/forms';
+import { concat, last } from 'rxjs';
 
-import { Activity, NewField } from '../../../core/models';
+import { Activity, ActivityUpdate, NewField } from '../../../core/models';
 import { ActivityService } from '../../../core/services/activity.service';
+import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ActivityFieldsComponent, activityForm } from '../activity-fields/activity-fields.component';
 import { FieldAdderComponent } from '../field-adder/field-adder.component';
 import { FieldListComponent } from '../field-list/field-list.component';
 
-// Componente
+/** A field of the draft: saved ones keep their id, new ones have none yet. */
+type DraftField = NewField & { id?: string };
+
+/**
+ * Edits an activity with a single "Salvar": fields added or removed stay in a
+ * draft until then, and "Cancelar" drops everything. The draft follows the
+ * activity, so after a partial failure it shows what was really saved.
+ */
 @Component({
   selector: 'app-activity-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, IconComponent, ActivityFieldsComponent, FieldListComponent, FieldAdderComponent],
   templateUrl: './activity-editor.component.html',
-  styles: '.editor { padding: 0.5rem 0; } .field-error { margin: 0.5rem 0; font-size: 0.75rem; color: var(--destructive); }',
+  styles: '.editor { padding: 0.5rem 0; }',
 })
 export class ActivityEditorComponent implements OnInit {
   private readonly activityService = inject(ActivityService);
   private readonly adder = viewChild.required(FieldAdderComponent);
+  private readonly confirmation = inject(ConfirmationService);
 
   readonly activity = input.required<Activity>();
   readonly closed = output();
 
   readonly form = activityForm();
-  private readonly saveAction = action(
-    (id: string, body: Parameters<ActivityService['update']>[1]) => this.activityService.update(id, body),
-    { onSuccess: () => this.closed.emit() },
-  );
-  private readonly addFieldAction = action((id: string, field: NewField) => this.activityService.addField(id, field), {
-    onSuccess: () => this.adder().reset(),
-  });
-  private readonly removeFieldAction = action((id: string, fieldId: string) => this.activityService.removeField(id, fieldId), {
-    concurrency: 'merge',
-  });
-  readonly error = this.saveAction.error;
-  readonly fieldError = computed(() => this.addFieldAction.error() || this.removeFieldAction.error());
+  readonly fields = linkedSignal<DraftField[]>(() => this.activity().campos.map((c) => ({ ...c })));
+  private readonly partial = signal(false);
 
-  // Inicialização
+  // New fields first: the backend refuses to remove an activity's last field,
+  // so swapping every field only works in this order.
+  private readonly saveAction = action(
+    (id: string, body: ActivityUpdate, added: NewField[], removed: string[]) =>
+      concat(
+        ...added.map((field) => this.activityService.addField(id, field)),
+        ...removed.map((fieldId) => this.activityService.removeField(id, fieldId)),
+        this.activityService.update(id, body),
+      ).pipe(last()),
+    {
+      onSuccess: () => this.closed.emit(),
+      onError: (_e, _id, _body, added, removed) => this.partial.set(added.length + removed.length > 0),
+    },
+  );
+  readonly saving = this.saveAction.pending;
+  readonly error = this.saveAction.error;
+  readonly partialSave = this.partial.asReadonly();
+
+  /** Filled once; the fields come from the activity through the draft. */
   ngOnInit(): void {
     const { titulo, prazo, descricao } = this.activity();
     this.form.setValue({ titulo, prazo: prazo.slice(0, 16), descricao });
   }
 
-  // Inclusão
   addField(field: NewField): void {
-    this.addFieldAction.run(this.activity().id, field);
+    this.fields.update((fields) => [...fields, field]);
+    this.adder().reset();
   }
 
-  // Remoção
   removeField(index: number): void {
-    this.removeFieldAction.run(this.activity().id, this.activity().campos[index].id);
+    this.fields.update((fields) => (fields.length <= 1 ? fields : fields.filter((_, i) => i !== index)));
   }
 
-  // Gravação
-  save(): void {
+  async save(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.saveAction.run(this.activity().id, this.form.getRawValue());
+    const draft = this.fields();
+    const kept = new Set(draft.map((f) => f.id).filter(Boolean));
+    const removed = this.activity().campos.filter((c) => !kept.has(c.id)).map((c) => c.id);
+    const added = draft.filter((f) => !f.id).map(({ rotulo, tipo, obrigatorio }) => ({ rotulo, tipo, obrigatorio }));
+    const changes = added.length + removed.length;
+    const confirmed = await this.confirmation.confirm({
+      title: 'Salvar atividade',
+      message:
+        `Salvar as alterações da atividade "${this.form.controls.titulo.value.trim()}"?` +
+        (changes ? ` ${added.length} campo(s) adicionado(s) e ${removed.length} removido(s).` : ''),
+      confirmText: 'Salvar',
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.partial.set(false);
+    this.saveAction.run(this.activity().id, this.form.getRawValue(), added, removed);
   }
 }

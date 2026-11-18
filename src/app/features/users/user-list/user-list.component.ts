@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { MessageResponse, ROLE_LABEL, Role, User } from '../../../core/models';
+import { Cohort, MessageResponse, ROLE_LABEL, Role, User, cohortLabel } from '../../../core/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmationService } from '../../../core/services/confirmation.service';
 import { UserService } from '../../../core/services/user.service';
@@ -32,12 +32,17 @@ export class UserListComponent {
 
   readonly search = signal('');
   readonly role = signal<Role | 'TODOS'>('TODOS');
+  /** Empty is every cohort. */
+  readonly cohortId = signal('');
+  /** The cohorts to filter by; the filter is left out while there are none. */
+  readonly cohorts = input<Cohort[]>([]);
+  protected readonly cohortLabel = cohortLabel;
   readonly canAdd = input(true);
   readonly add = output();
 
   readonly users = loadable({
-    source: (filter: { search: string; role: Role | 'TODOS' }) => this.userService.list(filter),
-    params: computed(() => ({ search: this.search(), role: this.role() })),
+    source: (filter: { search: string; role: Role | 'TODOS'; cohortId: string }) => this.userService.list(filter),
+    params: computed(() => ({ search: this.search(), role: this.role(), cohortId: this.cohortId() })),
     initial: [] as User[],
   });
 
@@ -68,7 +73,14 @@ export class UserListComponent {
     this.search.set((event.target as HTMLInputElement).value);
   }
 
+<<<<<<< HEAD
   // Atribuição
+=======
+  setCohort(event: Event): void {
+    this.cohortId.set((event.target as HTMLSelectElement).value);
+  }
+
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   setRole(event: Event): void {
     this.role.set((event.target as HTMLSelectElement).value as Role | 'TODOS');
   }
@@ -105,12 +117,24 @@ export class UserListComponent {
     this.newName.set((event.target as HTMLInputElement).value);
   }
 
+<<<<<<< HEAD
   // Renomeação
   rename(u: User): void {
+=======
+  async rename(u: User): Promise<void> {
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
     const name = this.newName().trim();
     this.missingName.set('');
     if (!name) {
       this.missingName.set('Informe o nome.');
+      return;
+    }
+    const confirmed = await this.confirmation.confirm({
+      title: 'Corrigir nome',
+      message: `Salvar o nome desta conta como "${name}"?`,
+      confirmText: 'Salvar',
+    });
+    if (!confirmed) {
       return;
     }
     this.run(u, this.userService.rename(u.id, name), () => this.renamingId.set(null));
@@ -146,6 +170,7 @@ export class UserListComponent {
     }
   }
 
+<<<<<<< HEAD
   // Ativação
   enable(u: User): void {
     this.run(u, this.userService.enable(u.id));
@@ -154,6 +179,28 @@ export class UserListComponent {
   // Reenvio
   resendInvitation(u: User): void {
     this.run(u, this.userService.resendInvitation(u.id));
+=======
+  async enable(u: User): Promise<void> {
+    const confirmed = await this.confirmation.confirm({
+      title: 'Reativar conta',
+      message: `Reativar a conta de ${u.nome}? A pessoa volta a poder entrar no portal.`,
+      confirmText: 'Reativar',
+    });
+    if (confirmed) {
+      this.run(u, this.userService.enable(u.id));
+    }
+  }
+
+  async resendInvitation(u: User): Promise<void> {
+    const confirmed = await this.confirmation.confirm({
+      title: 'Reenviar convite',
+      message: `Reenviar o convite de primeiro acesso para ${u.email}? Uma nova senha temporária é enviada por e-mail.`,
+      confirmText: 'Reenviar',
+    });
+    if (confirmed) {
+      this.run(u, this.userService.resendInvitation(u.id));
+    }
+>>>>>>> a92fd391a775b0e5f17697e30d917af4bb07ea54
   }
 
   // Execução

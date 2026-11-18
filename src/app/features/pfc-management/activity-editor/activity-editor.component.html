@@ -1,7 +1,12 @@
 @if (error()) {
   <p class="alert" role="alert">
     <app-icon name="alert" />
-    <span>{{ error() }}</span>
+    <span>
+      {{ error() }}
+      @if (partialSave()) {
+        Parte das alterações pode ter sido gravada: os campos abaixo mostram o que está salvo. Confira e salve de novo.
+      }
+    </span>
   </p>
 }
 
@@ -9,18 +14,21 @@
   <app-activity-fields [form]="form" [idPrefix]="'edit-activity-' + activity().id" />
 
   <app-field-list
-    [fields]="activity().campos"
-    [hint]="activity().campos.length <= 1 ? 'A atividade precisa de ao menos um campo de entrega.' : ''"
+    [fields]="fields()"
+    [hint]="
+      fields().length <= 1
+        ? 'A atividade precisa de ao menos um campo de entrega.'
+        : 'Os campos adicionados ou removidos só são gravados ao salvar.'
+    "
     (remove)="removeField($event)"
   >
-    @if (fieldError()) {
-      <p class="field-error">{{ fieldError() }}</p>
-    }
     <app-field-adder (added)="addField($event)" />
   </app-field-list>
 
   <div class="form-grid__full row">
-    <button type="submit" class="btn btn--primary btn--sm">Salvar</button>
-    <button type="button" class="btn btn--outline btn--sm" (click)="closed.emit()">Cancelar</button>
+    <button type="submit" class="btn btn--primary btn--sm" [disabled]="saving()">
+      {{ saving() ? 'Salvando…' : 'Salvar' }}
+    </button>
+    <button type="button" class="btn btn--outline btn--sm" [disabled]="saving()" (click)="closed.emit()">Cancelar</button>
   </div>
 </form>

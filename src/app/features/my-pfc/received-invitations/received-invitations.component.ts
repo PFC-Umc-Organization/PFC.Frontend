@@ -35,8 +35,13 @@ export class ReceivedInvitationsComponent {
     onSuccess: () => this.joined.emit(),
     onError: () => this.reload(),
   });
+  /** Shown after declining; accepting replaces the screen with the group. */
+  readonly notice = signal('');
   private readonly declineAction = action((projectId: string) => this.invitationService.decline(projectId), {
-    onSuccess: () => this.reload(),
+    onSuccess: () => {
+      this.notice.set('Convite recusado.');
+      this.reload();
+    },
   });
   readonly acceptingId = computed(() => (this.acceptAction.pending() ? this.accepting() : null));
   readonly declining = this.declineAction.pending;

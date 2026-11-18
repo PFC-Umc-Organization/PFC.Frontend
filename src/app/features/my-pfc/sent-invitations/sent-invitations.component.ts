@@ -8,12 +8,13 @@ import { InvitationService } from '../../../core/services/invitation.service';
 import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { RgmInputDirective } from '../../../shared/directives/rgm-input.directive';
 
 // Componente
 @Component({
   selector: 'app-sent-invitations',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, ReactiveFormsModule, IconComponent],
+  imports: [DatePipe, ReactiveFormsModule, IconComponent, RgmInputDirective],
   templateUrl: './sent-invitations.component.html',
   styleUrls: ['../invitations.scss', './sent-invitations.component.scss'],
 })
@@ -37,14 +38,20 @@ export class SentInvitationsComponent {
   }
 
   readonly form = new FormGroup({ rgm: new FormControl('', { nonNullable: true }) });
+  /** The last successful change, until the next one starts. */
+  readonly notice = signal('');
   private readonly inviteAction = action((id: string, rgm: string) => this.invitationService.invite(id, rgm), {
-    onSuccess: () => {
+    onSuccess: (_r, _id, rgm) => {
       this.form.reset();
+      this.notice.set(`Convite enviado para o RGM ${rgm}. O colega entra no grupo quando aceitar na tela Meu PFC.`);
       this.reload();
     },
   });
   private readonly cancelAction = action((id: string, rgm: string) => this.invitationService.cancel(id, rgm), {
-    onSuccess: () => this.reload(),
+    onSuccess: (_r, _id, rgm) => {
+      this.notice.set(`Convite do RGM ${rgm} cancelado.`);
+      this.reload();
+    },
   });
   readonly inviting = this.inviteAction.pending;
   readonly busy = computed(() => this.inviteAction.pending() || this.cancelAction.pending());
@@ -55,6 +62,7 @@ export class SentInvitationsComponent {
   invite(): void {
     const rgm = this.form.controls.rgm.value.trim();
     this.missingRgm.set('');
+    this.notice.set('');
     if (!rgm) {
       this.missingRgm.set('Informe o RGM do colega.');
       return;

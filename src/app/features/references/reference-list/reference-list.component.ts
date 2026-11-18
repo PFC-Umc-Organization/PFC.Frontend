@@ -31,6 +31,42 @@ export class ReferenceListComponent {
     onSuccess: () => this.changed.emit(),
   });
   readonly warning = computed(() => this.copyWarning() || this.removeAction.error());
+
+  /** The reference being corrected by its DOI; one at a time. */
+  readonly editingId = signal<string | null>(null);
+  readonly draftDoi = signal('');
+  /** Shown after a successful edit, until the next action. */
+  readonly notice = signal('');
+  private readonly replaceAction = action(
+    (projectId: string, id: string, doi: string) => this.referenceService.replace(projectId, id, doi),
+    {
+      onSuccess: () => {
+        this.editingId.set(null);
+        this.notice.set('Referência atualizada.');
+        this.changed.emit();
+      },
+    },
+  );
+  readonly saving = this.replaceAction.pending;
+  readonly editError = this.replaceAction.error;
+
+  startEdit(r: Reference): void {
+    this.notice.set('');
+    this.draftDoi.set(r.doi);
+    this.editingId.set(r.id);
+  }
+
+  setDraft(event: Event): void {
+    this.draftDoi.set((event.target as HTMLInputElement).value);
+  }
+
+  saveEdit(r: Reference): void {
+    const doi = this.draftDoi().trim();
+    if (!doi) {
+      return;
+    }
+    this.replaceAction.run(r.projetoId, r.id, doi);
+  }
   private readonly removing = signal<string | null>(null);
   readonly removingId = computed(() => (this.removeAction.pending() ? this.removing() : null));
   readonly copied = signal<string | null>(null);
@@ -64,6 +100,7 @@ export class ReferenceListComponent {
     }
     this.removing.set(r.id);
     this.copyWarning.set('');
+    this.notice.set('');
     this.removeAction.run(r.projetoId, r.id);
   }
 

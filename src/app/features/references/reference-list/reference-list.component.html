@@ -14,6 +14,9 @@
   @if (warning()) {
     <p class="list__warning" role="alert">{{ warning() }}</p>
   }
+  @if (notice()) {
+    <p class="ok list__notice" role="status">{{ notice() }}</p>
+  }
 
   @if (loading()) {
     <p class="list__empty">Carregando referências…</p>
@@ -24,6 +27,33 @@
       @for (r of references(); track r.id) {
         <li class="reference">
           <p class="reference__abnt" [innerHTML]="r.abntHtml"></p>
+          @if (editingId() === r.id) {
+            <form class="reference__edit" (submit)="$event.preventDefault(); saveEdit(r)">
+              <label class="field__label" [for]="'doi-' + r.id">DOI correto</label>
+              <div class="row reference__edit-row">
+                <input
+                  [id]="'doi-' + r.id"
+                  class="control"
+                  [value]="draftDoi()"
+                  (input)="setDraft($event)"
+                  placeholder="Ex.: 10.1109/2.485845"
+                  [attr.aria-describedby]="'doi-hint-' + r.id"
+                />
+                <button type="submit" class="btn btn--primary btn--sm" [disabled]="saving() || !draftDoi().trim()">
+                  {{ saving() ? 'Salvando…' : 'Salvar' }}
+                </button>
+                <button type="button" class="btn btn--outline btn--sm" [disabled]="saving()" (click)="editingId.set(null)">
+                  Cancelar
+                </button>
+              </div>
+              <span class="field__hint" [id]="'doi-hint-' + r.id">
+                O sistema busca a obra de novo no Crossref e refaz a referência em ABNT.
+              </span>
+              @if (editError()) {
+                <p class="field__error" role="alert">{{ editError() }}</p>
+              }
+            </form>
+          }
           <div class="reference__bottom">
             <span class="text-xs muted">
               @if (r.adicionadaPor) {
@@ -36,6 +66,16 @@
                 {{ copied() === r.id ? 'Copiado' : 'Copiar' }}
               </button>
               @if (editable()) {
+                <button
+                  type="button"
+                  class="btn btn--ghost btn--sm"
+                  [disabled]="editingId() === r.id"
+                  (click)="startEdit(r)"
+                  [attr.aria-label]="'Editar ' + r.titulo"
+                >
+                  <app-icon name="edit" class="btn__icon" />
+                  Editar
+                </button>
                 <button
                   type="button"
                   class="btn btn--ghost btn--sm reference__remove"
