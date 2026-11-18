@@ -19,6 +19,7 @@ import { pickCohortId } from './staff-home.selection';
 
 export const ALL_COHORTS = '__todas__';
 const BATCH_LIMIT = 3;
+const SAME_IDS = { equal: (a: string[], b: string[]) => a.length === b.length && a.every((id, i) => id === b[i]) };
 
 // ---------------------------------------------------------------------------
 // Consolidação
@@ -101,11 +102,20 @@ export class StaffHomeStore {
   readonly programId = computed(() => this.programByCohort().get(this.cohortId())?.id);
   readonly selectedValue = computed(() => (this.allCohorts() ? ALL_COHORTS : this.cohortId()));
 
-  readonly scopeIds = computed<string[]>(() => {
+  private readonly allProgramIds = computed<string[]>(() => {
     const cohortIds = new Set(this.cohorts.value().map((c) => c.id));
     const advised = this.isAdvisor() ? new Set(this.advised.value().map((p) => p.programaId)) : null;
     return this.programs.value().filter((p) => !!p.id && cohortIds.has(p.cursoId) && (!advised || advised.has(p.id))).map((p) => p.id);
-  }, { equal: (a, b) => a.length === b.length && a.every((id, i) => id === b[i]) });
+  }, SAME_IDS);
+
+  // Escopo
+  readonly scopeIds = computed<string[]>(() => {
+    if (this.allCohorts()) {
+      return this.allProgramIds();
+    }
+    const id = this.programId();
+    return id ? [id] : [];
+  }, SAME_IDS);
   private readonly scopeParams = computed(() => (this.scopeIds().length ? this.scopeIds() : null));
 
   readonly gridLoad = loadable({
@@ -119,19 +129,51 @@ export class StaffHomeStore {
     () => this.gridLoad.loading() || this.cohorts.loading() || this.programs.loading() || (this.isAdvisor() && this.advised.loading()),
   );
 
-  readonly fullGrid = computed(() => this.gridLoad.value().grid);
+  readonly grid = computed(() => this.gridLoad.value().grid);
 
-  // Visão
-  readonly grid = computed(() => {
-    const full = this.fullGrid();
-    if (this.allCohorts()) {
-      return full;
-    }
-    const programOf = this.gridLoad.value().programOf;
-    const programId = this.programId();
-    const rows = full.rows.filter((r) => programOf.get(r.project.id) === programId);
-    const ids = new Set(rows.map((r) => r.project.id));
-    return { ...full, rows, submissions: full.submissions.filter((s) => ids.has(s.projetoId)) };
+  // ---------------------------------------------------------------------------
+  // Fechamento
+  // ---------------------------------------------------------------------------
+
+  private readonly closingWanted = signal(false);
+
+  // Abertura
+  wantClosing(): void {
+    this.closingWanted.set(true);
+  }
+
+  private readonly extraIds = computed<string[]>(() => {
+    const loaded = new Set(this.scopeIds());
+    return this.closingWanted() ? this.allProgramIds().filter((id) => !loaded.has(id)) : [];
+  }, SAME_IDS);
+  private readonly extraParams = computed(() => (this.extraIds().length ? this.extraIds() : null));
+
+  private readonly extraGrid = loadable({
+    source: (ids: string[]) =>
+      inBatch(ids, this.gate, (programId) => this.submissionService.statusGrid(programId).pipe(map((grid) => ({ programId, grid })))).pipe(map(mergeScope)),
+    params: this.extraParams,
+    initial: EMPTY_SCOPE,
+  });
+  private readonly extraPenalties = loadable({
+    source: (ids: string[]) => inBatch(ids, this.gate, (id) => this.penaltyService.ofProgram(id)).pipe(map((lists) => lists.flat())),
+    params: this.extraParams,
+    initial: [] as ProjectPenalties[],
+  });
+
+  readonly closingLoading = computed(() => this.extraGrid.loading() || this.extraPenalties.loading());
+  readonly closingError = computed(() => this.extraGrid.error() || this.extraPenalties.error());
+
+  private readonly programOf = computed(() => new Map([...this.gridLoad.value().programOf, ...this.extraGrid.value().programOf]));
+
+  // Junção
+  readonly fullGrid = computed(() => {
+    const page = this.grid();
+    const extra = this.extraGrid.value().grid;
+    return {
+      activities: page.activities.length ? page.activities : extra.activities,
+      rows: [...page.rows, ...extra.rows],
+      submissions: [...page.submissions, ...extra.submissions],
+    };
   });
 
   readonly userList = loadable({
@@ -165,14 +207,14 @@ export class StaffHomeStore {
 
   // Turma
   readonly cohortLabelOf = (projectId: string): string => {
-    const programId = this.gridLoad.value().programOf.get(projectId);
+    const programId = this.programOf().get(projectId);
     const cohort = this.cohortById().get(this.cohortByProgram().get(programId ?? '') ?? '');
     return cohort ? cohortLabel(cohort) : '—';
   };
 
   // Turma
   readonly cohortIdOf = (projectId: string): string => {
-    const programId = this.gridLoad.value().programOf.get(projectId);
+    const programId = this.programOf().get(projectId);
     return this.cohortByProgram().get(programId ?? '') ?? '';
   };
 
@@ -204,6 +246,15 @@ export class StaffHomeStore {
       ? undefined
       : new Map(this.penaltyList.value().map((p): [string, ProjectPenalties] => [p.projetoId, p])),
   );
+
+  // Completo
+  readonly fullPenalties = computed(() => {
+    const page = this.penalties();
+    if (!page || this.closingLoading() || this.closingError()) {
+      return undefined;
+    }
+    return new Map([...page, ...this.extraPenalties.value().map((p): [string, ProjectPenalties] => [p.projetoId, p])]);
+  });
 
   // ---------------------------------------------------------------------------
   // Falhas

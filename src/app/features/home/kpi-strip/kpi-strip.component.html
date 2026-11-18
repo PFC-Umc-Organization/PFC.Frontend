@@ -29,6 +29,12 @@
       </button>
     </header>
 
+    @if (loading()) {
+      <p class="status" role="status">Carregando as demais turmas…</p>
+    } @else if (loadError()) {
+      <p class="status status--bad" role="alert">Não foi possível carregar as demais turmas. {{ loadError() }}</p>
+    }
+
     <div class="summary">
       <section class="col" aria-labelledby="outcome-title">
         <h3 id="outcome-title" class="col__title">Desfecho da turma</h3>

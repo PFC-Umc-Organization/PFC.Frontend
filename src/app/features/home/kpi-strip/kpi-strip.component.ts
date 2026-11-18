@@ -27,6 +27,8 @@ export class KpiStripComponent {
   readonly cohorts = input.required<ClosingOption[]>();
   readonly advisors = input<ClosingOption[]>([]);
   readonly showAdvisor = input(false);
+  readonly loading = input(false);
+  readonly loadError = input('');
   readonly initialCohort = input('');
   readonly cohortIdOf = input.required<(projectId: string) => string>();
   readonly cohortLabelOf = input.required<(projectId: string) => string>();

@@ -62,6 +62,13 @@ export class StaffHomeComponent {
   );
   readonly band = linkedSignal<string, PenaltyBand | null>({ source: this.store.selectedValue, computation: () => null });
   readonly kpisOpen = signal(false);
+
+  // Fechamento
+  openClosing(): void {
+    this.store.wantClosing();
+    this.kpisOpen.set(true);
+  }
+
   readonly bandText = computed(() => (this.band() === 3 ? '3 ou mais' : String(this.band())));
   readonly scopeLabel = computed(() => {
     const cohort = this.store.cohorts.value().find((c) => c.id === this.store.cohortId());

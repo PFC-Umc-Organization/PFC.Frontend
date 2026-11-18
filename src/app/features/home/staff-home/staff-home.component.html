@@ -62,7 +62,7 @@
       </div>
     </div>
     <div class="action-bar">
-      <button type="button" class="btn btn--outline btn--sm expand-button" aria-haspopup="dialog" (click)="kpisOpen.set(true)">
+      <button type="button" class="btn btn--outline btn--sm expand-button" aria-haspopup="dialog" (click)="openClosing()">
         <app-icon name="clipboard" class="btn__icon" />
         Expandir
         @if (band() !== null) {
@@ -116,7 +116,9 @@
 @if (kpisOpen()) {
   <app-kpi-strip
     [grid]="modalGrid()"
-    [penalties]="store.penalties()"
+    [penalties]="store.fullPenalties()"
+    [loading]="store.closingLoading()"
+    [loadError]="store.closingError()"
     [cohorts]="closingCohorts()"
     [advisors]="closingAdvisors()"
     [showAdvisor]="store.isAdmin()"
