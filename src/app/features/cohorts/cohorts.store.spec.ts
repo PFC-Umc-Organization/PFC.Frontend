@@ -10,6 +10,7 @@ import { ProjectService } from '../../core/services/project.service';
 import { PfcManagementStore } from '../pfc-management/pfc-management.store';
 import { CohortsStore, belongsTo } from './cohorts.store';
 
+// Fábricas
 const course = (id: string, nome: string): Course => ({ id, nome }) as Course;
 const cohort = (id: string, nome: string, periodo: string, graduacaoId?: string): Cohort =>
   ({ id, nome, turno: 'NOITE', periodo, graduacaoId }) as Cohort;
@@ -30,6 +31,7 @@ describe('CohortsStore.groups', () => {
   const cohorts = [cohort('a', 'ES', '2026.1', 'c1'), cohort('b', 'ES', '2026.2', 'c1'), cohort('x', 'Curso removido', '2025.1')];
   const programs = signal([{ id: 'p1', cursoId: 'b' }]);
 
+  // Fábrica
   function make(projects: { programaId: string }[]) {
     TestBed.configureTestingModule({
       providers: [
@@ -39,6 +41,8 @@ describe('CohortsStore.groups', () => {
         { provide: CohortService, useValue: { list: () => of(cohorts) } },
         { provide: ProgramService, useValue: {} },
         { provide: ProjectService, useValue: { list: () => of(projects) } },
+                                                                                                                         // Recarga
+                                                                                                         // Nova tentativa
         { provide: PfcManagementStore, useValue: { programs: { value: programs }, loadError: signal(''), retryLoad() {}, reloadPrograms() {} } },
       ],
     });

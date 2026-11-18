@@ -4,6 +4,7 @@ import { STATUS_LABEL, STATUS_TONE, TimelineItem, validationLabel } from '../../
 import { DeadlinePipe } from '../../pipes/deadline.pipe';
 import { IconComponent } from '../icon/icon.component';
 
+// Componente
 @Component({
   selector: 'app-deliverable-card',
   changeDetection: ChangeDetectionStrategy.OnPush,

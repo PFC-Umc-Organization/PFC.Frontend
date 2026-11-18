@@ -18,17 +18,21 @@ const project: Project = { id: 'pr1', nome: 'Athena', descricao: '', programaId:
 const penalties = { ativas: 0, limite: 3, reprovado: false, penalidades: [] } as unknown as ProjectPenalties;
 const cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE', periodo: '2026.2' } as Cohort;
 const material = { id: 'm1', titulo: 'Modelo', descricao: '', tipo: 'LINK', url: 'https://x', cursoId: 't1' } as unknown as Material;
+// Falha
 const failure = <T>(): Observable<T> => throwError(() => new Error('serviço fora do ar'));
 
+// Falha parcial
 function failingOnce<T>(value: T): () => Observable<T> {
   let calls = 0;
   return () => (++calls === 1 ? failure<T>() : of(value));
 }
 
+// Nova tentativa
 function retryButton(host: HTMLElement): HTMLButtonElement {
   return Array.from(host.querySelectorAll('button')).find((b) => b.textContent?.includes('Tentar novamente'))!;
 }
 
+// Provedores
 function studentProviders(ofProject: () => Observable<ProjectPenalties>) {
   return [
     provideZonelessChangeDetection(),
@@ -63,6 +67,7 @@ describe('StudentHomeComponent load errors', () => {
 });
 
 describe('MaterialsComponent load errors', () => {
+  // Configuração
   function configure(list: () => Observable<Cohort[]>): void {
     TestBed.configureTestingModule({
       providers: [

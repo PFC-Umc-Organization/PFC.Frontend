@@ -9,7 +9,7 @@ import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** The group's invitations nobody answered yet, and the form to send more. */
+// Componente
 @Component({
   selector: 'app-sent-invitations',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +31,7 @@ export class SentInvitationsComponent {
   readonly loadError = this.sent.error;
   readonly loading = this.sent.loading;
 
+  // Recarga
   reload(): void {
     this.sent.reload();
   }
@@ -46,11 +47,11 @@ export class SentInvitationsComponent {
     onSuccess: () => this.reload(),
   });
   readonly inviting = this.inviteAction.pending;
-  /** Any request on the way locks every button: no double clicks. */
   readonly busy = computed(() => this.inviteAction.pending() || this.cancelAction.pending());
   private readonly missingRgm = signal('');
   readonly error = computed(() => this.missingRgm() || this.inviteAction.error() || this.cancelAction.error());
 
+  // Convite
   invite(): void {
     const rgm = this.form.controls.rgm.value.trim();
     this.missingRgm.set('');
@@ -61,6 +62,7 @@ export class SentInvitationsComponent {
     this.inviteAction.run(this.projectId(), rgm);
   }
 
+  // Cancelamento
   async cancel(invitation: Invitation): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Cancelar convite',

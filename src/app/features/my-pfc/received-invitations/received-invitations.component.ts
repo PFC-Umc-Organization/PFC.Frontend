@@ -8,7 +8,7 @@ import { action } from '../../../core/state/action';
 import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** Invitations the student received; accepting one puts them in that group. */
+// Componente
 @Component({
   selector: 'app-received-invitations',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -25,6 +25,7 @@ export class ReceivedInvitationsComponent {
   readonly invitations = this.received.value;
   readonly loadError = this.received.error;
 
+  // Recarga
   reload(): void {
     this.received.reload();
   }
@@ -39,15 +40,16 @@ export class ReceivedInvitationsComponent {
   });
   readonly acceptingId = computed(() => (this.acceptAction.pending() ? this.accepting() : null));
   readonly declining = this.declineAction.pending;
-  /** Any answer on the way locks every button: no joining two groups at once. */
   readonly busy = computed(() => this.declining() || this.acceptAction.pending());
   readonly error = computed(() => this.acceptAction.error() || this.declineAction.error());
 
+  // Aceite
   accept(invitation: Invitation): void {
     this.accepting.set(invitation.projetoId);
     this.acceptAction.run(invitation.projetoId);
   }
 
+  // Recusa
   async decline(invitation: Invitation): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Recusar convite',

@@ -9,6 +9,7 @@ import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
+// Componente
 @Component({
   selector: 'app-enrollment-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,7 +22,6 @@ export class EnrollmentListComponent {
   private readonly confirmation = inject(ConfirmationService);
 
   readonly cohorts = input.required<Cohort[]>();
-  /** Empty until chosen: then the first cohort of this term, or the first one. */
   readonly cohortId = model('');
   private readonly removeAction = action((rgm: string) => this.enrollmentService.remove([rgm]), {
     onSuccess: (result) => {
@@ -46,33 +46,33 @@ export class EnrollmentListComponent {
     return this.cohortId() || (cohorts.find((c) => isInTerm(c, term)) ?? cohorts[0])?.id || '';
   });
 
-  /** Empty while loading or after a failure: check `loading` and `error` before saying there is no one. */
   readonly enrollments = loadable({
     source: (id: string) => this.enrollmentService.list(id),
     params: computed(() => this.shownCohortId() || null),
     initial: [] as Enrollment[],
   });
 
+  // Seleção
   choose(event: Event): void {
     this.removeFailure.set('');
     this.cohortId.set((event.target as HTMLSelectElement).value);
   }
 
-  /** The status column never guesses "Aguardando cadastro": it waits for `users` or shows the error. */
   private readonly userService = inject(UserService);
   readonly users = loadable({ source: () => this.userService.list(), initial: [] as User[] });
 
-  /** Reads the list again after a form changed it. */
+  // Recarga
   reload(): void {
     this.enrollments.reload();
     this.users.reload();
   }
 
-  /** The account of the student whose e-mail is `<rgm>@…`. */
+  // Conta
   accountOf(rgm: string): User | undefined {
     return this.users.value().find((u) => u.rgm === rgm);
   }
 
+  // Exclusão
   async remove(rgm: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Remover pré-autorização',

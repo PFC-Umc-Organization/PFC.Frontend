@@ -7,15 +7,19 @@ import { NewPenalty, ProjectPenalties } from '../models';
 import { toApiError } from './http-error';
 import { SubmissionService } from './submission.service';
 
+// Serviço
 export abstract class PenaltyService {
-  /** Refreshes after every penalty change, submit and removal. */
+  // Consulta por projeto
   abstract ofProject(projectId: string): Observable<ProjectPenalties>;
-  /** Every project of the program the viewer follows. */
+  // Consulta por programa
   abstract ofProgram(programId: string): Observable<ProjectPenalties[]>;
+  // Aplicação
   abstract apply(projectId: string, penalty: NewPenalty): Observable<ProjectPenalties>;
+  // Perdão
   abstract waive(projectId: string, penaltyId: string, reason: string): Observable<ProjectPenalties>;
 }
 
+// Serviço
 @Injectable()
 export class PenaltyHttpService extends PenaltyService {
   private readonly http = inject(HttpClient);
@@ -23,20 +27,24 @@ export class PenaltyHttpService extends PenaltyService {
   private readonly reload$ = new BehaviorSubject<void>(undefined);
   private readonly api = environment.apiBaseUrl;
 
+  // Atualização
   private refreshing<T>(fetch: () => Observable<T>): Observable<T> {
     return combineLatest([this.reload$, this.submissions.changes()]).pipe(
       switchMap(() => fetch().pipe(catchError(toApiError))),
     );
   }
 
+  // Consulta por projeto
   override ofProject(projectId: string): Observable<ProjectPenalties> {
     return this.refreshing(() => this.http.get<ProjectPenalties>(`${this.api}/projetos/${projectId}/penalidades`));
   }
 
+  // Consulta por programa
   override ofProgram(programId: string): Observable<ProjectPenalties[]> {
     return this.refreshing(() => this.http.get<ProjectPenalties[]>(`${this.api}/programas/${programId}/penalidades`));
   }
 
+  // Aplicação
   override apply(projectId: string, penalty: NewPenalty): Observable<ProjectPenalties> {
     return this.http.post<ProjectPenalties>(`${this.api}/projetos/${projectId}/penalidades`, penalty).pipe(
       tap(() => this.reload$.next()),
@@ -44,6 +52,7 @@ export class PenaltyHttpService extends PenaltyService {
     );
   }
 
+  // Perdão
   override waive(projectId: string, penaltyId: string, reason: string): Observable<ProjectPenalties> {
     return this.http
       .post<ProjectPenalties>(`${this.api}/projetos/${projectId}/penalidades/${penaltyId}/perdao`, { motivo: reason })

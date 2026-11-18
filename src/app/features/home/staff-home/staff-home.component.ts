@@ -11,14 +11,12 @@ import { SubmissionDetailComponent } from '../submission-detail/submission-detai
 import { RowFilter, activityDetailOf, cellDetailOf, indicatorsOf, visibleGridOf } from './staff-home.grid';
 import { StaffHomeStore } from './staff-home.store';
 
+// Tipos
 export type { RowFilter } from './staff-home.grid';
 
 type GroupRef = { projectId: string; projectName: string };
 
-/**
- * Each group's submissions in the chosen cohort, activity by activity. The data
- * is in `StaffHomeStore`; here is the filters and which panel is open.
- */
+// Componente
 @Component({
   selector: 'app-staff-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,11 +29,13 @@ export class StaffHomeComponent {
   protected readonly store = inject(StaffHomeStore);
   protected readonly cohortLabel = cohortLabel;
 
-  // Filters
+  // ---------------------------------------------------------------------------
+  // Filtros
+  // ---------------------------------------------------------------------------
+
   readonly search = signal('');
   readonly filter = signal<RowFilter>('all');
   readonly advisorFilter = signal('');
-  /** The chosen advisor, only while they advise a group of the cohort on screen. */
   private readonly activeAdvisor = computed(() =>
     this.store.gridAdvisors().some((a) => a.id === this.advisorFilter()) ? this.advisorFilter() : '',
   );
@@ -51,19 +51,22 @@ export class StaffHomeComponent {
     }),
   );
 
+  // Busca
   setSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
   }
 
+  // Filtro de situação
   setFilter(event: Event): void {
     this.filter.set((event.target as HTMLSelectElement).value as RowFilter);
   }
 
+  // Filtro de orientador
   setAdvisorFilter(event: Event): void {
     this.advisorFilter.set((event.target as HTMLSelectElement).value);
   }
 
-  /** An indicator card filters the grid; clicking the active one clears it. */
+  // Alternância
   toggleFilter(filter: RowFilter): void {
     this.filter.set(this.filter() === filter ? 'all' : filter);
   }
@@ -81,7 +84,10 @@ export class StaffHomeComponent {
     return this.store.isAdmin() ? 'Nenhum projeto cadastrado nesta turma.' : 'Nenhum projeto desta turma tem você como orientador.';
   });
 
-  // The panel open under the grid: one at a time.
+  // ---------------------------------------------------------------------------
+  // Seleção
+  // ---------------------------------------------------------------------------
+
   readonly selected = signal<CellRef | null>(null);
   readonly selectedActivity = signal<string | null>(null);
   readonly selectedProject = signal<string | null>(null);
@@ -96,6 +102,7 @@ export class StaffHomeComponent {
     return chosen && penalties ? { ...chosen, penalties } : null;
   });
 
+  // Fechamento
   private closeAll(): void {
     this.selected.set(null);
     this.selectedActivity.set(null);
@@ -103,28 +110,33 @@ export class StaffHomeComponent {
     this.penaltiesOf.set(null);
   }
 
+  // Abertura de projeto
   openProject(project: { projectId: string }): void {
     const reopen = this.selectedProject() === project.projectId;
     this.closeAll();
     this.selectedProject.set(reopen ? null : project.projectId);
   }
 
+  // Abertura de atividade
   openActivity(activityId: string): void {
     const reopen = this.selectedActivity() === activityId;
     this.closeAll();
     this.selectedActivity.set(reopen ? null : activityId);
   }
 
+  // Abertura de célula
   openCell(cell: CellRef): void {
     this.closeAll();
     this.selected.set(cell);
   }
 
+  // Abertura de penalidades
   openPenalties(project: GroupRef): void {
     this.closeAll();
     this.penaltiesOf.set(project);
   }
 
+  // Abertura de grupo
   openGroupOf(project: GroupRef): void {
     const activityId = this.selectedActivity();
     if (activityId) {
@@ -132,6 +144,7 @@ export class StaffHomeComponent {
     }
   }
 
+  // Seleção
   chooseCohort(event: Event): void {
     this.store.select((event.target as HTMLSelectElement).value);
   }

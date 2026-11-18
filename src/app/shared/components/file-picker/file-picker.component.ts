@@ -2,10 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 
 import { FILE_EXTENSIONS, fileProblem } from '../../../core/models';
 
-/**
- * Picks one file and checks it against the backend's rules; the parent
- * uploads it and reports progress and errors back.
- */
+// Componente
 @Component({
   selector: 'app-file-picker',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,6 +20,7 @@ export class FilePickerComponent {
   protected readonly problem = signal('');
   readonly busy = computed(() => this.progress() != null);
 
+  // Seleção
   choose(event: Event): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];

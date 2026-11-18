@@ -6,27 +6,35 @@ import { environment } from '../../../environments/environment';
 import { Cohort, CohortUpdate, NewCohort } from '../models';
 import { toApiError } from './http-error';
 
+// Serviço
 export abstract class CohortService {
+  // Listagem
   abstract list(): Observable<Cohort[]>;
+  // Criação
   abstract create(cohort: NewCohort): Observable<Cohort>;
+  // Atualização
   abstract update(cohortId: string, changes: CohortUpdate): Observable<void>;
-  /** The backend refuses (409) while the cohort has a program. */
+  // Exclusão
   abstract remove(cohortId: string): Observable<void>;
 }
 
+// Serviço
 @Injectable()
 export class CohortHttpService extends CohortService {
   private readonly http = inject(HttpClient);
   private readonly url = `${environment.apiBaseUrl}/turmas`;
 
+  // Listagem
   override list(): Observable<Cohort[]> {
     return this.http.get<Cohort[]>(this.url).pipe(catchError(toApiError));
   }
 
+  // Criação
   override create(cohort: NewCohort): Observable<Cohort> {
     return this.http.post<Cohort>(this.url, cohort).pipe(catchError(toApiError));
   }
 
+  // Atualização
   override update(cohortId: string, changes: CohortUpdate): Observable<void> {
     return this.http.put(`${this.url}/${cohortId}`, changes).pipe(
       map(() => undefined),
@@ -34,6 +42,7 @@ export class CohortHttpService extends CohortService {
     );
   }
 
+  // Exclusão
   override remove(cohortId: string): Observable<void> {
     return this.http.delete(`${this.url}/${cohortId}`).pipe(
       map(() => undefined),

@@ -5,7 +5,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { StaffHomeComponent } from './staff-home/staff-home.component';
 import { StudentHomeComponent } from './student-home/student-home.component';
 
-/** Each role mounts only its own panel, and makes only its own calls. */
+// Componente
 @Component({
   selector: 'app-home',
   changeDetection: ChangeDetectionStrategy.OnPush,

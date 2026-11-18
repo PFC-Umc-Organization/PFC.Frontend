@@ -4,6 +4,7 @@ import { CanActivateFn, Router } from '@angular/router';
 import { Role } from '../models';
 import { AuthService } from '../services/auth.service';
 
+// Guarda
 export function roleGuard(allowed: Role[]): CanActivateFn {
   return () => {
     const role = inject(AuthService).role();

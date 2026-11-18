@@ -17,12 +17,14 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { IconComponent, IconName } from '../icon/icon.component';
 
+// Tipo
 interface NavItem {
   label: string;
   route: string;
   icon: IconName;
 }
 
+// Componente
 @Component({
   selector: 'app-header',
   imports: [RouterLink, RouterLinkActive, IconComponent],
@@ -35,9 +37,9 @@ export class HeaderComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  /** The phone menu; closes on navigation and on Esc. */
   readonly menuOpen = signal(false);
 
+  // Inicialização
   constructor() {
     this.router.events
       .pipe(
@@ -60,7 +62,6 @@ export class HeaderComponent {
     { label: 'Referências', route: '/referencias', icon: 'search' },
   ];
 
-  /** Only the coordination manages users and cohorts; in the order they are set up. */
   private readonly adminNav: NavItem[] = [
     { label: 'Início', route: '/', icon: 'dashboard' },
     { label: 'Turmas', route: '/turmas', icon: 'calendar' },
@@ -80,6 +81,7 @@ export class HeaderComponent {
     }
   });
 
+  // Saída
   signOut(): void {
     this.auth.signOut();
     void this.router.navigate(['/entrar']);

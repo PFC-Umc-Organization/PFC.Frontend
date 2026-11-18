@@ -1,10 +1,6 @@
 import { Cohort, Program, isInTerm } from '../../../core/models';
 
-/**
- * The cohort the panel opens on: one of the current term or, failing that, the
- * first. With `advisedProgramIds` (an advisor), only the cohorts whose program
- * has a project they advise, when there is any.
- */
+// Seleção
 export function pickCohortId(
   cohorts: Cohort[],
   programs: Program[],

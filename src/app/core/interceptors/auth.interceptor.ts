@@ -6,12 +6,11 @@ import { catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
 
+// Interceptor
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  // Only the API gets the token: S3 refuses a signed upload that also has Authorization.
   const isApi = req.url.startsWith(environment.apiBaseUrl);
-  // Only a path that starts with /auth/ is public: the same text in a query string or deeper path is not.
   const isPublic = isApi && req.url.slice(environment.apiBaseUrl.length).startsWith('/auth/');
   const token = auth.token();
 
@@ -21,8 +20,6 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })).pipe(
     catchError((error: unknown) => {
-      // The Cognito ID token lasts 1 h; without this the app stayed "signed in" with every call failing.
-      // Several calls fail together: only the first one signs out and keeps the page to come back to.
       if (error instanceof HttpErrorResponse && error.status === 401 && auth.token()) {
         const back = router.url;
         auth.signOut();

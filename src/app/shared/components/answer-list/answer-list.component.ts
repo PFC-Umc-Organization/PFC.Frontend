@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input, output } from '@an
 import { Activity, Submission, fileNameOf, isStoredFile } from '../../../core/models';
 import { IconComponent } from '../icon/icon.component';
 
-/** A submission's answers next to each field's label; stored files can be downloaded. */
+// Componente
 @Component({
   selector: 'app-answer-list',
   changeDetection: ChangeDetectionStrategy.OnPush,

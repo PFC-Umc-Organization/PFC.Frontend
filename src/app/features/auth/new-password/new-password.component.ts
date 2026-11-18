@@ -10,10 +10,7 @@ import { PasswordFieldComponent } from '../../../shared/components/password-fiel
 import { AuthCardComponent } from '../auth-card/auth-card.component';
 import { passwordsMatch } from '../passwords-match';
 
-/**
- * An advisor's or admin's first sign-in: the account created by the
- * coordination comes with a temporary password that Cognito makes them replace.
- */
+// Componente
 @Component({
   selector: 'app-new-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,15 +38,18 @@ export class NewPasswordComponent {
     { validators: passwordsMatch },
   );
 
+  // Validação
   passwordInvalid(): boolean {
     const c = this.form.controls.senha;
     return c.invalid && c.touched;
   }
 
+  // Confirmação
   mismatch(): boolean {
     return this.form.hasError('diferentes') && this.form.controls.confirmacao.touched;
   }
 
+  // Gravação
   save(): void {
     this.error.set('');
     if (this.form.invalid) {

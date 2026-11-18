@@ -12,6 +12,7 @@ import { CohortPickerComponent } from '../cohort-picker/cohort-picker.component'
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 import { PfcManagementStore } from '../pfc-management.store';
 
+// Componente
 @Component({
   selector: 'app-activity-schedule',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,7 +22,6 @@ import { PfcManagementStore } from '../pfc-management.store';
 export class ActivityScheduleComponent {
   private readonly activityService = inject(ActivityService);
   private readonly store = inject(PfcManagementStore);
-  /** Only the coordination creates, edits and deletes activities. */
   protected readonly manage = this.store.isAdmin;
   private readonly confirmation = inject(ConfirmationService);
 
@@ -35,16 +35,17 @@ export class ActivityScheduleComponent {
   readonly loadError = this.all.error;
   readonly loading = this.all.loading;
 
+  // Recarga
   reload(): void {
     this.all.reload();
   }
 
-  /** Those of the chosen cohort, and the old ones that apply to every cohort. */
   readonly activities = computed(() => {
     const cohort = this.store.cohortId();
     return this.all.value().filter((a) => !a.turmaId || a.turmaId === cohort);
   });
 
+  // Exclusão
   async remove(id: string, title: string): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Excluir atividade',

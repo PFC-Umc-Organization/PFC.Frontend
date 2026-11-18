@@ -10,6 +10,7 @@ import { loadable } from '../../../core/state/loadable';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 
+// Componente
 @Component({
   selector: 'app-user-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,27 +21,28 @@ import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.dire
 export class UserListComponent {
   private readonly userService = inject(UserService);
   private readonly confirmation = inject(ConfirmationService);
-  /** Nobody changes their own role or disables themselves; the backend refuses it too. */
   private readonly auth = inject(AuthService);
   protected readonly myId = computed(() => this.auth.user()?.id ?? '');
 
   protected readonly roleLabel = ROLE_LABEL;
+
+  // ---------------------------------------------------------------------------
+  // Filtros
+  // ---------------------------------------------------------------------------
+
   readonly search = signal('');
   readonly role = signal<Role | 'TODOS'>('TODOS');
   readonly canAdd = input(true);
   readonly add = output();
 
-  /** The service caches the list, so filtering makes no new call. */
   readonly users = loadable({
     source: (filter: { search: string; role: Role | 'TODOS' }) => this.userService.list(filter),
     params: computed(() => ({ search: this.search(), role: this.role() })),
     initial: [] as User[],
   });
 
-  /** Counted over everyone, regardless of the filters. */
   private readonly everyone = loadable({ source: () => this.userService.list(), initial: [] as User[] });
 
-  /** A list or the counters failed to load; empty lists and zeros mean nothing then. */
   readonly loadError = computed(() => this.users.error() || this.everyone.error());
   readonly stats = computed(() => {
     const all = this.everyone.value();
@@ -55,19 +57,25 @@ export class UserListComponent {
     };
   });
 
-  /** Reads again after a change, which also clears the service's cache. */
+  // Recarga
   reload(): void {
     this.users.reload();
     this.everyone.reload();
   }
 
+  // Busca
   setSearch(event: Event): void {
     this.search.set((event.target as HTMLInputElement).value);
   }
 
+  // Atribuição
   setRole(event: Event): void {
     this.role.set((event.target as HTMLSelectElement).value as Role | 'TODOS');
   }
+
+  // ---------------------------------------------------------------------------
+  // Ações
+  // ---------------------------------------------------------------------------
 
   readonly done = signal('');
   private readonly missingName = signal('');
@@ -81,21 +89,23 @@ export class UserListComponent {
       },
     },
   );
-  /** One change at a time: every row action waits while one is in flight. */
   readonly busy = this.change.pending;
   readonly error = computed(() => this.missingName() || this.change.error());
   readonly renamingId = signal<string | null>(null);
   readonly newName = signal('');
 
+  // Renomeação
   startRename(u: User): void {
     this.renamingId.set(u.id);
     this.newName.set(u.nome === u.email ? '' : u.nome);
   }
 
+  // Atribuição
   setNewName(event: Event): void {
     this.newName.set((event.target as HTMLInputElement).value);
   }
 
+  // Renomeação
   rename(u: User): void {
     const name = this.newName().trim();
     this.missingName.set('');
@@ -106,6 +116,7 @@ export class UserListComponent {
     this.run(u, this.userService.rename(u.id, name), () => this.renamingId.set(null));
   }
 
+  // Troca de perfil
   async changeRole(u: User): Promise<void> {
     const to = u.perfil === 'ADMIN' ? 'ORIENTADOR' : 'ADMIN';
     const consequence =
@@ -122,6 +133,7 @@ export class UserListComponent {
     }
   }
 
+  // Desativação
   async disable(u: User): Promise<void> {
     const confirmed = await this.confirmation.confirm({
       title: 'Desativar conta',
@@ -134,14 +146,17 @@ export class UserListComponent {
     }
   }
 
+  // Ativação
   enable(u: User): void {
     this.run(u, this.userService.enable(u.id));
   }
 
+  // Reenvio
   resendInvitation(u: User): void {
     this.run(u, this.userService.resendInvitation(u.id));
   }
 
+  // Execução
   private run(u: User, request: Observable<MessageResponse>, after?: () => void): void {
     if (this.change.pending()) {
       return;

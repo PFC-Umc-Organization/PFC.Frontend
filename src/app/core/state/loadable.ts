@@ -2,6 +2,7 @@ import { Signal, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { EMPTY, Observable, Subject, catchError, combineLatest, finalize, startWith, switchMap, tap } from 'rxjs';
 
+// Tipo
 export interface Loadable<T> {
   readonly value: Signal<T>;
   readonly loading: Signal<boolean>;
@@ -9,18 +10,12 @@ export interface Loadable<T> {
   reload(): void;
 }
 
-/**
- * A reloadable read. Needs an injection context, like `toSignal`.
- * A null/undefined `params` does not call `source`: `value` is `initial`.
- * A failure fills `error` and keeps the last loaded value (`initial` only if nothing loaded yet);
- * a reload or a params change keeps showing the last value until the new answer arrives.
- */
+// Carregamento
 export function loadable<T, P = void>(opts: {
   source: (params: P) => Observable<T>;
   params?: Signal<P | null | undefined>;
   initial: T;
 }): Loadable<T> {
-  // Starts true so the first frame never shows an empty list as a result; a null `params` turns it off.
   const loading = signal(true);
   const error = signal('');
   const reload$ = new Subject<void>();
@@ -38,7 +33,6 @@ export function loadable<T, P = void>(opts: {
         }
         loading.set(true);
         return opts.source(params as P).pipe(
-          // Some services keep a live stream open after the first answer: loading ends there, not on complete.
           tap((v) => {
             value.set(v);
             loading.set(false);

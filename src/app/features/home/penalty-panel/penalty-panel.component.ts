@@ -9,7 +9,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
 
-/** One group's penalties for the coordination or its advisor: waive or apply. */
+// Componente
 @Component({
   selector: 'app-penalty-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,7 +30,6 @@ export class PenaltyPanelComponent {
     motivo: ['', [Validators.required, Validators.maxLength(500)]],
     atividadeId: [''],
   });
-  /** What the team needs to know at a glance, and what to do about it. */
   protected readonly summary = computed(() => {
     const { ativas, limite, reprovado } = this.penalties();
     const plural = (n: number) => (n === 1 ? '1 penalidade' : `${n} penalidades`);
@@ -56,6 +55,7 @@ export class PenaltyPanelComponent {
   private readonly missingReason = signal('');
   readonly error = computed(() => this.missingReason() || this.applyAction.error());
 
+  // Aplicação
   async apply(): Promise<void> {
     const { motivo, atividadeId } = this.form.getRawValue();
     if (!motivo.trim()) {

@@ -10,13 +10,10 @@ import { PfcManagementStore } from '../../pfc-management/pfc-management.store';
 import { CohortFieldsComponent, cohortForm } from '../cohort-fields/cohort-fields.component';
 import { CohortsStore } from '../cohorts.store';
 
+// Formulário
 const nameForm = () => new FormGroup({ nome: new FormControl('', { nonNullable: true, validators: [Validators.required] }) });
 
-/**
- * Courses, their cohorts and each cohort's PFC program in one list: the course
- * row has the button for a new cohort and the cohort row the one for its program.
- * The data and the changes are in `CohortsStore`; here is only what the screen has open.
- */
+// Componente
 @Component({
   selector: 'app-structure-section',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -29,12 +26,20 @@ export class StructureSectionComponent implements OnInit {
   protected readonly pfc = inject(PfcManagementStore);
   private readonly confirmation = inject(ConfirmationService);
 
+  // ---------------------------------------------------------------------------
+  // Apoio
+  // ---------------------------------------------------------------------------
+
+  // Nome
   protected shiftName(cohort: Cohort): string {
     return SHIFT_LABEL[cohort.turno];
   }
   protected readonly cohortLabel = cohortLabel;
 
-  // Courses
+  // ---------------------------------------------------------------------------
+  // Estado
+  // ---------------------------------------------------------------------------
+
   readonly courseForm = nameForm();
   readonly courseEditForm = nameForm();
   readonly courseName = this.courseForm.controls.nome;
@@ -42,31 +47,38 @@ export class StructureSectionComponent implements OnInit {
   readonly courseFormOpen = signal(false);
   readonly editingCourseId = signal<string | null>(null);
 
-  // Cohorts
   readonly newCohortForm = cohortForm();
   readonly cohortEditForm = cohortForm();
-  /** The course (id) whose new-cohort form is open; "" is a cohort of an unregistered course. */
   readonly newCohortFor = signal<string | null>(null);
   readonly editingCohortId = signal<string | null>(null);
 
-  // Programs
   readonly movingProgramId = signal<string | null>(null);
   readonly moveToCohortId = signal('');
 
+  // ---------------------------------------------------------------------------
+  // Ciclo e apoio
+  // ---------------------------------------------------------------------------
+
+  // Inicialização
   ngOnInit(): void {
     this.store.recount();
   }
 
+  // Validação
   invalid(control: FormControl<string>): boolean {
     return control.touched && !control.value.trim();
   }
 
+  // Confirmação
   private confirmDelete(title: string, message: string): Promise<boolean> {
     return this.confirmation.confirm({ title, message, confirmText: 'Excluir', danger: true });
   }
 
-  // --- Courses
+  // ---------------------------------------------------------------------------
+  // Cursos
+  // ---------------------------------------------------------------------------
 
+  // Criação
   createCourse(): void {
     if (!this.courseName.value.trim()) {
       this.store.clearErrors();
@@ -79,12 +91,14 @@ export class StructureSectionComponent implements OnInit {
     });
   }
 
+  // Edição
   startEditCourse(course: Course): void {
     this.store.clearErrors();
     this.editingCourseId.set(course.id);
     this.courseEditName.setValue(course.nome);
   }
 
+  // Gravação
   saveCourse(courseId: string): void {
     if (!this.courseEditName.value.trim()) {
       this.courseEditName.markAsTouched();
@@ -93,6 +107,7 @@ export class StructureSectionComponent implements OnInit {
     this.store.updateCourse(courseId, this.courseEditName.value, () => this.editingCourseId.set(null));
   }
 
+  // Exclusão
   async removeCourse(course: Course): Promise<void> {
     const confirmed = await this.confirmDelete(
       'Excluir curso',
@@ -103,8 +118,11 @@ export class StructureSectionComponent implements OnInit {
     }
   }
 
-  // --- Cohorts
+  // ---------------------------------------------------------------------------
+  // Turmas
+  // ---------------------------------------------------------------------------
 
+  // Abertura
   openNewCohort(course: Course): void {
     this.store.clearErrors();
     this.editingCohortId.set(null);
@@ -112,6 +130,7 @@ export class StructureSectionComponent implements OnInit {
     this.newCohortFor.set(course.id);
   }
 
+  // Criação
   createCohort(): void {
     this.store.clearErrors();
     if (this.newCohortForm.invalid) {
@@ -121,6 +140,7 @@ export class StructureSectionComponent implements OnInit {
     this.store.createCohort(this.newCohortForm.getRawValue(), () => this.newCohortFor.set(null));
   }
 
+  // Edição
   startEditCohort(cohort: Cohort): void {
     this.store.clearErrors();
     this.newCohortFor.set(null);
@@ -132,6 +152,7 @@ export class StructureSectionComponent implements OnInit {
     this.editingCohortId.set(cohort.id);
   }
 
+  // Gravação
   saveCohort(cohortId: string): void {
     if (this.cohortEditForm.invalid) {
       this.cohortEditForm.markAllAsTouched();
@@ -140,6 +161,7 @@ export class StructureSectionComponent implements OnInit {
     this.store.updateCohort(cohortId, this.cohortEditForm.getRawValue(), () => this.editingCohortId.set(null));
   }
 
+  // Exclusão
   async removeCohort(cohort: Cohort): Promise<void> {
     const confirmed = await this.confirmDelete(
       'Excluir turma',
@@ -150,18 +172,23 @@ export class StructureSectionComponent implements OnInit {
     }
   }
 
-  // --- Programs
+  // ---------------------------------------------------------------------------
+  // Programas
+  // ---------------------------------------------------------------------------
 
+  // Movimentação
   startMoveProgram(programId: string): void {
     this.store.clearErrors();
     this.moveToCohortId.set('');
     this.movingProgramId.set(programId);
   }
 
+  // Gravação
   saveMoveProgram(programId: string): void {
     this.store.moveProgram(programId, this.moveToCohortId(), () => this.movingProgramId.set(null));
   }
 
+  // Exclusão
   async removeProgram(programId: string, label: string): Promise<void> {
     const confirmed = await this.confirmDelete(
       'Excluir programa de PFC',

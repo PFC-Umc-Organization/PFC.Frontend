@@ -10,8 +10,10 @@ import { action } from '../../../core/state/action';
 import { FilePickerComponent } from '../../../shared/components/file-picker/file-picker.component';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
+// Tipo
 type Source = 'link' | 'file';
 
+// Componente
 @Component({
   selector: 'app-material-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,7 +37,6 @@ export class MaterialFormComponent {
   });
 
   readonly source = signal<Source>('link');
-  /** Already in the bucket, ready to publish. */
   readonly file = signal<{ key: string; name: string } | null>(null);
   readonly progress = signal<number | null>(null);
   private readonly uploadAction = action((file: File) => this.materialService.uploadFile(file), {
@@ -71,7 +72,6 @@ export class MaterialFormComponent {
   readonly closed = output();
   readonly created = output();
 
-  /** `url` is disabled for a file, so the form's own validity covers both sources. */
   private readonly formValid = toSignal(this.form.statusChanges.pipe(map(() => this.form.valid)), {
     initialValue: false,
   });
@@ -83,11 +83,13 @@ export class MaterialFormComponent {
       !this.saving(),
   );
 
+  // Validação
   invalid(name: 'titulo' | 'url'): boolean {
     const c = this.form.controls[name];
     return c.invalid && c.touched;
   }
 
+  // Origem
   setSource(source: Source): void {
     this.source.set(source);
     if (source === 'file') {
@@ -97,12 +99,14 @@ export class MaterialFormComponent {
     }
   }
 
+  // Upload
   upload(file: File): void {
     this.uploadStatus.set(null);
     this.progress.set(0);
     this.uploadAction.run(file);
   }
 
+  // Publicação
   publish(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
@@ -123,6 +127,7 @@ export class MaterialFormComponent {
     });
   }
 
+  // Publicação
   private afterPublish(): void {
     this.file.set(null);
     this.form.reset({ tipo: this.lastKind, cursoId: this.lastCohort });

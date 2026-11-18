@@ -9,7 +9,7 @@ import { ActivityFieldsComponent, activityForm } from '../activity-fields/activi
 import { FieldAdderComponent } from '../field-adder/field-adder.component';
 import { FieldListComponent } from '../field-list/field-list.component';
 
-/** Edits an activity in place. Fields are saved one by one, the rest on "Salvar". */
+// Componente
 @Component({
   selector: 'app-activity-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,20 +38,23 @@ export class ActivityEditorComponent implements OnInit {
   readonly error = this.saveAction.error;
   readonly fieldError = computed(() => this.addFieldAction.error() || this.removeFieldAction.error());
 
-  /** Filled once: the list reloads after each field change. */
+  // Inicialização
   ngOnInit(): void {
     const { titulo, prazo, descricao } = this.activity();
     this.form.setValue({ titulo, prazo: prazo.slice(0, 16), descricao });
   }
 
+  // Inclusão
   addField(field: NewField): void {
     this.addFieldAction.run(this.activity().id, field);
   }
 
+  // Remoção
   removeField(index: number): void {
     this.removeFieldAction.run(this.activity().id, this.activity().campos[index].id);
   }
 
+  // Gravação
   save(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();

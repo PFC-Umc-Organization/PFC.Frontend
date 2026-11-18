@@ -7,7 +7,7 @@ import { EnrollmentService } from '../../../core/services/enrollment.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** Pre-authorizes RGMs in a cohort; the students then create their own accounts. */
+// Componente
 @Component({
   selector: 'app-enroll-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -19,13 +19,11 @@ export class EnrollFormComponent {
   private readonly enrollmentService = inject(EnrollmentService);
 
   readonly cohorts = input.required<Cohort[]>();
-  /** The cohort shown in the list; the form starts on it when it is from this term. */
   readonly cohortId = input('');
   readonly enrolledIn = output<string>();
   protected readonly cohortLabel = cohortLabel;
   protected readonly term = currentTerm();
 
-  /** Only this term's cohorts; older ones stay in the enrolled list. */
   readonly termCohorts = computed(() => this.cohorts().filter((c) => isInTerm(c, this.term)));
 
   readonly form = inject(FormBuilder).nonNullable.group({
@@ -51,11 +49,10 @@ export class EnrollFormComponent {
   private readonly invalidInput = signal('');
   readonly error = computed(() => this.invalidInput() || this.enrollAction.error() || '');
   readonly closed = output();
-  /** Only when every RGM went in; with failures the form stays open to show them. */
   readonly created = output<string>();
 
+  // Inicialização
   constructor() {
-    // Legitimate effect: bridges the cohortId signal into the Reactive Forms control.
     effect(() => {
       const id = this.cohortId();
       if (this.termCohorts().some((c) => c.id === id)) {
@@ -64,11 +61,13 @@ export class EnrollFormComponent {
     });
   }
 
+  // Validação
   invalid(name: 'turmaId' | 'rgms'): boolean {
     const c = this.form.controls[name];
     return c.invalid && c.touched;
   }
 
+  // Pré-autorização
   enroll(): void {
     this.result.set(null);
     this.invalidInput.set('');

@@ -11,13 +11,10 @@ import { DoiLookupComponent } from './doi-lookup/doi-lookup.component';
 import { ReferenceListComponent } from './reference-list/reference-list.component';
 import { TopicSearchComponent } from './topic-search/topic-search.component';
 
+// Tipo
 type Mode = 'topic' | 'doi';
 
-/**
- * A student searches articles (by topic on OpenAlex or by DOI on Crossref,
- * both through the backend) and builds the group's list, already in ABNT.
- * The staff picks a PFC and follows its list without editing.
- */
+// Componente
 @Component({
   selector: 'app-references',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,14 +29,12 @@ export class ReferencesComponent {
 
   readonly staff = computed(() => isStaff(this.auth.role()));
 
-  /** The student's own PFC; no call for the staff. */
   private readonly studentProject = loadable({
     source: () => this.projectService.myProject(),
     params: computed(() => (this.staff() ? null : true)),
     initial: null as Project | null,
   });
 
-  /** For the staff's picker; the backend returns an advisor only their projects. */
   readonly projects = loadable({
     source: () => this.projectService.list(),
     params: computed(() => (this.staff() ? true : null)),
@@ -49,6 +44,7 @@ export class ReferencesComponent {
 
   readonly projectError = computed(() => (this.staff() ? this.projects.error() : this.studentProject.error()));
 
+  // Nova tentativa
   retryProject(): void {
     (this.staff() ? this.projects : this.studentProject).reload();
   }
@@ -74,18 +70,20 @@ export class ReferencesComponent {
   readonly dois = computed(() => new Set(this.references().map((r) => r.doi.toLowerCase())));
 
   readonly mode = signal<Mode>('topic');
-  /** Switching tabs clears the previous action's message. */
   readonly message = linkedSignal({ source: this.mode, computation: () => '' });
 
+  // Seleção
   choose(event: Event): void {
     this.chosen.set((event.target as HTMLSelectElement).value);
   }
 
+  // Inclusão
   added(): void {
     this.message.set('Referência adicionada à lista do projeto.');
     this.reload();
   }
 
+  // Recarga
   reload(): void {
     this.referenceList.reload();
   }

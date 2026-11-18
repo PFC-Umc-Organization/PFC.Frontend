@@ -1,9 +1,9 @@
+// ---------------------------------------------------------------------------
+// Materiais
+// ---------------------------------------------------------------------------
+
 export type MaterialKind = 'DOCUMENTO' | 'MODELO' | 'VIDEO' | 'LINK';
 
-/**
- * A link (`url`) or an uploaded file (`arquivo` is its name, downloaded from
- * `GET /materiais/:id/arquivo`). `cursoId` is the cohort; `null` means all.
- */
 export interface Material {
   id: string;
   titulo: string;
@@ -14,11 +14,10 @@ export interface Material {
   cursoId: string | null;
   publicadoEm: string;
   publicadoPor: string;
-  /** Publisher's sub: an advisor removes only their own. */
   autorId: string;
 }
 
-/** Either `url` or `arquivo` (the key returned by the upload). */
+// Criação
 export interface NewMaterial {
   titulo: string;
   descricao: string;

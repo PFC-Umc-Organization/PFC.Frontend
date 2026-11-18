@@ -12,11 +12,7 @@ import { loadable } from '../../../core/state/loadable';
 import { EMPTY_GRID } from './staff-home.grid';
 import { pickCohortId } from './staff-home.selection';
 
-/**
- * What the staff panel reads: cohorts, programs, projects, accounts, the status
- * grid and the penalties of the chosen cohort. A failed read fills its `error`,
- * shown with a retry; none of them lets an empty list pass as "no data". Provided by the screen.
- */
+// Store
 @Injectable()
 export class StaffHomeStore {
   private readonly auth = inject(AuthService);
@@ -32,7 +28,6 @@ export class StaffHomeStore {
 
   readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
   readonly programs = loadable({ source: () => this.programService.list(), initial: [] as Program[] });
-  /** An advisor's projects, to open on a cohort they follow; the coordination does not need them. */
   readonly advised = loadable({
     source: () => this.projectService.list(),
     params: computed(() => (this.isAdvisor() ? true : null)),
@@ -42,7 +37,6 @@ export class StaffHomeStore {
   private readonly chosen = signal<string | null>(null);
   readonly choosingCohort = computed(() => this.isAdvisor() && this.advised.loading() && !this.chosen());
 
-  /** The chosen cohort or, at first, the one `pickCohortId` suggests. */
   readonly cohortId = computed(() => {
     const cohorts = this.cohorts.value();
     const chosen = this.chosen();
@@ -57,7 +51,6 @@ export class StaffHomeStore {
   });
 
   private readonly programByCohort = computed(() => new Map(this.programs.value().map((p) => [p.cursoId, p])));
-  /** May not exist yet. */
   readonly programId = computed(() => this.programByCohort().get(this.cohortId())?.id);
 
   readonly gridLoad = loadable({
@@ -67,7 +60,6 @@ export class StaffHomeStore {
   });
   readonly grid = this.gridLoad.value;
 
-  /** The coordination's view: who advises each group, and the data to manage one. */
   readonly userList = loadable({
     source: () => this.userService.list(),
     params: computed(() => (this.isAdmin() ? true : null)),
@@ -85,7 +77,6 @@ export class StaffHomeStore {
   readonly projects = this.projectList.value;
   readonly projectById = computed(() => new Map(this.projects().map((p) => [p.id, p])));
 
-  /** Advisors of at least one group of this cohort, for the filter; empty until projects and accounts load. */
   readonly gridAdvisors = computed(() => {
     const ids = new Set(this.projects().map((p) => p.orientadorId));
     return this.advisors().filter((a) => ids.has(a.id));
@@ -96,14 +87,12 @@ export class StaffHomeStore {
     params: computed(() => this.programId() ?? null),
     initial: [] as ProjectPenalties[],
   });
-  /** Undefined while loading or after a failure: the counters and statuses are left out, the grid still works. */
   readonly penalties = computed(() =>
     this.penaltyList.loading() || this.penaltyList.error()
       ? undefined
       : new Map(this.penaltyList.value().map((p): [string, ProjectPenalties] => [p.projetoId, p])),
   );
 
-  /** What failed to load, for the notice with the retry button. */
   readonly loadFailures = computed(() =>
     [
       { what: 'as turmas', error: this.cohorts.error() },
@@ -115,15 +104,17 @@ export class StaffHomeStore {
     ].filter((f) => f.error),
   );
 
+  // Seleção
   select(cohortId: string): void {
     this.chosen.set(cohortId);
   }
 
+  // Nova tentativa
   retryLoad(): void {
     [this.cohorts, this.programs, this.advised, this.gridLoad, this.userList, this.projectList, this.penaltyList].forEach((l) => l.reload());
   }
 
-  /** After editing, assigning an advisor or deleting a group. */
+  // Recarga
   projectChanged(): void {
     this.gridLoad.reload();
     this.projectList.reload();

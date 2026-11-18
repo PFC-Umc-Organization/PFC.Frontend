@@ -4,15 +4,15 @@ import { Observable, map, tap, throwError } from 'rxjs';
 import { AuthResult, Credentials, MessageResponse, NewUser, User, isNewPasswordChallenge } from '../models';
 import { UserService } from './user.service';
 
-/** Stored as `{ usuario, token }`; renaming the fields would sign everyone out. */
 const SESSION_KEY = 'athena.sessao';
 
+// Tipo
 interface Session {
   usuario: User;
   token: string;
 }
 
-/** Reads the JWT `exp` without checking the signature (API Gateway does). */
+// Expiração
 function tokenExpired(token: string): boolean {
   const parts = token.split('.');
   if (parts.length !== 3) return false;
@@ -25,6 +25,7 @@ function tokenExpired(token: string): boolean {
   }
 }
 
+// Serviço
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly users = inject(UserService);
@@ -37,12 +38,15 @@ export class AuthService {
   readonly role = computed(() => this.session()?.usuario.perfil ?? null);
   readonly firstName = computed(() => this.session()?.usuario.nome.split(' ').at(0) ?? '');
 
-  /** The pending password change of the last sign-in. */
   private readonly challenge = signal<{ email: string; session: string } | null>(null);
   readonly hasPendingChallenge = computed(() => this.challenge() !== null);
   readonly challengeEmail = computed(() => this.challenge()?.email ?? '');
 
-  /** `'new-password'` when the temporary password must be replaced first. */
+  // ---------------------------------------------------------------------------
+  // Autenticação
+  // ---------------------------------------------------------------------------
+
+  // Entrada
   signIn(credentials: Credentials): Observable<'signed-in' | 'new-password'> {
     this.challenge.set(null);
     return this.users.login(credentials).pipe(
@@ -57,6 +61,7 @@ export class AuthService {
     );
   }
 
+  // Troca de senha
   setNewPassword(password: string): Observable<void> {
     const challenge = this.challenge();
     if (!challenge) {
@@ -71,15 +76,25 @@ export class AuthService {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Senha
+  // ---------------------------------------------------------------------------
+
+  // Recuperação
   forgotPassword(email: string): Observable<MessageResponse> {
     return this.users.forgotPassword(email);
   }
 
+  // Redefinição
   resetPassword(email: string, code: string, password: string): Observable<MessageResponse> {
     return this.users.resetPassword(email, code, password);
   }
 
-  /** Reads the user again, so a student enrolled after signing in sees the cohort. */
+  // ---------------------------------------------------------------------------
+  // Perfil
+  // ---------------------------------------------------------------------------
+
+  // Atualização
   refreshUser(): Observable<User> {
     return this.users.me().pipe(
       tap((user) => {
@@ -91,19 +106,29 @@ export class AuthService {
     );
   }
 
-  /** Does not sign in: the e-mail must be confirmed first. */
+  // ---------------------------------------------------------------------------
+  // Cadastro
+  // ---------------------------------------------------------------------------
+
   signUp(user: NewUser): Observable<MessageResponse> {
     return this.users.register(user);
   }
 
+  // Confirmação
   confirm(email: string, code: string): Observable<MessageResponse> {
     return this.users.confirm(email, code);
   }
 
+  // Reenvio
   resendCode(email: string): Observable<MessageResponse> {
     return this.users.resendCode(email);
   }
 
+  // ---------------------------------------------------------------------------
+  // Sessão
+  // ---------------------------------------------------------------------------
+
+  // Saída
   signOut(): void {
     this.session.set(null);
     try {
@@ -111,6 +136,7 @@ export class AuthService {
     } catch {}
   }
 
+  // Sessão
   private startSession({ usuario, token }: AuthResult): void {
     this.session.set({ usuario, token });
     try {
@@ -118,7 +144,7 @@ export class AuthService {
     } catch {}
   }
 
-  /** An expired saved session is dropped instead of opening the app to a wall of 401s. */
+  // Restauração
   private restoreSession(): Session | null {
     try {
       const raw = localStorage.getItem(SESSION_KEY);

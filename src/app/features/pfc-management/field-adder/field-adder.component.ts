@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, Component, output, signal } from '@angular/cor
 import { FIELD_TYPE_LABEL, FieldType, NewField } from '../../../core/models';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** A row to describe one more submission field. */
+// Componente
 @Component({
   selector: 'app-field-adder',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,6 +21,7 @@ export class FieldAdderComponent {
   readonly type = signal<FieldType>('TEXTO');
   readonly required = signal(true);
 
+  // Inclusão
   add(): void {
     const rotulo = this.label().trim();
     if (rotulo) {
@@ -28,7 +29,7 @@ export class FieldAdderComponent {
     }
   }
 
-  /** Called by the parent once the field is accepted, so a failure keeps what was typed. */
+  // Reset
   reset(): void {
     this.label.set('');
   }

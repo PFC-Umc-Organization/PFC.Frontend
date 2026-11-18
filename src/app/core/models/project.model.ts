@@ -1,5 +1,9 @@
 import { Cohort } from './cohort.model';
 
+// ---------------------------------------------------------------------------
+// Projetos
+// ---------------------------------------------------------------------------
+
 export interface Project {
   id: string;
   nome: string;
@@ -9,56 +13,54 @@ export interface Project {
   orientadorId?: string;
 }
 
-/** `GET /projetos/:id`, with the names already resolved by the backend. */
+// Detalhe
 export interface ProjectDetail {
   projeto: Project;
-  /** `nome` is null while the RGM has no account. */
   integrantes: { rgm: string; nome: string | null }[];
   orientador: { id: string; nome: string } | null;
   turma: Cohort | null;
 }
 
-/**
- * `GET /meu-pfc`: the student's group or, without one, the cohort they are
- * enrolled in and its program (no `programaId`: the cohort has no PFC yet).
- */
+// Meu PFC
 export interface MyPfc {
   turma: Cohort | null;
   programaId?: string;
   grupo: ProjectDetail | null;
 }
 
-/** The creator joins alone; `integrantes` are the classmates to invite. */
+// Criação
 export interface NewStudentProject {
   nome: string;
   descricao: string;
   integrantes: string[];
 }
 
-/** A pending invitation; it disappears once accepted, declined or cancelled. */
+// ---------------------------------------------------------------------------
+// Convites
+// ---------------------------------------------------------------------------
+
 export interface Invitation {
   projetoId: string;
   projetoNome: string;
   rgm: string;
-  /** The guest's name, only in the group's list and once they have an account. */
   nome?: string;
   convidadoPor: string;
   criadoEm: string;
 }
 
+// Atualização
 export interface ProjectUpdate {
   nome?: string;
   descricao?: string;
 }
 
-/** Same limits as the backend's `internal/groups/domain.go`. */
+// ---------------------------------------------------------------------------
+// Validação
+// ---------------------------------------------------------------------------
+
 export const PROJECT_LIMITS = { nome: 150, descricao: 2000, integrantes: 10 } as const;
 
-/**
- * Reads the RGMs typed when creating a PFC (separated by comma, semicolon,
- * space or line break): digits only, no repeats, without the creator's own
- * and fitting in the group together with them.
- */
+// Leitura
 export function parseClassmates(
   text: string,
   ownRgm: string,

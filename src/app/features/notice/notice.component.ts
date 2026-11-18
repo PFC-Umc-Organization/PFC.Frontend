@@ -3,7 +3,7 @@ import { RouterLink } from '@angular/router';
 
 import { IconComponent, IconName } from '../../shared/components/icon/icon.component';
 
-/** "Página não encontrada" and "Área restrita"; the text comes from the route's data. */
+// Componente
 @Component({
   selector: 'app-notice',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -3,14 +3,14 @@ import { Observable, catchError, filter, map, throwError } from 'rxjs';
 
 import { UploadEvent } from '../models';
 
-/** The backend's answer when asked to upload a file. */
+// Tipo
 export interface UploadTicket {
   url: string;
   campos: Record<string, string>;
   chave: string;
 }
 
-/** Posts the file straight to the bucket with the signed form, reporting progress. */
+// Upload
 export function uploadToBucket(
   http: HttpClient,
   ticket: UploadTicket,

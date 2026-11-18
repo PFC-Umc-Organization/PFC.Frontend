@@ -15,36 +15,63 @@ import {
 } from '../models';
 import { toApiError } from './http-error';
 
+// Tipo
 export interface UserFilter {
   search?: string;
   role?: Role | 'TODOS';
 }
 
+// Serviço
 export abstract class UserService {
+  // ---------------------------------------------------------------------------
+  // Listagem
+  // ---------------------------------------------------------------------------
+
   abstract list(filter?: UserFilter): Observable<User[]>;
-  /** A student's self sign-up. */
+
+  // ---------------------------------------------------------------------------
+  // Cadastro
+  // ---------------------------------------------------------------------------
+
   abstract register(user: NewUser): Observable<MessageResponse>;
-  /** An advisor or admin account created by the coordination. */
+  // Criação
   abstract createAccount(account: NewAccount): Observable<MessageResponse>;
-  /** Confirms the account with the 6-digit code sent by e-mail. */
+  // Confirmação
   abstract confirm(email: string, code: string): Observable<MessageResponse>;
+  // Reenvio
   abstract resendCode(email: string): Observable<MessageResponse>;
+
+  // ---------------------------------------------------------------------------
+  // Autenticação
+  // ---------------------------------------------------------------------------
+
   abstract login(credentials: Credentials): Observable<LoginResult>;
-  /** Replaces the temporary password on the first sign-in. */
+  // Troca de senha
   abstract setNewPassword(email: string, session: string, password: string): Observable<AuthResult>;
-  /** The answer does not tell whether the account exists. */
+  // Recuperação
   abstract forgotPassword(email: string): Observable<MessageResponse>;
+  // Redefinição
   abstract resetPassword(email: string, code: string, password: string): Observable<MessageResponse>;
-  /** The signed-in user, read again (a student's cohort may have changed). */
+  // Perfil
   abstract me(): Observable<User>;
-  /** Coordination only; each one clears the cached list. */
+
+  // ---------------------------------------------------------------------------
+  // Contas
+  // ---------------------------------------------------------------------------
+
+  // Renomeação
   abstract rename(userId: string, name: string): Observable<MessageResponse>;
+  // Troca de perfil
   abstract changeRole(userId: string, role: 'ORIENTADOR' | 'ADMIN'): Observable<MessageResponse>;
+  // Desativação
   abstract disable(userId: string): Observable<MessageResponse>;
+  // Ativação
   abstract enable(userId: string): Observable<MessageResponse>;
+  // Reenvio
   abstract resendInvitation(userId: string): Observable<MessageResponse>;
 }
 
+// Filtro
 function applyFilter(users: User[], { search, role }: UserFilter): User[] {
   const term = (search ?? '').trim().toLowerCase();
   return users.filter((u) => {
@@ -58,18 +85,17 @@ function applyFilter(users: User[], { search, role }: UserFilter): User[] {
   });
 }
 
+// Serviço
 @Injectable()
 export class UserHttpService extends UserService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiBaseUrl;
 
-  /**
-   * One call per session shared by every screen; otherwise each key typed in
-   * the Usuários search would be a Cognito ListUsers. Signing in clears it,
-   * so the next person does not inherit the list. A failed call is not
-   * cached.
-   */
   private cache$: Observable<User[]> | null = null;
+
+  // ---------------------------------------------------------------------------
+  // Listagem
+  // ---------------------------------------------------------------------------
 
   override list(filter: UserFilter = {}): Observable<User[]> {
     this.cache$ ??= this.http.get<User[]>(`${this.base}/usuarios`).pipe(
@@ -80,37 +106,50 @@ export class UserHttpService extends UserService {
     return this.cache$.pipe(map((users) => applyFilter(users, filter)));
   }
 
+  // ---------------------------------------------------------------------------
+  // Autenticação
+  // ---------------------------------------------------------------------------
+
   override login(credentials: Credentials): Observable<LoginResult> {
     this.cache$ = null;
     return this.http.post<LoginResult>(`${this.base}/auth/login`, credentials).pipe(catchError(toApiError));
   }
 
+  // Troca de senha
   override setNewPassword(email: string, session: string, password: string): Observable<AuthResult> {
     return this.http
       .post<AuthResult>(`${this.base}/auth/nova-senha`, { email, sessao: session, senha: password })
       .pipe(catchError(toApiError));
   }
 
+  // Recuperação
   override forgotPassword(email: string): Observable<MessageResponse> {
     return this.http
       .post<MessageResponse>(`${this.base}/auth/esqueci-senha`, { email })
       .pipe(catchError(toApiError));
   }
 
+  // Redefinição
   override resetPassword(email: string, code: string, password: string): Observable<MessageResponse> {
     return this.http
       .post<MessageResponse>(`${this.base}/auth/redefinir-senha`, { email, codigo: code, senha: password })
       .pipe(catchError(toApiError));
   }
 
+  // Perfil
   override me(): Observable<User> {
     return this.http.get<User>(`${this.base}/me`).pipe(catchError(toApiError));
   }
+
+  // ---------------------------------------------------------------------------
+  // Cadastro
+  // ---------------------------------------------------------------------------
 
   override register(user: NewUser): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`${this.base}/auth/registrar`, user).pipe(catchError(toApiError));
   }
 
+  // Criação
   override createAccount(account: NewAccount): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`${this.base}/admin/usuarios`, account).pipe(
       tap(() => (this.cache$ = null)),
@@ -118,30 +157,41 @@ export class UserHttpService extends UserService {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Contas
+  // ---------------------------------------------------------------------------
+
+  // Renomeação
   override rename(userId: string, name: string): Observable<MessageResponse> {
     return this.change(this.http.put<MessageResponse>(`${this.accounts(userId)}/nome`, { nome: name }));
   }
 
+  // Troca de perfil
   override changeRole(userId: string, role: 'ORIENTADOR' | 'ADMIN'): Observable<MessageResponse> {
     return this.change(this.http.put<MessageResponse>(`${this.accounts(userId)}/perfil`, { perfil: role }));
   }
 
+  // Desativação
   override disable(userId: string): Observable<MessageResponse> {
     return this.change(this.http.post<MessageResponse>(`${this.accounts(userId)}/desativar`, {}));
   }
 
+  // Ativação
   override enable(userId: string): Observable<MessageResponse> {
     return this.change(this.http.post<MessageResponse>(`${this.accounts(userId)}/reativar`, {}));
   }
 
+  // Reenvio
   override resendInvitation(userId: string): Observable<MessageResponse> {
     return this.change(this.http.post<MessageResponse>(`${this.accounts(userId)}/convite`, {}));
   }
 
+  // Contas
   private accounts(userId: string): string {
     return `${this.base}/admin/usuarios/${encodeURIComponent(userId)}`;
   }
 
+  // Alteração
   private change(request: Observable<MessageResponse>): Observable<MessageResponse> {
     return request.pipe(
       tap(() => (this.cache$ = null)),
@@ -149,12 +199,17 @@ export class UserHttpService extends UserService {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Confirmação
+  // ---------------------------------------------------------------------------
+
   override confirm(email: string, code: string): Observable<MessageResponse> {
     return this.http
       .post<MessageResponse>(`${this.base}/auth/confirmar`, { email, codigo: code })
       .pipe(catchError(toApiError));
   }
 
+  // Reenvio
   override resendCode(email: string): Observable<MessageResponse> {
     return this.http
       .post<MessageResponse>(`${this.base}/auth/reenviar-codigo`, { email })

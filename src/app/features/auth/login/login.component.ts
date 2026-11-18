@@ -9,6 +9,7 @@ import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PasswordFieldComponent } from '../../../shared/components/password-field/password-field.component';
 import { AuthCardComponent } from '../auth-card/auth-card.component';
 
+// Componente
 @Component({
   selector: 'app-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -20,9 +21,7 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly query = inject(ActivatedRoute).snapshot.queryParamMap;
-  /** The page the person tried to open before landing here. */
   private readonly returnTo = this.query.get('retorno');
-  /** Sent here by the interceptor when the token expired. */
   readonly expired = this.query.get('motivo') === 'sessao-expirada';
 
   private readonly signInAction = action((credentials: Parameters<AuthService['signIn']>[0]) => this.auth.signIn(credentials), {
@@ -40,7 +39,6 @@ export class LoginComponent {
   });
   readonly loading = this.signInAction.pending;
   readonly error = signal('');
-  /** Refused because the account still waits for the e-mail code (403). */
   readonly unconfirmed = signal(false);
 
   readonly form = inject(FormBuilder).nonNullable.group({
@@ -48,11 +46,13 @@ export class LoginComponent {
     senha: ['', [Validators.required]],
   });
 
+  // Validação
   invalid(name: 'email' | 'senha'): boolean {
     const c = this.form.controls[name];
     return c.invalid && c.touched;
   }
 
+  // Entrada
   signIn(): void {
     this.error.set('');
     if (this.form.invalid) {
@@ -62,7 +62,7 @@ export class LoginComponent {
     this.signInAction.run(this.form.getRawValue());
   }
 
-  /** Internal paths only: an outside `retorno` would be an open redirect. */
+  // Destino
   private destination(): string {
     const r = this.returnTo;
     return r && r.startsWith('/') && !r.startsWith('//') ? r : '/';

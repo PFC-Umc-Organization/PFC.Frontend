@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, output } from '@angular/core';
 
-/** The LGPD privacy policy and terms of use, as a modal. */
+// Componente
 @Component({
   selector: 'app-privacy-policy',
   changeDetection: ChangeDetectionStrategy.OnPush,

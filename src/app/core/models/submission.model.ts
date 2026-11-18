@@ -1,30 +1,38 @@
+// ---------------------------------------------------------------------------
+// Entregas
+// ---------------------------------------------------------------------------
+
 export type SubmissionStatus = 'ENTREGUE' | 'ENTREGUE_COM_ATRASO' | 'PENDENTE' | 'ATRASADO';
+
+// ---------------------------------------------------------------------------
+// Validação
+// ---------------------------------------------------------------------------
 
 export type ValidationStatus = 'VALIDADA' | 'NAO_VALIDADA';
 
-/** The project advisor's verdict on the submission as it is; editing it drops the verdict. */
 export interface Validation {
   status: ValidationStatus;
   comentario?: string;
-  /** The advisor's id. */
   por: string;
   porNome: string;
   em: string;
 }
 
-/** Body of PUT /projetos/:id/entregas/:atividadeId/validacao; a comment is required to not validate. */
+// Envio
 export interface ValidationInput {
   status: ValidationStatus;
   comentario?: string;
 }
 
+// ---------------------------------------------------------------------------
+// Respostas
+// ---------------------------------------------------------------------------
+
 export interface Submission {
   atividadeId: string;
   projetoId: string;
-  /** The first submission; the one the deadline is checked against. */
   entregueEm: string | null;
   entreguePor?: string;
-  /** Answers by field id; a file field holds the bucket key. */
   respostas?: Record<string, string>;
   atualizadaEm?: string;
   atualizadaPor?: string;
@@ -33,6 +41,10 @@ export interface Submission {
 
 export type Answers = Record<string, string>;
 
+// ---------------------------------------------------------------------------
+// Linha do tempo
+// ---------------------------------------------------------------------------
+
 export interface TimelineItem {
   activityId: string;
   title: string;
@@ -40,12 +52,16 @@ export interface TimelineItem {
   deadline: string;
   status: SubmissionStatus;
   fileName?: string;
-  /** Only for a submitted activity: undefined while the advisor has not validated it. */
   validation?: Validation | null;
 }
 
+// ---------------------------------------------------------------------------
+// Status
+// ---------------------------------------------------------------------------
+
 export type StatusTone = 'success' | 'primary' | 'destructive';
 
+// Rótulos
 export const STATUS_LABEL: Record<SubmissionStatus, string> = {
   ENTREGUE: 'Concluído',
   ENTREGUE_COM_ATRASO: 'Entregue com atraso',
@@ -60,6 +76,7 @@ export const STATUS_SHORT_LABEL: Record<SubmissionStatus, string> = {
   ATRASADO: 'Não entregue',
 };
 
+// Tons
 export const STATUS_TONE: Record<SubmissionStatus, StatusTone> = {
   ENTREGUE: 'success',
   ENTREGUE_COM_ATRASO: 'destructive',
@@ -67,18 +84,20 @@ export const STATUS_TONE: Record<SubmissionStatus, StatusTone> = {
   ATRASADO: 'destructive',
 };
 
+// Legenda
 export const STATUS_LEGEND: { tone: StatusTone; text: string }[] = [
   { tone: 'success', text: 'Concluído' },
   { tone: 'primary', text: 'Pendente no prazo' },
   { tone: 'destructive', text: 'Não entregue' },
 ];
 
+// Painel
 export interface ProjectStatusRow {
   project: { id: string; nome: string; orientadorId?: string };
   cells: { activityId: string; status: SubmissionStatus; validation?: ValidationStatus }[];
 }
 
-/** What the group and the coordination read about the advisor's validation. */
+// Validação
 export function validationLabel(v: Validation | null | undefined): string {
   if (!v) {
     return 'Aguardando validação do orientador';
@@ -86,14 +105,19 @@ export function validationLabel(v: Validation | null | undefined): string {
   return v.status === 'VALIDADA' ? 'Validada pelo orientador' : 'Não validada pelo orientador';
 }
 
-/** Same limits as the backend's `internal/platform/storage/rules.go`. */
+// ---------------------------------------------------------------------------
+// Arquivos
+// ---------------------------------------------------------------------------
+
+// Limites
 export const MAX_FILE_BYTES = 50 * 1024 * 1024;
+// Extensões
 export const FILE_EXTENSIONS = [
   '.pdf', '.doc', '.docx', '.odt', '.ppt', '.pptx', '.odp',
   '.xls', '.xlsx', '.ods', '.zip', '.png', '.jpg', '.jpeg', '.txt',
 ];
 
-/** What the backend would refuse, checked before uploading. */
+// Validação
 export function fileProblem(file: File): string {
   const dot = file.name.lastIndexOf('.');
   const extension = dot >= 0 ? file.name.slice(dot).toLowerCase() : '';
@@ -109,19 +133,17 @@ export function fileProblem(file: File): string {
   return '';
 }
 
-/**
- * An uploaded file's answer is its bucket key
- * (`entregas/<project>/<activity>/<field>/<id>/<name>`); submissions from
- * before uploads existed hold just the name.
- */
+// Armazenamento
 export function isStoredFile(answer: string): boolean {
   return answer.startsWith('entregas/');
 }
 
+// Nome
 export function fileNameOf(answer: string): string {
   return isStoredFile(answer) ? answer.slice(answer.lastIndexOf('/') + 1) : answer;
 }
 
+// Upload
 export type UploadEvent =
   | { kind: 'progress'; percent: number }
   | { kind: 'done'; key: string };

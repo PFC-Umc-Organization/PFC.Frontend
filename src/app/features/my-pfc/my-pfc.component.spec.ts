@@ -10,6 +10,7 @@ import { MyPfcComponent } from './my-pfc.component';
 
 const cohort = { id: 't1', nome: 'Engenharia de Software', turno: 'NOITE' as const, periodo: '2026.2' };
 
+// Renderização
 async function render(myPfc: Observable<MyPfc>): Promise<string> {
   TestBed.configureTestingModule({
     imports: [MyPfcComponent],

@@ -1,14 +1,11 @@
 import { DestroyRef, Directive, ElementRef, afterNextRender, inject } from '@angular/core';
 
-/**
- * Marks which sides of a sideways-scrolling box still hide content, so the
- * styles fade that edge: a table cut at the screen's edge looks finished
- * otherwise.
- */
+// Diretiva
 @Directive({
   selector: '.table-scroll, [appScrollHint]',
 })
 export class ScrollHintDirective {
+  // Inicialização
   constructor() {
     const el = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
     const update = () => {

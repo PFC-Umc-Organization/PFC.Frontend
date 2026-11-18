@@ -9,29 +9,31 @@ import { action } from '../../core/state/action';
 import { loadable } from '../../core/state/loadable';
 import { PfcManagementStore } from '../pfc-management/pfc-management.store';
 
+// Linha
 export interface CohortRow {
   cohort: Cohort;
   programId: string | null;
-  /** undefined while the count is loading or failed, so it never reads as zero. */
   projects: number | undefined;
 }
 
+// Parâmetros
 type Done = (() => void) | undefined;
 type CohortBody = Parameters<CohortService['create']>[0];
 type CohortChanges = Parameters<CohortService['update']>[1];
 
-/** By id; cohorts from before the course registry only have the name. */
+// Vínculo
 export function belongsTo(cohort: Cohort, course: Course): boolean {
   return cohort.graduacaoId ? cohort.graduacaoId === course.id : cohort.nome === course.nome;
 }
 
+// Ordenação
 function sorted(rows: CohortRow[]): CohortRow[] {
   return rows.sort(
     (a, b) => b.cohort.periodo.localeCompare(a.cohort.periodo, 'pt-BR') || a.cohort.turno.localeCompare(b.cohort.turno),
   );
 }
 
-/** Courses, cohorts and PFC programs, shared by the tabs of the screen; provided by it with `PfcManagementStore`. */
+// Store
 @Injectable()
 export class CohortsStore {
   private readonly courseService = inject(CourseService);
@@ -40,26 +42,31 @@ export class CohortsStore {
   private readonly projectService = inject(ProjectService);
   private readonly pfc = inject(PfcManagementStore);
 
+  // ---------------------------------------------------------------------------
+  // Dados
+  // ---------------------------------------------------------------------------
+
   readonly courses = loadable({ source: () => this.courseService.list(), initial: [] as Course[] });
   readonly cohorts = loadable({ source: () => this.cohortService.list(), initial: [] as Cohort[] });
-  /**
-   * Every project of every program, only to count them; while loading or after a
-   * failure the count is unknown, so it never unlocks moving or removing a program.
-   */
   readonly allProjects = loadable({ source: () => this.projectService.list(), initial: [] as Project[] });
+
+  // ---------------------------------------------------------------------------
+  // Contagem
+  // ---------------------------------------------------------------------------
 
   private countsRead = false;
 
-  /**
-   * The screen shows the counts again after another tab changed projects: the
-   * first call finds the read already on its way, the next ones read again.
-   */
+  // Recontagem
   recount(): void {
     if (this.countsRead) {
       this.allProjects.reload();
     }
     this.countsRead = true;
   }
+
+  // ---------------------------------------------------------------------------
+  // Agrupamento
+  // ---------------------------------------------------------------------------
 
   private readonly programByCohort = computed(() => new Map<string, Program>(this.pfc.programs.value().map((p) => [p.cursoId, p])));
   private readonly projectsByProgram = computed(() => {
@@ -70,16 +77,17 @@ export class CohortsStore {
     return counts;
   });
 
+  // Contagem
   private projectCount(programId: string): number | undefined {
     return this.allProjects.loading() || this.allProjects.error() ? undefined : (this.projectsByProgram().get(programId) ?? 0);
   }
 
+  // Montagem
   private rowOf(cohort: Cohort): CohortRow {
     const program = this.programByCohort().get(cohort.id);
     return { cohort, programId: program?.id ?? null, projects: program ? this.projectCount(program.id) : 0 };
   }
 
-  /** Each course with its cohorts, and the cohorts of no registered course. */
   readonly groups = computed(() => {
     const cohorts = this.cohorts.value();
     const placed = new Set<string>();
@@ -91,7 +99,6 @@ export class CohortsStore {
     return { groups, loose: sorted(cohorts.filter((c) => !placed.has(c.id)).map((c) => this.rowOf(c))) };
   });
 
-  /** Programs whose cohort was removed. */
   readonly orphans = computed(() => {
     if (this.pfc.loadError()) {
       return [];
@@ -102,31 +109,36 @@ export class CohortsStore {
 
   readonly withProgram = computed(() => this.cohorts.value().filter((c) => this.programByCohort().has(c.id)).length);
 
-  /** Cohorts a program can move to: the ones without a program. */
   readonly freeCohorts = computed(() => this.cohorts.value().filter((c) => !this.programByCohort().has(c.id)));
 
+  // Contagem
   cohortsOf(course: Course): number {
     return this.cohorts.value().filter((c) => belongsTo(c, course)).length;
   }
 
+  // Verificação
   isRegistered(courseName: string): boolean {
     return this.courses.value().some((c) => c.nome === courseName);
   }
 
-  // --- Changes. `done` runs on success, for the screen to close its form.
+  // ---------------------------------------------------------------------------
+  // Erros
+  // ---------------------------------------------------------------------------
 
-  /** A failed create, edit or remove of a course or cohort; loading failures are `courses.error()` and `cohorts.error()`. */
   readonly actionError = signal('');
-  /** A failed create, move or remove of a program. */
   readonly programsError = signal('');
   private readonly failCourse = (e: Error) => this.actionError.set(e.message);
   private readonly failProgram = (e: Error) => this.programsError.set(e.message);
 
-  /** A change to the cohorts reaches the other tabs, which load their own copy. */
+  // Recarga
   private cohortsChanged(): void {
     this.cohorts.reload();
     this.pfc.retryLoad();
   }
+
+  // ---------------------------------------------------------------------------
+  // Ações
+  // ---------------------------------------------------------------------------
 
   private readonly createCourseAction = action((name: string, _done?: Done) => this.courseService.create(name), {
     onSuccess: (_r, _name, done) => {
@@ -139,7 +151,6 @@ export class CohortsStore {
     onSuccess: (_r, _id, _name, done) => {
       done?.();
       this.courses.reload();
-      // The course's cohorts are read with the new name.
       this.cohortsChanged();
     },
     onError: this.failCourse,
@@ -188,7 +199,6 @@ export class CohortsStore {
 
   readonly courseCreating = this.createCourseAction.pending;
   readonly cohortCreating = this.createCohortAction.pending;
-  /** Any write in flight: deletes and saves wait for it. */
   readonly busy = computed(
     () =>
       this.createCourseAction.pending() ||
@@ -202,55 +212,80 @@ export class CohortsStore {
       this.removeProgramAction.pending(),
   );
   private readonly programTarget = signal<string | null>(null);
-  /** The cohort whose program is being created. */
   readonly programCreating = computed(() => (this.createProgramAction.pending() ? this.programTarget() : null));
 
+  // ---------------------------------------------------------------------------
+  // Reset
+  // ---------------------------------------------------------------------------
+
+  // Limpeza
   clearErrors(): void {
     this.actionError.set('');
     this.programsError.set('');
   }
 
+  // ---------------------------------------------------------------------------
+  // Cursos
+  // ---------------------------------------------------------------------------
+
+  // Criação
   createCourse(name: string, done?: Done): void {
     this.clearErrors();
     this.createCourseAction.run(name, done);
   }
 
+  // Atualização
   updateCourse(id: string, name: string, done?: Done): void {
     this.clearErrors();
     this.updateCourseAction.run(id, name, done);
   }
 
+  // Exclusão
   removeCourse(id: string): void {
     this.clearErrors();
     this.removeCourseAction.run(id);
   }
 
+  // ---------------------------------------------------------------------------
+  // Turmas
+  // ---------------------------------------------------------------------------
+
+  // Criação
   createCohort(body: CohortBody, done?: Done): void {
     this.clearErrors();
     this.createCohortAction.run(body, done);
   }
 
+  // Atualização
   updateCohort(id: string, body: CohortChanges, done?: Done): void {
     this.clearErrors();
     this.updateCohortAction.run(id, body, done);
   }
 
+  // Exclusão
   removeCohort(id: string): void {
     this.clearErrors();
     this.removeCohortAction.run(id);
   }
 
+  // ---------------------------------------------------------------------------
+  // Programas
+  // ---------------------------------------------------------------------------
+
+  // Criação
   createProgram(cohortId: string): void {
     this.clearErrors();
     this.programTarget.set(cohortId);
     this.createProgramAction.run(cohortId);
   }
 
+  // Movimentação
   moveProgram(id: string, cohortId: string, done?: Done): void {
     this.clearErrors();
     this.moveProgramAction.run(id, cohortId, done);
   }
 
+  // Exclusão
   removeProgram(id: string): void {
     this.clearErrors();
     this.removeProgramAction.run(id);

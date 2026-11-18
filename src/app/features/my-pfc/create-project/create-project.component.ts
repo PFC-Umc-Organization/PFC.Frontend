@@ -7,7 +7,7 @@ import { ProjectService } from '../../../core/services/project.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 
-/** The creator joins at once; each classmate gets an invitation. */
+// Componente
 @Component({
   selector: 'app-create-project',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,11 +34,13 @@ export class CreateProjectComponent {
   );
   readonly creating = this.createAction.pending;
 
+  // Validação
   invalid(name: 'nome' | 'descricao'): boolean {
     const c = this.form.controls[name];
     return c.invalid && c.touched;
   }
 
+  // Criação
   create(): void {
     this.error.set('');
     if (this.form.invalid) {

@@ -1,5 +1,6 @@
 import { Activity, ProjectStatusRow, Submission, SubmissionStatus, fileNameOf } from '../models';
 
+// Status
 export function submissionStatus(
   deadline: string,
   submittedAt: string | null | undefined,
@@ -12,7 +13,7 @@ export function submissionStatus(
   return now > limit ? 'ATRASADO' : 'PENDENTE';
 }
 
-/** The answer of the activity's first file field, as a file name. */
+// Nome
 export function submittedFileName(
   activity: Activity,
   answers: Record<string, string> | undefined,
@@ -22,7 +23,7 @@ export function submittedFileName(
   return answer ? fileNameOf(answer) : undefined;
 }
 
-/** An edit in the same minute as the submission is not worth showing. */
+// Comparação
 export function editedLater(s: Pick<Submission, 'entregueEm' | 'atualizadaEm'>): boolean {
   if (!s.atualizadaEm || !s.entregueEm) {
     return !!s.atualizadaEm;
@@ -31,18 +32,10 @@ export function editedLater(s: Pick<Submission, 'entregueEm' | 'atualizadaEm'>):
   return minute(s.atualizadaEm) !== minute(s.entregueEm);
 }
 
-/**
- * What a grid cell shows. `blocked` mirrors the backend: a group's first
- * submission of an activity waits for every earlier one still open.
- */
+// Tipo
 export type CellState = 'done' | 'done-late' | 'late' | 'waiting' | 'blocked';
 
-/**
- * The cells of one project, in activity order. An activity still on time is
- * `waiting`, or `blocked` while an earlier one is also on time and not
- * submitted (`blockedBy` is the nearest such one). An earlier overdue activity
- * blocks nothing: it can no longer be submitted and already cost a penalty.
- */
+// Estados
 export function cellStates(statuses: SubmissionStatus[]): { state: CellState; blockedBy?: number }[] {
   let firstWaiting: number | undefined;
   return statuses.map((status, i) => {
@@ -63,13 +56,12 @@ export function cellStates(statuses: SubmissionStatus[]): { state: CellState; bl
   });
 }
 
-/** Project × activity grid; `submissions` may hold more projects than `projects`. */
+// Montagem
 export function buildStatusGrid(
   unordered: Activity[],
   projects: { id: string; nome: string; orientadorId?: string }[],
   submissions: Submission[],
 ): { activities: Activity[]; rows: ProjectStatusRow[]; submissions: Submission[] } {
-  // The order rule and the columns follow the deadlines, whatever order the API answers in.
   const activities = [...unordered].sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime());
   return {
     activities,

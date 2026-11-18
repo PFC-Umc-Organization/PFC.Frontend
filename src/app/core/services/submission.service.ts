@@ -11,35 +11,54 @@ import { ProjectService } from './project.service';
 import { buildStatusGrid, submissionStatus, submittedFileName } from './submission-status';
 import { UploadTicket, uploadToBucket } from './upload';
 
+// Tipo
 export interface StatusGrid {
   activities: Activity[];
   rows: ProjectStatusRow[];
-  /** With the answers, so a cell's detail needs no extra call. */
   submissions: Submission[];
 }
 
+// Serviço
 export abstract class SubmissionService {
+  // ---------------------------------------------------------------------------
+  // Consultas
+  // ---------------------------------------------------------------------------
+
+  // Cronograma
   abstract projectTimeline(projectId: string, projectName?: string): Observable<TimelineItem[]>;
-  /** Project × activity grid of a program, in parallel calls; refreshes on removal. */
+  // Quadro de status
   abstract statusGrid(programId: string): Observable<StatusGrid>;
-  /** Refreshes after every submit and removal. */
+  // Por projeto
   abstract ofProject(projectId: string): Observable<Submission[]>;
-  /** Hands the activity back to the group. */
+
+  // ---------------------------------------------------------------------------
+  // Entregas
+  // ---------------------------------------------------------------------------
+
+  // Exclusão
   abstract remove(projectId: string, activityId: string): Observable<void>;
-  /** The project advisor's verdict; refreshes the lists. */
+  // Validação
   abstract validate(projectId: string, activityId: string, input: ValidationInput): Observable<void>;
+  // Submissão
   abstract submit(activityId: string, projectId: string, answers: Answers): Observable<void>;
-  /**
-   * Uploads straight to the bucket and ends with the key, the field's answer.
-   * An error with `status` 503 means the backend has no bucket configured.
-   */
+
+  // ---------------------------------------------------------------------------
+  // Arquivos
+  // ---------------------------------------------------------------------------
+
+  // Upload
   abstract uploadFile(projectId: string, activityId: string, fieldId: string, file: File): Observable<UploadEvent>;
-  /** A download link valid for 5 minutes. */
+  // Link
   abstract fileLink(projectId: string, activityId: string, fieldId: string): Observable<{ url: string; nome: string }>;
-  /** Emits now and after every submit and removal. */
+
+  // ---------------------------------------------------------------------------
+  // Alterações
+  // ---------------------------------------------------------------------------
+
   abstract changes(): Observable<void>;
 }
 
+// Serviço
 @Injectable()
 export class SubmissionHttpService extends SubmissionService {
   private readonly http = inject(HttpClient);
@@ -49,6 +68,11 @@ export class SubmissionHttpService extends SubmissionService {
   private readonly reload$ = new BehaviorSubject<void>(undefined);
   private readonly base = `${environment.apiBaseUrl}/projetos`;
 
+  // ---------------------------------------------------------------------------
+  // Consultas
+  // ---------------------------------------------------------------------------
+
+  // Consulta
   override ofProject(projectId: string): Observable<Submission[]> {
     return this.reload$.pipe(
       switchMap(() =>
@@ -57,6 +81,7 @@ export class SubmissionHttpService extends SubmissionService {
     );
   }
 
+  // Cronograma
   override projectTimeline(projectId: string, projectName = ''): Observable<TimelineItem[]> {
     return combineLatest([this.activities.list(), this.ofProject(projectId)]).pipe(
       map(([activities, submissions]) =>
@@ -76,6 +101,7 @@ export class SubmissionHttpService extends SubmissionService {
     );
   }
 
+  // Consulta
   override statusGrid(programId: string): Observable<StatusGrid> {
     const submissions$ = this.reload$.pipe(
       switchMap(() =>
@@ -86,7 +112,6 @@ export class SubmissionHttpService extends SubmissionService {
     );
     return combineLatest([this.projects.list(programId), this.activities.list(), submissions$, this.programs.list()]).pipe(
       map(([projects, activities, submissions, programs]) => {
-        // An activity belongs to a cohort; the old ones (no cohort) apply to all.
         const cohortId = programs.find((p) => p.id === programId)?.cursoId;
         return buildStatusGrid(
           activities.filter((a) => !a.turmaId || a.turmaId === cohortId),
@@ -97,6 +122,11 @@ export class SubmissionHttpService extends SubmissionService {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Arquivos
+  // ---------------------------------------------------------------------------
+
+  // Upload
   override uploadFile(projectId: string, activityId: string, fieldId: string, file: File): Observable<UploadEvent> {
     return this.http
       .post<UploadTicket>(`${this.base}/${projectId}/entregas/${activityId}/arquivos`, {
@@ -110,16 +140,26 @@ export class SubmissionHttpService extends SubmissionService {
       );
   }
 
+  // Link
   override fileLink(projectId: string, activityId: string, fieldId: string): Observable<{ url: string; nome: string }> {
     return this.http
       .get<{ url: string; nome: string }>(`${this.base}/${projectId}/entregas/${activityId}/arquivos/${fieldId}`)
       .pipe(catchError(toApiError));
   }
 
+  // ---------------------------------------------------------------------------
+  // Alterações
+  // ---------------------------------------------------------------------------
+
   override changes(): Observable<void> {
     return this.reload$.asObservable();
   }
 
+  // ---------------------------------------------------------------------------
+  // Entregas
+  // ---------------------------------------------------------------------------
+
+  // Exclusão
   override remove(projectId: string, activityId: string): Observable<void> {
     return this.http.delete(`${this.base}/${projectId}/entregas/${activityId}`).pipe(
       tap(() => this.reload$.next()),
@@ -128,6 +168,7 @@ export class SubmissionHttpService extends SubmissionService {
     );
   }
 
+  // Validação
   override validate(projectId: string, activityId: string, input: ValidationInput): Observable<void> {
     return this.http.put(`${this.base}/${projectId}/entregas/${activityId}/validacao`, input).pipe(
       tap(() => this.reload$.next()),
@@ -136,6 +177,7 @@ export class SubmissionHttpService extends SubmissionService {
     );
   }
 
+  // Submissão
   override submit(activityId: string, projectId: string, answers: Answers): Observable<void> {
     return this.http.put(`${this.base}/${projectId}/entregas/${activityId}`, { respostas: answers }).pipe(
       tap(() => this.reload$.next()),

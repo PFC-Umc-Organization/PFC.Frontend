@@ -3,20 +3,20 @@ import { StatusGrid } from '../../../core/services/submission.service';
 import { ActivityGroupItem } from '../activity-submissions/activity-submissions.component';
 import { CellRef } from '../status-grid/status-grid.component';
 
+// Filtros
 export type RowFilter = 'all' | 'failed' | 'late' | 'awaiting' | 'rejected' | 'no-advisor';
 export type PenaltyMap = ReadonlyMap<string, ProjectPenalties> | undefined;
 
+// Padrão
 export const EMPTY_GRID: StatusGrid = { activities: [], rows: [], submissions: [] };
 
+// Predicados
 export const isSubmitted = (status: string): boolean => status === 'ENTREGUE' || status === 'ENTREGUE_COM_ATRASO';
 
 const awaitingValidation = (row: ProjectStatusRow): boolean => row.cells.some((c) => isSubmitted(c.status) && !c.validation);
 const hasLate = (row: ProjectStatusRow): boolean => row.cells.some((c) => c.status === 'ATRASADO');
 
-/**
- * Counted in projects, not cells: a cohort of hundreds of groups would turn
- * a cell count into noise. `failed` is undefined while the penalties load.
- */
+// Indicadores
 export function indicatorsOf(grid: StatusGrid, penalties: PenaltyMap, now = new Date()) {
   const { rows, activities } = grid;
   const upcoming = activities.find((a) => new Date(a.prazo) > now);
@@ -32,6 +32,7 @@ export function indicatorsOf(grid: StatusGrid, penalties: PenaltyMap, now = new 
   };
 }
 
+// Filtro
 export function visibleGridOf(
   grid: StatusGrid,
   q: { search: string; advisorId: string; filter: RowFilter; penalties: PenaltyMap },
@@ -61,9 +62,10 @@ export function visibleGridOf(
   return { ...grid, rows: grid.rows.filter(keep) };
 }
 
+// Indexação
 const submissionsByKey = (grid: StatusGrid) => new Map(grid.submissions.map((s) => [`${s.projetoId}|${s.atividadeId}`, s]));
 
-/** Every group's delivery for one activity, from the grid: no call. */
+// Detalhe
 export function activityDetailOf(grid: StatusGrid, activityId: string | null) {
   const activity = activityId ? grid.activities.find((a) => a.id === activityId) : undefined;
   if (!activity) {
@@ -81,7 +83,7 @@ export function activityDetailOf(grid: StatusGrid, activityId: string | null) {
   return { activity, items };
 }
 
-/** One cell's activity and submission, from the grid. */
+// Detalhe
 export function cellDetailOf(grid: StatusGrid, cell: CellRef | null) {
   const activity = cell && grid.activities.find((a) => a.id === cell.activityId);
   if (!cell || !activity) {
