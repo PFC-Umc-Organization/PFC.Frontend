@@ -80,8 +80,10 @@
                   (click)="pickBand(b.band)"
                 >
                   <span class="chip__label">{{ bandLabel[b.band] }}</span>
-                  <span class="chip__value">{{ b.count }}</span>
-                  <span class="chip__pct">{{ b.pct | number: '1.0-0' }}%</span>
+                  <span class="chip__meta">
+                    <span class="chip__value">{{ b.count }}</span>
+                    <span class="chip__pct">· {{ b.pct | number: '1.0-0' }}%</span>
+                  </span>
                 </button>
               </li>
             }
