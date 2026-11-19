@@ -27,7 +27,8 @@ export class AnnouncementHttpService extends AnnouncementService {
   override list(): Observable<Announcement[]> {
     return this.reload$.pipe(
       switchMap(() => this.http.get<Announcement[]>(this.url).pipe(catchError(toApiError))),
-      map((items) => [...items].sort((a, b) => b.publicadoEm.localeCompare(a.publicadoEm))),
+      // Newest first; a missing date sorts last instead of breaking the list.
+      map((items) => [...items].sort((a, b) => (b.criadoEm ?? '').localeCompare(a.criadoEm ?? ''))),
     );
   }
 

@@ -125,7 +125,7 @@
               </button>
             }
           </div>
-          <p class="notice-card__meta">{{ audience(a) }} · {{ a.publicadoPor }} · {{ a.publicadoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
+          <p class="notice-card__meta">{{ audience(a) }} · {{ a.autorNome }} · {{ a.criadoEm | date: 'dd/MM/yyyy HH:mm' }}</p>
           <p class="notice-card__text">{{ a.conteudo }}</p>
         </li>
       } @empty {

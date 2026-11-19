@@ -2,13 +2,16 @@
 // Avisos
 // ---------------------------------------------------------------------------
 
+// Same names as the backend's JSON (internal/announcements/domain.go): a
+// general announcement comes without turmaId.
 export interface Announcement {
   id: string;
   titulo: string;
   conteudo: string;
-  turmaId: string | null;
-  publicadoEm: string;
-  publicadoPor: string;
+  turmaId?: string | null;
+  criadoEm: string;
+  autorNome: string;
+  autorPapel?: string;
   autorId: string;
 }
 
