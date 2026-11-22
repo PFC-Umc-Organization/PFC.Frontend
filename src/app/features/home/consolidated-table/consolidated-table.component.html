@@ -28,7 +28,7 @@
         </thead>
         <tbody>
           @for (r of rows(); track r.projectId) {
-            <tr class="clickable" [class.row--active]="selectedProject() === r.projectId" (click)="open(r)">
+            <tr class="clickable" [class.row--active]="selectedProject() === r.projectId" [attr.data-status]="r.status" (click)="open(r)">
               <th scope="row" class="project-cell">
                 <button type="button" class="project" [attr.aria-label]="'Abrir o projeto ' + r.name" (click)="$event.stopPropagation(); open(r)">
                   <span class="project__name">{{ r.name }}</span>
@@ -93,7 +93,7 @@
                 @if (r.active === undefined) {
                   <span class="pending">Carregando…</span>
                 } @else {
-                  <button type="button" class="penalty-link" [attr.aria-label]="r.name + ', penalidades: ' + (r.outcome === 'failed' ? 'reprovado' : r.active + ' de ' + r.limit)" (click)="openPenalties($event, r)">
+                  <button type="button" class="penalty-link" [attr.aria-label]="r.name + ', penalidades: ' + (r.limit && r.active >= r.limit ? 'reprovado' : r.active + ' de ' + r.limit)" (click)="openPenalties($event, r)">
                     <span class="meter" aria-hidden="true">
                       @for (on of segments(r); track $index) {
                         <span class="meter__seg" [class.meter__seg--on]="on"></span>
@@ -103,9 +103,31 @@
                   </button>
                 }
               </td>
-              <td>
-                @if (r.outcome; as o) {
-                  <span class="status status--{{ o }}">{{ outcomeLabel[o] }}</span>
+              <td class="status-cell">
+                @if (r.status; as s) {
+                  @if (editable()) {
+                    <select
+                      class="status-select status--{{ s }}"
+                      [attr.aria-label]="'Status de ' + r.name"
+                      (click)="$event.stopPropagation()"
+                      (change)="chooseStatus($event, r)"
+                    >
+                      @if (r.manual) {
+                        <option value="">Voltar à sugestão</option>
+                      }
+                      @for (o of statuses; track o) {
+                        <option [value]="o" [selected]="o === s">{{ statusLabel[o] }}</option>
+                      }
+                    </select>
+                  } @else {
+                    <span class="status status--{{ s }}">{{ statusLabel[s] }}</span>
+                  }
+                  @if (!r.manual) {
+                    <span class="status-hint">sugerido pelo sistema</span>
+                  }
+                  @if (r.note) {
+                    <span class="status-note" [attr.title]="r.note">{{ r.note }}</span>
+                  }
                 } @else {
                   <span class="muted">—</span>
                 }

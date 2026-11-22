@@ -1,4 +1,4 @@
-import { ProjectPenalties } from '../../../core/models';
+import { Project, ProjectPenalties, ProjectStatus } from '../../../core/models';
 import { CellState, cellStates } from '../../../core/services/submission-status';
 import { StatusGrid } from '../../../core/services/submission.service';
 import { MemberMap, PenaltyBand, PenaltyMap, bandOf, isSubmitted } from './staff-home.grid';
@@ -20,6 +20,9 @@ export interface RowFacts {
   active?: number;
   limit?: number;
   waived?: number;
+  status?: ProjectStatus;
+  manual: boolean;
+  note?: string;
   outcome?: Outcome;
 }
 
@@ -28,12 +31,37 @@ function waivedActivities(p: ProjectPenalties | undefined): Set<string | undefin
   return new Set(p?.penalidades.filter((x) => x.origem === 'PRAZO' && x.perdao && x.atividadeId).map((x) => x.atividadeId));
 }
 
-// Desfecho
-function outcomeOf(states: CellState[], p: ProjectPenalties | undefined): Outcome {
-  if (p?.reprovado) {
-    return 'failed';
+// Sugestão: reprovado com 3 penalidades, atenção com 2 ou com entrega atrasada, WIP nos demais
+export function suggestedStatus(states: CellState[], p: ProjectPenalties): ProjectStatus {
+  if (p.reprovado) {
+    return 'REPROVADO';
   }
-  return states.length > 0 && states.every((s) => s === 'done' || s === 'waived') ? 'approved' : 'ongoing';
+  return p.ativas >= 2 || states.includes('late') ? 'ATENCAO' : 'WIP';
+}
+
+// Status
+export function statusOf(project: Pick<Project, 'id' | 'status'>, states: CellState[], p: ProjectPenalties | undefined, penaltiesKnown: boolean): ProjectStatus | undefined {
+  if (project.status) {
+    return project.status;
+  }
+  if (!penaltiesKnown) {
+    return undefined;
+  }
+  return suggestedStatus(states, p ?? { projetoId: project.id, ativas: 0, limite: 3, reprovado: false, penalidades: [] });
+}
+
+// Desfecho
+export function outcomeOf(status: ProjectStatus | undefined): Outcome | undefined {
+  switch (status) {
+    case undefined:
+      return undefined;
+    case 'REPROVADO':
+      return 'failed';
+    case 'APROVADO':
+    case 'APROVADO_COM_RESSALVAS':
+      return 'approved';
+  }
+  return 'ongoing';
 }
 
 // Consolidação
@@ -42,6 +70,7 @@ export function factsOf(grid: StatusGrid, penalties: PenaltyMap): RowFacts[] {
     const p = penalties?.get(row.project.id);
     const waived = waivedActivities(p);
     const states = cellStates(row.cells.map((c) => ({ ...c, waived: waived.has(c.activityId) }))).map((c) => c.state);
+    const status = statusOf(row.project, states, p, !!penalties);
     return {
       cells: row.cells.map((c, i) => ({ activityId: c.activityId, state: states[i] })),
       projectId: row.project.id,
@@ -53,7 +82,10 @@ export function factsOf(grid: StatusGrid, penalties: PenaltyMap): RowFacts[] {
       active: penalties ? (p?.ativas ?? 0) : undefined,
       limit: p?.limite,
       waived: penalties ? (p?.penalidades.filter((x) => x.perdao).length ?? 0) : undefined,
-      outcome: penalties ? outcomeOf(states, p) : undefined,
+      status,
+      manual: !!row.project.status,
+      note: row.project.ressalva,
+      outcome: outcomeOf(status),
     };
   });
 }
@@ -127,8 +159,6 @@ export function kpisOf(grid: StatusGrid, facts: RowFacts[], now = new Date()): K
 // Linhas
 // ---------------------------------------------------------------------------
 
-export const OUTCOME_LABEL: Record<Outcome, string> = { approved: 'Concluído', failed: 'Reprovado', ongoing: 'Em andamento' };
-
 export interface ConsolidatedRow {
   projectId: string;
   name: string;
@@ -142,6 +172,9 @@ export interface ConsolidatedRow {
   total: number;
   active?: number;
   limit?: number;
+  status?: ProjectStatus;
+  manual: boolean;
+  note?: string;
   outcome?: Outcome;
 }
 
@@ -166,6 +199,9 @@ export function consolidatedRowsOf(facts: RowFacts[], ctx: RowContext): Consolid
     total: f.total,
     active: f.active,
     limit: f.limit,
+    status: f.status,
+    manual: f.manual,
+    note: f.note,
     outcome: f.outcome,
   }));
 }

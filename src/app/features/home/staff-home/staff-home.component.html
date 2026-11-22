@@ -92,6 +92,15 @@
       </div>
     }
     <div class="field">
+      <label class="field__label" for="status-filter">Status</label>
+      <select id="status-filter" class="control" [value]="statusFilter()" (change)="setStatusFilter($event)">
+        <option value="">Todos os status</option>
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ statusLabel[s] }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
       <label class="field__label" for="project-filter">Filtrar por</label>
       <select id="project-filter" class="control" [value]="filter()" (change)="setFilter($event)">
         <option value="all">Todos os projetos</option>
@@ -147,7 +156,9 @@
   [selectedProject]="selectedProject()"
   [activities]="store.grid().activities"
   [activityId]="activityFilter()"
+  [editable]="store.isAdmin()"
   (openProject)="openProject($event)"
+  (statusChange)="statusChanging.set($event)"
 >
   <div timeline>
     @if (timeline().length) {
@@ -170,6 +181,16 @@
   }
 </app-consolidated-table>
 
+@if (statusChanging(); as c) {
+  <app-status-dialog
+    [change]="c"
+    [saving]="savingStatus()"
+    [error]="statusError()"
+    (confirmed)="saveStatus(c, $event)"
+    (cancelled)="statusChanging.set(null)"
+  />
+}
+
 @if (modal(); as m) {
   <app-project-modal
     [project]="m.project"
@@ -185,6 +206,7 @@
     [activities]="store.grid().activities"
     [penalties]="m.penalties"
     [section]="section()"
+    [status]="m.status"
     (choose)="chooseDelivery($event)"
     (changed)="store.projectChanged()"
     (closed)="closeProject()"

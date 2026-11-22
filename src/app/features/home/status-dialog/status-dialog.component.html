@@ -1,0 +1,41 @@
+<div class="backdrop" (click)="cancelled.emit()">
+  <form class="box" role="dialog" aria-modal="true" aria-labelledby="status-title" (click)="$event.stopPropagation()" (submit)="$event.preventDefault(); save()">
+    <h2 id="status-title" class="box__title">Mudar o status de {{ change().projectName }}</h2>
+
+    <p class="box__message">
+      @if (change().to; as to) {
+        De <strong>{{ label[change().from] }}</strong> para <strong>{{ label[to] }}</strong>.
+      } @else {
+        O status volta a ser sugerido pelo sistema, pelas penalidades e entregas atrasadas.
+      }
+      @if (change().to === 'REPROVADO' || change().from === 'REPROVADO') {
+        <span class="box__hint">O status não muda as entregas: a trava das 3 penalidades continua valendo.</span>
+      }
+    </p>
+
+    @if (needsNote()) {
+      <label class="field">
+        <span class="field__label">Ressalva</span>
+        <textarea
+          class="control control--textarea"
+          rows="4"
+          [attr.maxlength]="limit"
+          placeholder="O que o grupo precisa ajustar"
+          [value]="note()"
+          (input)="setNote($event)"
+          required
+        ></textarea>
+        <span class="field__hint">{{ note().length }}/{{ limit }}</span>
+      </label>
+    }
+
+    @if (error()) {
+      <p class="box__error" role="alert">{{ error() }}</p>
+    }
+
+    <div class="box__actions">
+      <button type="button" class="btn btn--outline btn--sm" (click)="cancelled.emit()">Cancelar</button>
+      <button type="submit" class="btn btn--primary btn--sm" [disabled]="!canSave()">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+    </div>
+  </form>
+</div>

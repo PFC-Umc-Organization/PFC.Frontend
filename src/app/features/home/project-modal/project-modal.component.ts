@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, ElementRef, afterNextRender, computed, inject, input, output } from '@angular/core';
 
-import { Activity, Project, ProjectPenalties, Submission, User } from '../../../core/models';
+import { Activity, PROJECT_STATUS_LABEL, Project, ProjectPenalties, ProjectStatus, Submission, User } from '../../../core/models';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PenaltyCounterComponent } from '../../../shared/components/penalty-counter/penalty-counter.component';
 import { PenaltyListComponent } from '../../../shared/components/penalty-list/penalty-list.component';
@@ -35,11 +35,13 @@ export class ProjectModalComponent {
   readonly activities = input<Activity[]>([]);
   readonly penalties = input<ProjectPenalties | undefined>();
   readonly section = input<'penalties' | null>(null);
+  readonly status = input<ProjectStatus | undefined>();
   readonly closed = output();
   readonly changed = output();
   readonly choose = output<string>();
 
   protected readonly label = CELL_LABEL;
+  protected readonly statusLabel = PROJECT_STATUS_LABEL;
   protected readonly icon = CELL_ICON;
   protected readonly withPenalties = computed(() => (this.penalties()?.penalidades.length ?? 0) > 0);
 

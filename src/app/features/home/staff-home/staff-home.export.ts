@@ -1,7 +1,7 @@
-import { Activity } from '../../../core/models';
+import { Activity, PROJECT_STATUS_LABEL } from '../../../core/models';
 import { CellState } from '../../../core/services/submission-status';
 import { CELL_LABEL } from '../status-grid/status-grid.component';
-import { Kpis, OUTCOME_LABEL, ConsolidatedRow } from './staff-home.kpis';
+import { Kpis, ConsolidatedRow } from './staff-home.kpis';
 
 // ---------------------------------------------------------------------------
 // Dados
@@ -47,7 +47,7 @@ export function exportTableOf(data: ExportData): ExportTable {
       r.advisor,
       `${r.delivered}/${r.total}`,
       r.active === undefined ? '-' : String(r.active),
-      r.outcome ? OUTCOME_LABEL[r.outcome] : '-',
+      r.status ? PROJECT_STATUS_LABEL[r.status] + (r.note ? `: ${r.note}` : '') : '-',
       ...(data.states[i] ?? []).map((s) => CELL_LABEL[s]),
     ]),
   };

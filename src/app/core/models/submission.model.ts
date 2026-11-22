@@ -1,3 +1,5 @@
+import { Project } from './project.model';
+
 // ---------------------------------------------------------------------------
 // Entregas
 // ---------------------------------------------------------------------------
@@ -93,7 +95,7 @@ export const STATUS_LEGEND: { tone: StatusTone; text: string }[] = [
 
 // Painel
 export interface ProjectStatusRow {
-  project: { id: string; nome: string; orientadorId?: string };
+  project: Pick<Project, 'id' | 'nome' | 'orientadorId' | 'status' | 'ressalva'>;
   cells: { activityId: string; status: SubmissionStatus; validation?: ValidationStatus }[];
 }
 

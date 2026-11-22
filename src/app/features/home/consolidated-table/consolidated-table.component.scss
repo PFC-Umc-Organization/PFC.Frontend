@@ -243,18 +243,88 @@ button.project:focus-visible {
   background: var(--destructive);
 }
 
-.status {
+// Status
+.status-cell {
+  min-width: 12rem;
+}
+
+.status,
+.status-select {
   font-weight: 600;
 }
 
-.status--approved {
+.status-select {
+  padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+  border: 1px solid currentColor;
+  background: var(--card)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E")
+    no-repeat right 0.5rem center;
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  appearance: none;
+  cursor: pointer;
+}
+
+.status-select option {
+  color: var(--foreground);
+  font-weight: 400;
+}
+
+.status-select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.status--WIP {
+  color: var(--primary);
+}
+
+.status--ATENCAO {
+  color: var(--warning-foreground);
+}
+
+.status--QUALIFICADO,
+.status--APROVADO,
+.status--APROVADO_COM_RESSALVAS {
   color: var(--success);
 }
 
-.status--failed {
+.status--REPROVADO {
   color: var(--destructive);
 }
 
-.status--ongoing {
-  color: var(--primary);
+.status-hint,
+.status-note {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.status-note {
+  max-width: 14rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-style: italic;
+}
+
+// Linha inteira na cor do status, como na planilha
+.sheet tbody tr[data-status='ATENCAO'] > * {
+  background: var(--warning-surface);
+}
+
+.sheet tbody tr[data-status='REPROVADO'] > * {
+  background: color-mix(in oklch, var(--destructive) 12%, var(--card));
+}
+
+.sheet tbody tr[data-status='QUALIFICADO'] > * {
+  background: color-mix(in oklch, var(--success) 14%, var(--card));
+}
+
+.sheet tbody tr[data-status='ATENCAO']:hover > *,
+.sheet tbody tr[data-status='REPROVADO']:hover > *,
+.sheet tbody tr[data-status='QUALIFICADO']:hover > * {
+  filter: brightness(0.97);
 }

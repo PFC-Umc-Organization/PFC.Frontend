@@ -1,7 +1,7 @@
 import { ProjectPenalties } from '../../../core/models';
 import { StatusGrid } from '../../../core/services/submission.service';
 import { visibleGridOf } from './staff-home.grid';
-import { breakdownOf, consolidatedRowsOf, factsOf, kpisOf } from './staff-home.kpis';
+import { breakdownOf, consolidatedRowsOf, factsOf, kpisOf, outcomeOf, suggestedStatus } from './staff-home.kpis';
 
 // Cenário
 const grid = {
@@ -10,7 +10,7 @@ const grid = {
     { id: 'a2', titulo: 'Final', prazo: '2026-03-01T23:59' },
   ],
   rows: [
-    { project: { id: 'p1', nome: 'Alfa' }, cells: [{ activityId: 'a1', status: 'ENTREGUE', validation: 'VALIDADA' }, { activityId: 'a2', status: 'ENTREGUE', validation: 'VALIDADA' }] },
+    { project: { id: 'p1', nome: 'Alfa', status: 'APROVADO' }, cells: [{ activityId: 'a1', status: 'ENTREGUE', validation: 'VALIDADA' }, { activityId: 'a2', status: 'ENTREGUE', validation: 'VALIDADA' }] },
     { project: { id: 'p2', nome: 'Beta' }, cells: [{ activityId: 'a1', status: 'ATRASADO' }, { activityId: 'a2', status: 'ATRASADO' }] },
     { project: { id: 'p3', nome: 'Gama' }, cells: [{ activityId: 'a1', status: 'ATRASADO' }, { activityId: 'a2', status: 'PENDENTE' }] },
   ],
@@ -39,9 +39,44 @@ describe('staff home KPIs', () => {
     expect(Math.round(kpis.outcome.failed.pct)).toBe(33);
   });
 
-  it('is unknown while penalties are loading', () => {
-    expect(kpisOf(grid, factsOf(grid, undefined), now).outcome.known).toBe(false);
+  it('keeps the status set by hand and suggests the others', () => {
+    expect(facts.map((f) => [f.status, f.manual])).toEqual([
+      ['APROVADO', true],
+      ['REPROVADO', false],
+      ['WIP', false],
+    ]);
   });
+
+  it('is unknown while penalties are loading, except for a status set by hand', () => {
+    const loading = factsOf(grid, undefined);
+    expect(kpisOf(grid, loading, now).outcome.known).toBe(false);
+    expect(loading.map((f) => f.status)).toEqual(['APROVADO', undefined, undefined]);
+  });
+});
+
+describe('suggestedStatus', () => {
+  const p = (ativas: number) => penalty('x', ativas);
+
+  it('fails at three penalties, warns at two or with a late delivery, and is WIP otherwise', () => {
+    expect(suggestedStatus(['done'], p(3))).toBe('REPROVADO');
+    expect(suggestedStatus(['done'], p(2))).toBe('ATENCAO');
+    expect(suggestedStatus(['late', 'waiting'], p(0))).toBe('ATENCAO');
+    expect(suggestedStatus(['done', 'waiting'], p(1))).toBe('WIP');
+  });
+});
+
+describe('outcomeOf', () => {
+  it('maps the status to the class outcome', () => {
+    expect(outcomeOf('REPROVADO')).toBe('failed');
+    expect(outcomeOf('APROVADO_COM_RESSALVAS')).toBe('approved');
+    expect(outcomeOf('QUALIFICADO')).toBe('ongoing');
+    expect(outcomeOf(undefined)).toBeUndefined();
+  });
+});
+
+describe('staff home KPIs, rows', () => {
+  const facts = factsOf(grid, penalties);
+  const kpis = kpisOf(grid, facts, now);
 
   it('counts groups per penalty band and the forgiven ones', () => {
     expect(kpis.bands.items.map((b) => b.count)).toEqual([1, 1, 0, 1]);

@@ -654,6 +654,52 @@ test.describe('advisor', () => {
     expect(api.failed).toEqual([]);
   });
 
+  test('the coordination changes the status from the grid, with a note when approved with caveats', async ({ page, api }) => {
+    await signIn(page, ADMIN);
+    await page.locator('#cohort').selectOption({ label: 'Engenharia de Software (Noite, 2026.2)' });
+    const row = page.getByRole('row', { name: /Athena/ }).first();
+    const select = row.getByRole('combobox', { name: 'Status de Athena' });
+    await expect(row).toContainText('sugerido pelo sistema');
+
+    // Cancelling keeps the status and saves nothing.
+    await select.selectOption('QUALIFICADO');
+    const dialog = page.getByRole('dialog', { name: 'Mudar o status de Athena' });
+    await dialog.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(dialog).toBeHidden();
+    expect(api.db.projects.find((x) => x.id === 'pr1')!.status).toBeUndefined();
+
+    // Qualified paints the row and is no longer a suggestion.
+    await select.selectOption('QUALIFICADO');
+    await dialog.getByRole('button', { name: 'Salvar' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(row).toHaveAttribute('data-status', 'QUALIFICADO');
+    await expect(row).not.toContainText('sugerido pelo sistema');
+
+    // Approved with caveats asks for the note before saving.
+    await select.selectOption('APROVADO_COM_RESSALVAS');
+    await expect(dialog.getByRole('button', { name: 'Salvar' })).toBeDisabled();
+    await dialog.getByRole('textbox').fill('Corrigir a formatação ABNT');
+    await dialog.getByRole('button', { name: 'Salvar' }).click();
+    await expect(row).toContainText('Corrigir a formatação ABNT');
+    expect(api.db.projects.find((x) => x.id === 'pr1')).toMatchObject({ status: 'APROVADO_COM_RESSALVAS', ressalva: 'Corrigir a formatação ABNT' });
+
+    // The status filter and going back to the suggestion.
+    await page.locator('#status-filter').selectOption('WIP');
+    await expect(page.getByRole('rowheader', { name: /^Athena/ })).toHaveCount(0);
+    await page.locator('#status-filter').selectOption('');
+    await select.selectOption('');
+    await dialog.getByRole('button', { name: 'Salvar' }).click();
+    await expect(row).toContainText('sugerido pelo sistema');
+    expect(api.failed).toEqual([]);
+  });
+
+  test('the advisor sees the status but cannot change it', async ({ page }) => {
+    await signIn(page, ADVISOR);
+    await expect(page.getByRole('rowheader', { name: 'Athena' })).toBeVisible();
+    await expect(page.getByRole('combobox', { name: /^Status de/ })).toHaveCount(0);
+    await expect(page.getByRole('row', { name: /Athena/ }).first()).toContainText('sugerido pelo sistema');
+  });
+
   test('pages the projects, 50 at a time by default', async ({ page, api }) => {
     for (let i = 1; i <= 60; i++) {
       api.db.projects.push({ id: `pg${i}`, nome: `Projeto ${String(i).padStart(2, '0')}`, descricao: '', programaId: 'p1', integrantes: [], orientadorId: 'u-ana' });

@@ -11,7 +11,28 @@ export interface Project {
   programaId: string;
   integrantes: string[];
   orientadorId?: string;
+  status?: ProjectStatus;
+  ressalva?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Status
+// ---------------------------------------------------------------------------
+
+export type ProjectStatus = 'REPROVADO' | 'WIP' | 'ATENCAO' | 'QUALIFICADO' | 'APROVADO' | 'APROVADO_COM_RESSALVAS';
+
+export const PROJECT_STATUSES: readonly ProjectStatus[] = ['WIP', 'ATENCAO', 'QUALIFICADO', 'APROVADO', 'APROVADO_COM_RESSALVAS', 'REPROVADO'];
+
+export const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
+  REPROVADO: 'Reprovado',
+  WIP: 'WIP',
+  ATENCAO: 'Atenção',
+  QUALIFICADO: 'Qualificado para banca',
+  APROVADO: 'Aprovado',
+  APROVADO_COM_RESSALVAS: 'Aprovado com ressalvas',
+};
+
+export const STATUS_NOTE_LIMIT = 1000;
 
 // Detalhe
 export interface ProjectDetail {

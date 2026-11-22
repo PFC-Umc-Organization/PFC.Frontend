@@ -2,8 +2,17 @@ import { ChangeDetectionStrategy, Component, computed, input, output, signal } f
 
 import { ScrollHintDirective } from '../../../shared/directives/scroll-hint.directive';
 import { CELL_LABEL } from '../status-grid/status-grid.component';
-import { Activity } from '../../../core/models';
-import { ConsolidatedRow, OUTCOME_LABEL } from '../staff-home/staff-home.kpis';
+import { Activity, PROJECT_STATUSES, PROJECT_STATUS_LABEL, ProjectStatus } from '../../../core/models';
+import { ConsolidatedRow } from '../staff-home/staff-home.kpis';
+
+// Mudança de status: null volta para a sugestão do sistema
+export interface StatusChange {
+  projectId: string;
+  projectName: string;
+  from: ProjectStatus;
+  to: ProjectStatus | null;
+  note?: string;
+}
 
 // Componente
 @Component({
@@ -22,9 +31,12 @@ export class ConsolidatedTableComponent {
   readonly selectedProject = input<string | null>(null);
   readonly activities = input<Activity[]>([]);
   readonly activityId = input<string | null>(null);
+  readonly editable = input(false);
   readonly openProject = output<{ projectId: string; projectName: string; section?: 'penalties'; activityId?: string }>();
+  readonly statusChange = output<StatusChange>();
 
-  protected readonly outcomeLabel = OUTCOME_LABEL;
+  protected readonly statuses = PROJECT_STATUSES;
+  protected readonly statusLabel = PROJECT_STATUS_LABEL;
   protected readonly cellLabel = CELL_LABEL;
 
   // ---------------------------------------------------------------------------
@@ -73,6 +85,16 @@ export class ConsolidatedTableComponent {
   openPenalties(event: Event, row: ConsolidatedRow): void {
     event.stopPropagation();
     this.open(row, 'penalties');
+  }
+
+  // Status: o seletor volta ao valor atual até a mudança ser confirmada e recarregada
+  chooseStatus(event: Event, row: ConsolidatedRow): void {
+    const select = event.target as HTMLSelectElement;
+    const to = (select.value || null) as ProjectStatus | null;
+    select.value = row.status ?? '';
+    if (row.status) {
+      this.statusChange.emit({ projectId: row.projectId, projectName: row.name, from: row.status, to, note: row.note });
+    }
   }
 
   // Segmentos

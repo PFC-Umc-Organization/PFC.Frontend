@@ -6,10 +6,17 @@
       @if (cohort()) {
         <span class="head__badge">{{ cohort() }}</span>
       }
+      @if (status(); as s) {
+        <span class="head__badge head__status head__status--{{ s }}">{{ statusLabel[s] }}</span>
+      }
       <button type="button" class="head__close" aria-label="Fechar" (click)="closed.emit()">
         <app-icon name="close" />
       </button>
     </header>
+
+    @if (project().ressalva; as note) {
+      <p class="status-note"><strong>Ressalva da aprovação:</strong> {{ note }}</p>
+    }
 
     <app-project-panel
       [project]="project()"

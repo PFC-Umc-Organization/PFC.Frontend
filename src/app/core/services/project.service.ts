@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, switchMap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { MyPfc, NewStudentProject, Project, ProjectDetail, ProjectUpdate } from '../models';
+import { MyPfc, NewStudentProject, Project, ProjectDetail, ProjectStatus, ProjectUpdate } from '../models';
 import { toApiError } from './http-error';
 import { ProgramService } from './program.service';
 
@@ -52,6 +52,13 @@ export abstract class ProjectService {
   abstract setAdvisor(projectId: string, advisorId: string): Observable<void>;
   // Remoção
   abstract removeAdvisor(projectId: string): Observable<void>;
+
+  // ---------------------------------------------------------------------------
+  // Status
+  // ---------------------------------------------------------------------------
+
+  // Definição: null volta para a sugestão do sistema
+  abstract setStatus(projectId: string, status: ProjectStatus | null, note?: string): Observable<void>;
 
   // ---------------------------------------------------------------------------
   // Exclusão
@@ -165,6 +172,18 @@ export class ProjectHttpService extends ProjectService {
   // Remoção
   override removeAdvisor(projectId: string): Observable<void> {
     return this.http.delete(`${this.url}/${projectId}/orientador`).pipe(
+      map(() => undefined),
+      catchError(toApiError),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Status
+  // ---------------------------------------------------------------------------
+
+  // Definição
+  override setStatus(projectId: string, status: ProjectStatus | null, note = ''): Observable<void> {
+    return this.http.put(`${this.url}/${projectId}/status`, { status: status ?? '', ressalva: note }).pipe(
       map(() => undefined),
       catchError(toApiError),
     );

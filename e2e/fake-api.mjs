@@ -175,6 +175,12 @@ export function fakeApi() {
       project(mm[1]).orientadorId = m === 'PUT' ? body.orientadorId : undefined;
       return json(200, {});
     }
+    if ((mm = p.match(/^\/projetos\/([^/]+)\/status$/)) && m === 'PUT') {
+      if (role !== 'ADMIN') return forbidden();
+      if (body.status === 'APROVADO_COM_RESSALVAS' && !body.ressalva?.trim()) return json(400, { erro: 'Descreva a ressalva da aprovação.' });
+      Object.assign(project(mm[1]), { status: body.status || undefined, ressalva: body.status === 'APROVADO_COM_RESSALVAS' ? body.ressalva.trim() : undefined });
+      return json(200, {});
+    }
     if ((mm = p.match(/^\/projetos\/([^/]+)$/)) && m === 'PUT') {
       Object.assign(project(mm[1]), body);
       return json(200, {});

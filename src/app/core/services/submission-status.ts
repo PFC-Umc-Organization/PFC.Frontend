@@ -69,7 +69,7 @@ export function cellStates(cells: CellInput[]): { state: CellState; blockedBy?: 
 // Montagem
 export function buildStatusGrid(
   unordered: Activity[],
-  projects: { id: string; nome: string; orientadorId?: string }[],
+  projects: ProjectStatusRow['project'][],
   submissions: Submission[],
 ): { activities: Activity[]; rows: ProjectStatusRow[]; submissions: Submission[] } {
   const activities = [...unordered].sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime());
@@ -77,7 +77,7 @@ export function buildStatusGrid(
     activities,
     submissions,
     rows: projects.map<ProjectStatusRow>((project) => ({
-      project: { id: project.id, nome: project.nome, orientadorId: project.orientadorId },
+      project: { id: project.id, nome: project.nome, orientadorId: project.orientadorId, status: project.status, ressalva: project.ressalva },
       cells: activities.map((activity) => {
         const submission = submissions.find((s) => s.projetoId === project.id && s.atividadeId === activity.id);
         return {

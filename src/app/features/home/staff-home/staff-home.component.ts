@@ -2,12 +2,14 @@ import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal, signal } from '@angular/core';
 import { from } from 'rxjs';
 
-import { cohortLabel } from '../../../core/models';
+import { PROJECT_STATUSES, PROJECT_STATUS_LABEL, ProjectStatus, cohortLabel } from '../../../core/models';
+import { ProjectService } from '../../../core/services/project.service';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { PAGE_SIZES, PageSize, PaginatorComponent, pageOf } from '../../../shared/components/paginator/paginator.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
-import { ConsolidatedTableComponent } from '../consolidated-table/consolidated-table.component';
+import { ConsolidatedTableComponent, StatusChange } from '../consolidated-table/consolidated-table.component';
+import { StatusDialogComponent } from '../status-dialog/status-dialog.component';
 import { KpiStripComponent } from '../kpi-strip/kpi-strip.component';
 import { ProjectModalComponent } from '../project-modal/project-modal.component';
 import { ActivityTimelineComponent } from '../activity-timeline/activity-timeline.component';
@@ -31,6 +33,7 @@ export type { RowFilter } from './staff-home.grid';
     KpiStripComponent,
     ProjectModalComponent,
     PaginatorComponent,
+    StatusDialogComponent,
     DeadlinePipe,
   ],
   providers: [StaffHomeStore],
@@ -39,6 +42,7 @@ export type { RowFilter } from './staff-home.grid';
 })
 export class StaffHomeComponent {
   protected readonly store = inject(StaffHomeStore);
+  private readonly projectService = inject(ProjectService);
   protected readonly cohortLabel = cohortLabel;
   protected readonly allCohorts = ALL_COHORTS;
 
@@ -48,6 +52,9 @@ export class StaffHomeComponent {
 
   readonly search = signal('');
   readonly filter = signal<RowFilter>('all');
+  readonly statusFilter = signal<ProjectStatus | ''>('');
+  protected readonly statuses = PROJECT_STATUSES;
+  protected readonly statusLabel = PROJECT_STATUS_LABEL;
   readonly advisorFilter = signal('');
   private readonly activeAdvisor = computed(() =>
     this.store.gridAdvisors().some((a) => a.id === this.advisorFilter()) ? this.advisorFilter() : '',
@@ -83,7 +90,7 @@ export class StaffHomeComponent {
     return this.store.allCohorts() ? 'Todas as turmas' : cohort ? cohortLabel(cohort) : '—';
   });
   readonly filtering = computed(
-    () => this.search().trim() !== '' || this.filter() !== 'all' || this.activeAdvisor() !== '' || this.band() !== null,
+    () => this.search().trim() !== '' || this.filter() !== 'all' || this.statusFilter() !== '' || this.activeAdvisor() !== '' || this.band() !== null,
   );
 
   readonly indicators = computed(() => indicatorsOf(this.store.grid(), this.store.penalties()));
@@ -117,7 +124,10 @@ export class StaffHomeComponent {
   readonly closingAdvisors = computed(() => this.store.scopeAdvisors().map((a) => ({ id: a.id, label: a.nome })));
   private readonly visibleFacts = computed(() => {
     const byId = new Map(this.facts().map((f) => [f.projectId, f]));
-    return this.visibleGrid().rows.flatMap((r) => byId.get(r.project.id) ?? []);
+    const status = this.statusFilter();
+    return this.visibleGrid()
+      .rows.flatMap((r) => byId.get(r.project.id) ?? [])
+      .filter((f) => !status || f.status === status);
   });
   readonly consolidated = computed(() =>
     consolidatedRowsOf(this.visibleFacts(), {
@@ -134,7 +144,7 @@ export class StaffHomeComponent {
   protected readonly pageSizes = PAGE_SIZES;
   readonly pageSize = signal<PageSize>(PAGE_SIZES[0]);
   readonly page = linkedSignal({
-    source: () => [this.store.selectedValue(), this.search(), this.filter(), this.activeAdvisor(), this.band(), this.activityFilter(), this.pageSize()],
+    source: () => [this.store.selectedValue(), this.search(), this.filter(), this.statusFilter(), this.activeAdvisor(), this.band(), this.activityFilter(), this.pageSize()],
     computation: () => 1,
   });
   readonly pageRows = computed(() => pageOf(this.consolidated(), this.page(), this.pageSize()));
@@ -152,6 +162,33 @@ export class StaffHomeComponent {
   // Filtro de orientador
   setAdvisorFilter(event: Event): void {
     this.advisorFilter.set((event.target as HTMLSelectElement).value);
+  }
+
+  // Filtro de status
+  setStatusFilter(event: Event): void {
+    this.statusFilter.set((event.target as HTMLSelectElement).value as ProjectStatus | '');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Status
+  // ---------------------------------------------------------------------------
+
+  readonly statusChanging = signal<StatusChange | null>(null);
+  private readonly statusAction = action(
+    (change: StatusChange, note: string) => this.projectService.setStatus(change.projectId, change.to, note),
+    {
+      onSuccess: () => {
+        this.statusChanging.set(null);
+        this.store.projectChanged();
+      },
+    },
+  );
+  readonly savingStatus = this.statusAction.pending;
+  readonly statusError = this.statusAction.error;
+
+  // Gravação
+  saveStatus(change: StatusChange, note: string): void {
+    this.statusAction.run(change, note);
   }
 
   // Alternância
@@ -206,6 +243,7 @@ export class StaffHomeComponent {
       activityId,
       detail: activityId ? cellDetailOf(this.store.grid(), { projectId: project.id, projectName: project.nome, activityId }) : null,
       penalties: this.store.penalties()?.get(project.id),
+      status: this.facts().find((f) => f.projectId === project.id)?.status,
     };
   });
 
@@ -252,6 +290,7 @@ export class StaffHomeComponent {
     return [
       `Turma: ${this.scopeLabel()}`,
       `Orientador: ${advisor?.nome ?? 'Todos'}`,
+      `Status: ${this.statusFilter() ? PROJECT_STATUS_LABEL[this.statusFilter() as ProjectStatus] : 'Todos'}`,
       `Situação: ${this.filterLabels[this.filter()]}`,
       `Penalidades ativas: ${band === null ? 'Todas as faixas' : band === 3 ? '3 ou mais' : band}`,
       `Busca: ${this.search().trim() || 'sem busca'}`,
