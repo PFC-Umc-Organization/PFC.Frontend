@@ -122,9 +122,6 @@
                   } @else {
                     <span class="status status--{{ s }}">{{ statusLabel[s] }}</span>
                   }
-                  @if (!r.manual) {
-                    <span class="status-hint">sugerido pelo sistema</span>
-                  }
                   @if (r.note) {
                     <span class="status-note" [attr.title]="r.note">{{ r.note }}</span>
                   }

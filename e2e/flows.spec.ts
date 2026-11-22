@@ -659,7 +659,8 @@ test.describe('advisor', () => {
     await page.locator('#cohort').selectOption({ label: 'Engenharia de Software (Noite, 2026.2)' });
     const row = page.getByRole('row', { name: /Athena/ }).first();
     const select = row.getByRole('combobox', { name: 'Status de Athena' });
-    await expect(row).toContainText('sugerido pelo sistema');
+    const backToSuggestion = select.getByRole('option', { name: 'Voltar à sugestão' });
+    await expect(backToSuggestion).toHaveCount(0);
 
     // Cancelling keeps the status and saves nothing.
     await select.selectOption('QUALIFICADO');
@@ -673,7 +674,7 @@ test.describe('advisor', () => {
     await dialog.getByRole('button', { name: 'Salvar' }).click();
     await expect(dialog).toBeHidden();
     await expect(row).toHaveAttribute('data-status', 'QUALIFICADO');
-    await expect(row).not.toContainText('sugerido pelo sistema');
+    await expect(backToSuggestion).toHaveCount(1);
 
     // Approved with caveats asks for the note before saving.
     await select.selectOption('APROVADO_COM_RESSALVAS');
@@ -689,7 +690,8 @@ test.describe('advisor', () => {
     await page.locator('#status-filter').selectOption('');
     await select.selectOption('');
     await dialog.getByRole('button', { name: 'Salvar' }).click();
-    await expect(row).toContainText('sugerido pelo sistema');
+    await expect(backToSuggestion).toHaveCount(0);
+    expect(api.db.projects.find((x) => x.id === 'pr1')!.status).toBeUndefined();
     expect(api.failed).toEqual([]);
   });
 
@@ -697,7 +699,7 @@ test.describe('advisor', () => {
     await signIn(page, ADVISOR);
     await expect(page.getByRole('rowheader', { name: 'Athena' })).toBeVisible();
     await expect(page.getByRole('combobox', { name: /^Status de/ })).toHaveCount(0);
-    await expect(page.getByRole('row', { name: /Athena/ }).first()).toContainText('sugerido pelo sistema');
+    await expect(page.getByRole('row', { name: /Athena/ }).first().locator('.status')).toBeVisible();
   });
 
   test('pages the projects, 50 at a time by default', async ({ page, api }) => {
