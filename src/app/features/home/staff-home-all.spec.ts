@@ -36,6 +36,7 @@ function configure(role: 'ADMIN' | 'ORIENTADOR') {
               atividades: [],
               entregas: [],
               penalidades: [],
+              nomes: { alunos: {}, orientadores: {} },
             }), } },
     ],
   });

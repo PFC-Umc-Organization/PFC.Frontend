@@ -269,6 +269,10 @@ export function fakeApi() {
         atividades: projetos.length ? db.activities.filter((a) => !a.turmaId || a.turmaId === cohort) : [],
         entregas: db.submissions.filter((e) => ids.includes(e.projetoId)),
         penalidades: projetos.map((x) => penaltiesOf(x.id)),
+        nomes: {
+          alunos: Object.fromEntries(projetos.flatMap((x) => x.integrantes).flatMap((r) => (nameOf(r) ? [[r, nameOf(r)]] : []))),
+          orientadores: Object.fromEntries(Object.values(db.users).filter((u) => projetos.some((x) => x.orientadorId === u.id)).map((u) => [u.id, u.nome])),
+        },
       });
     }
     if ((mm = p.match(/^\/programas\/([^/]+)\/penalidades$/))) return staff ? json(200, visible(mm[1]).map((x) => penaltiesOf(x.id))) : forbidden();

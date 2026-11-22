@@ -1,0 +1,16 @@
+<nav class="pager" aria-label="Paginação">
+  <span class="pager__info" aria-live="polite">{{ from() }}–{{ to() }} de {{ total() }} {{ label() }}</span>
+  <div class="pager__controls">
+    <label class="pager__size">
+      Por página
+      <select class="control pager__select" [value]="size()" (change)="setSize($event)">
+        @for (s of sizes; track s) {
+          <option [value]="s" [selected]="s === size()">{{ s }}</option>
+        }
+      </select>
+    </label>
+    <button type="button" class="btn btn--outline btn--sm" [disabled]="current() === 1" aria-label="Página anterior" (click)="go(current() - 1)">‹</button>
+    <span class="pager__page">Página {{ current() }} de {{ pages() }}</span>
+    <button type="button" class="btn btn--outline btn--sm" [disabled]="current() === pages()" aria-label="Próxima página" (click)="go(current() + 1)">›</button>
+  </div>
+</nav>

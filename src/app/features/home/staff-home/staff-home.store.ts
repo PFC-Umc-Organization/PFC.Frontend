@@ -183,7 +183,15 @@ export class StaffHomeStore {
     initial: [] as User[],
   });
   readonly advisors = computed(() => this.userList.value().filter((u) => isStaff(u.perfil)));
-  readonly nameByRgm = computed(() => new Map(this.userList.value().map((u) => [u.rgm, u.nome])));
+
+  private readonly panelNames = computed(() => {
+    const panels = [...this.gridLoad.value(), ...this.extraData.value()];
+    return {
+      students: new Map(panels.flatMap((d) => Object.entries(d.nomes.alunos))),
+      advisors: new Map(panels.flatMap((d) => Object.entries(d.nomes.orientadores))),
+    };
+  });
+  readonly nameByRgm = computed(() => new Map([...this.userList.value().map((u): [string | undefined, string] => [u.rgm, u.nome]), ...this.panelNames().students]));
   readonly nameOf = (rgm: string): string => this.nameByRgm().get(rgm) ?? rgm;
 
   readonly projects = computed(() => this.gridLoad.value().flatMap((d) => d.projetos));
@@ -215,17 +223,17 @@ export class StaffHomeStore {
       return 'Sem orientador';
     }
     const own = this.auth.user();
-    return this.advisors().find((a) => a.id === id)?.nome ?? (own?.id === id ? own.nome : '—');
+    return this.panelNames().advisors.get(id) ?? this.advisors().find((a) => a.id === id)?.nome ?? (own?.id === id ? own.nome : '—');
   };
 
-  readonly gridAdvisors = computed(() => {
-    const ids = new Set(this.grid().rows.map((r) => r.project.orientadorId));
-    return this.advisors().filter((a) => ids.has(a.id));
-  });
-  readonly scopeAdvisors = computed(() => {
-    const ids = new Set(this.fullGrid().rows.map((r) => r.project.orientadorId));
-    return this.advisors().filter((a) => ids.has(a.id));
-  });
+  // Orientadores
+  private advisorsOf(grid: StatusGrid): { id: string; nome: string }[] {
+    const ids = [...new Set(grid.rows.flatMap((r) => (r.project.orientadorId ? [r.project.orientadorId] : [])))];
+    return ids.map((id) => ({ id, nome: this.advisorNameOf(id) })).sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+
+  readonly gridAdvisors = computed(() => this.advisorsOf(this.grid()));
+  readonly scopeAdvisors = computed(() => this.advisorsOf(this.fullGrid()));
 
   readonly penalties = computed(() =>
     this.gridLoad.loading() || this.gridLoad.error()

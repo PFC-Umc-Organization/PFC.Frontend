@@ -472,10 +472,13 @@ test.describe('session and quick menu', () => {
     await expect(page.getByRole('columnheader', { name: 'Entregas' })).toBeVisible();
     await page.locator('#cohort').selectOption({ label: 'Engenharia de Software (Noite, 2026.2)' });
 
-    const pill = page.getByRole('button', { name: /integrantes? de Athena/ });
-    await expect(page.getByRole('rowheader', { name: 'Athena' })).not.toContainText('RGM');
-    await pill.click();
-    await expect(page.getByRole('rowheader', { name: 'Athena' })).toContainText('RGM');
+    // Members are listed by name in the row; the RGM shows only on a click on the name.
+    const athena = page.getByRole('rowheader', { name: 'Athena' }).first();
+    await expect(athena).toContainText('Bia Lima');
+    await expect(athena).not.toContainText('RGM');
+    await athena.getByRole('button', { name: 'Ver o RGM de Bia Lima' }).click();
+    await expect(athena).toContainText('RGM 11231101229');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
 
     const scrollBefore = await page.evaluate(() => scrollY);
     await page.getByRole('row', { name: /Athena/ }).getByRole('cell').first().click();
@@ -634,6 +637,38 @@ test.describe('advisor', () => {
     await expect(page.locator('.material__remove')).toHaveCount(1);
     await expect(page.getByRole('button', { name: 'Remover Aula da turma t2' })).toBeVisible();
     expect(api.calls.some((c) => c.startsWith('POST /atividades') || c.startsWith('PUT /atividades'))).toBe(false);
+    expect(api.failed).toEqual([]);
+  });
+
+  test('names come from the panel, so advisors and students without an account in the list still show', async ({ page, api }) => {
+    api.db.projects.push({ id: 'pr-seed', nome: 'Massa', descricao: '', programaId: 'p1', integrantes: ['11231101229'], orientadorId: 'u-ana' });
+    await page.route(/execute-api.*\/usuarios$/, (route) => route.fulfill({ json: [] }));
+    await signIn(page, ADMIN);
+    await page.locator('#cohort').selectOption({ label: 'Engenharia de Software (Noite, 2026.2)' });
+    const row = page.getByRole('row', { name: /Massa/ });
+    await expect(row).toContainText('Bia Lima');
+    await expect(row.getByRole('cell').nth(1)).toHaveText('Orientadora Ana');
+    await expect(page.locator('#advisor-filter')).toContainText('Orientadora Ana');
+    await page.fill('#project-search', 'bia');
+    await expect(page.getByRole('rowheader', { name: /Massa/ })).toBeVisible();
+    expect(api.failed).toEqual([]);
+  });
+
+  test('pages the projects, 50 at a time by default', async ({ page, api }) => {
+    for (let i = 1; i <= 60; i++) {
+      api.db.projects.push({ id: `pg${i}`, nome: `Projeto ${String(i).padStart(2, '0')}`, descricao: '', programaId: 'p1', integrantes: [], orientadorId: 'u-ana' });
+    }
+    await signIn(page, ADMIN);
+    await page.locator('#cohort').selectOption({ label: 'Engenharia de Software (Noite, 2026.2)' });
+    const pager = page.getByRole('navigation', { name: 'Paginação' });
+    await expect(pager).toContainText(/1–50 de 6\d projetos/);
+    await expect(page.locator('tbody tr')).toHaveCount(50);
+    await pager.getByRole('button', { name: 'Próxima página' }).click();
+    await expect(pager).toContainText('Página 2 de 2');
+    await pager.getByRole('combobox').selectOption('100');
+    await expect(pager).toContainText('Página 1 de 1');
+    await page.fill('#project-search', 'Projeto 0');
+    await expect(pager).toHaveCount(0);
     expect(api.failed).toEqual([]);
   });
 

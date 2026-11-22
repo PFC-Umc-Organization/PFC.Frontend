@@ -31,6 +31,7 @@ export class PanelHttpService extends PanelService {
         atividades: panel.atividades ?? [],
         entregas: panel.entregas ?? [],
         penalidades: panel.penalidades ?? [],
+        nomes: { alunos: panel.nomes?.alunos ?? {}, orientadores: panel.nomes?.orientadores ?? {} },
       })),
     );
   }

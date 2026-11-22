@@ -5,6 +5,7 @@ import { from } from 'rxjs';
 import { cohortLabel } from '../../../core/models';
 import { action } from '../../../core/state/action';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
+import { PAGE_SIZES, PageSize, PaginatorComponent, pageOf } from '../../../shared/components/paginator/paginator.component';
 import { DeadlinePipe } from '../../../shared/pipes/deadline.pipe';
 import { ConsolidatedTableComponent } from '../consolidated-table/consolidated-table.component';
 import { KpiStripComponent } from '../kpi-strip/kpi-strip.component';
@@ -29,6 +30,7 @@ export type { RowFilter } from './staff-home.grid';
     ActivityTimelineComponent,
     KpiStripComponent,
     ProjectModalComponent,
+    PaginatorComponent,
     DeadlinePipe,
   ],
   providers: [StaffHomeStore],
@@ -124,6 +126,18 @@ export class StaffHomeComponent {
       advisorOf: this.store.advisorNameOf,
     }),
   );
+
+  // ---------------------------------------------------------------------------
+  // Paginação
+  // ---------------------------------------------------------------------------
+
+  protected readonly pageSizes = PAGE_SIZES;
+  readonly pageSize = signal<PageSize>(PAGE_SIZES[0]);
+  readonly page = linkedSignal({
+    source: () => [this.store.selectedValue(), this.search(), this.filter(), this.activeAdvisor(), this.band(), this.activityFilter(), this.pageSize()],
+    computation: () => 1,
+  });
+  readonly pageRows = computed(() => pageOf(this.consolidated(), this.page(), this.pageSize()));
 
   // Busca
   setSearch(event: Event): void {

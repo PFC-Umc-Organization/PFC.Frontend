@@ -27,7 +27,7 @@ function configure(cohorts: () => Observable<Cohort[]>, programs: () => Observab
       { provide: ProgramService, useValue: { list: programs } },
       { provide: ProjectService, useValue: { list: () => of([]) } },
       { provide: UserService, useValue: { list: () => of([]) } },
-      { provide: PanelService, useValue: { ofProgram: () => of({ projetos: [], atividades: [], entregas: [], penalidades: [] }) } },
+      { provide: PanelService, useValue: { ofProgram: () => of({ projetos: [], atividades: [], entregas: [], penalidades: [], nomes: { alunos: {}, orientadores: {} } }) } },
     ],
   });
 }

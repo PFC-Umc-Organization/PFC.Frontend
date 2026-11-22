@@ -95,30 +95,48 @@ button.project:focus-visible {
   font-weight: 400;
 }
 
-.pill-link {
+.members {
+  display: block;
+  max-width: 22rem;
   margin-top: 0.25rem;
-  padding: 0.0625rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: none;
-  font: inherit;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   font-size: 0.75rem;
   font-weight: 400;
   color: var(--muted-foreground);
+  cursor: default;
+}
+
+.member {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
 }
 
-.pill-link:hover,
-.pill-link[aria-expanded='true'] {
+.member:hover,
+.member[aria-expanded='true'] {
   color: var(--primary);
-  border-color: var(--primary);
+  text-decoration: underline;
 }
 
-.members {
-  margin: 0.5rem 0 0;
-  padding-left: 1rem;
-  font-size: 0.8125rem;
+.member:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.rgm {
+  display: inline-block;
+  margin-top: 0.25rem;
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  font-size: 0.75rem;
   font-weight: 400;
+  color: var(--primary);
   cursor: default;
 }
 

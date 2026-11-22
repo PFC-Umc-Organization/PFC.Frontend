@@ -1,8 +1,8 @@
 <section class="card card--flush">
   <div class="card__head">
     <h2 class="section-title">{{ heading() }}</h2>
-    @if (!loading() && rows().length) {
-      <span class="count">{{ rows().length }} {{ rows().length === 1 ? 'projeto' : 'projetos' }}</span>
+    @if (!loading() && count()) {
+      <span class="count">{{ count() }} {{ count() === 1 ? 'projeto' : 'projetos' }}</span>
     }
     <div class="actions"><ng-content select="[actions]" /></div>
   </div>
@@ -34,21 +34,26 @@
                   <span class="project__name">{{ r.name }}</span>
                 </button>
                 @if (r.memberList.length) {
-                  <button
-                    type="button"
-                    class="pill-link"
-                    [attr.aria-expanded]="expanded().has(r.projectId)"
-                    [attr.aria-label]="count(r.memberList.length) + ' de ' + r.name"
-                    (click)="toggleMembers($event, r.projectId)"
-                  >
-                    {{ count(r.memberList.length) }}
-                  </button>
-                  @if (expanded().has(r.projectId)) {
-                    <ul class="members" (click)="$event.stopPropagation()">
-                      @for (m of r.memberList; track m.rgm) {
-                        <li>{{ m.nome }}@if (m.nome !== m.rgm) { <span class="muted"> · RGM {{ m.rgm }}</span> }</li>
-                      }
-                    </ul>
+                  <span class="members" [attr.title]="r.members.join(', ')" (click)="$event.stopPropagation()">
+                    @for (m of r.memberList; track m.rgm; let last = $last) {
+                      <button
+                        type="button"
+                        class="member"
+                        [attr.aria-expanded]="revealed() === key(r.projectId, m.rgm)"
+                        [attr.aria-label]="'Ver o RGM de ' + m.nome"
+                        (click)="reveal($event, r.projectId, m.rgm)"
+                      >{{ m.nome }}</button>@if (!last) {<span aria-hidden="true">, </span>}
+                    }
+                  </span>
+                  @for (m of r.memberList; track m.rgm) {
+                    @if (revealed() === key(r.projectId, m.rgm)) {
+                      <span class="rgm" role="status" (click)="$event.stopPropagation()">
+                        @if (m.nome !== m.rgm) {
+                          {{ m.nome }} ·
+                        }
+                        RGM {{ m.rgm }}
+                      </span>
+                    }
                   }
                 } @else {
                   <span class="muted project__none">Sem integrantes</span>
@@ -110,5 +115,6 @@
         </tbody>
       </table>
     </div>
+    <ng-content select="[footer]" />
   }
 </section>

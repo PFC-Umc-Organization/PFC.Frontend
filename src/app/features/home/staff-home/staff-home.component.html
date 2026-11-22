@@ -78,7 +78,7 @@
   <div class="filters">
     <div class="field">
       <label class="field__label" for="project-search">Buscar projeto</label>
-      <input id="project-search" type="search" class="control" placeholder="Projeto, integrante ou RGM" [value]="search()" (input)="setSearch($event)" />
+      <input id="project-search" type="search" class="control" placeholder="Projeto, aluno ou RGM" [value]="search()" (input)="setSearch($event)" />
     </div>
     @if (store.isAdmin() && store.gridAdvisors().length) {
       <div class="field">
@@ -140,7 +140,8 @@
 }
 
 <app-consolidated-table
-  [rows]="consolidated()"
+  [rows]="pageRows()"
+  [total]="consolidated().length"
   [loading]="store.loading()"
   [emptyText]="emptyText()"
   [selectedProject]="selectedProject()"
@@ -164,6 +165,9 @@
       Exportar PDF
     </button>
   </div>
+  @if (consolidated().length > pageSizes[0]) {
+    <app-paginator footer [total]="consolidated().length" [(page)]="page" [(size)]="pageSize" label="projetos" />
+  }
 </app-consolidated-table>
 
 @if (modal(); as m) {

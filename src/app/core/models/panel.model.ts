@@ -7,9 +7,15 @@ import { Submission } from './submission.model';
 // Painel
 // ---------------------------------------------------------------------------
 
+export interface PanelNames {
+  alunos: Record<string, string>;
+  orientadores: Record<string, string>;
+}
+
 export interface Panel {
   projetos: Project[];
   atividades: Activity[];
   entregas: Submission[];
   penalidades: ProjectPenalties[];
+  nomes: PanelNames;
 }
